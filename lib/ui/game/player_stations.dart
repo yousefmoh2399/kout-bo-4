@@ -154,15 +154,15 @@ class SideStation extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
       decoration: _stationDecoration(isTurn: isTurn, sameTeam: false),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           head,
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 78),
+            constraints: const BoxConstraints(maxWidth: 64),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

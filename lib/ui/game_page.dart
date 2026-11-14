@@ -9,6 +9,7 @@ import '../core/sound.dart';
 import '../core/theme.dart';
 import '../data/emote.dart';
 import '../data/stats_repository.dart';
+import '../domain/rules.dart';
 import 'game/game_hud.dart';
 import 'game/hand_view.dart';
 import 'game/player_stations.dart';
@@ -29,6 +30,7 @@ class GamePage extends StatefulWidget {
     this.onEmote,
     this.hostLost,
     this.onTakeOverHost,
+    this.onResync,
   });
 
   final GameBloc bloc;
@@ -38,6 +40,7 @@ class GamePage extends StatefulWidget {
   final ValueChanged<String>? onEmote;
   final ValueListenable<bool>? hostLost;
   final VoidCallback? onTakeOverHost;
+  final VoidCallback? onResync;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -103,6 +106,10 @@ class _GamePageState extends State<GamePage> {
         !s.trick.isComplete &&
         s.phase == GamePhase.playing) {
       sfx.play(Sfx.trick);
+      if (s.lastTrickWinner != null &&
+          Rules.teamOf(s.lastTrickWinner!) == lt) {
+        sfx.impact();
+      }
     }
 
     if (s.actor == me && p.actor != me) {
@@ -221,6 +228,7 @@ class _GamePageState extends State<GamePage> {
                         me: widget.bloc.localSeat,
                         bubbles: _bubbles,
                         onEmoteTap: widget.onEmote == null ? null : _showPhrases,
+                        onResync: widget.onResync,
                       ),
                     ),
                     ValueListenableBuilder<bool>(
@@ -291,12 +299,14 @@ class _GameBody extends StatelessWidget {
     required this.me,
     required this.bubbles,
     required this.onEmoteTap,
+    this.onResync,
   });
 
   final GameState state;
   final int me;
   final ValueNotifier<Map<int, String>> bubbles;
   final VoidCallback? onEmoteTap;
+  final VoidCallback? onResync;
 
   @override
   Widget build(BuildContext context) {
@@ -320,32 +330,49 @@ class _GameBody extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            // 1. ساحة رمي الأوراق الوسطية
+            // 1. طاولة الديوانية الكويتية الوسطية (ساحة رمي الأوراق)
             Positioned(
-              top: isPortrait ? 120 : 62,
-              bottom: isPortrait ? 186 : 86,
-              left: isPortrait ? 48 : 118,
-              right: isPortrait ? 48 : 118,
+              key: const ValueKey('trick_arena'),
+              top: isPortrait ? 128 : 48,
+              bottom: isPortrait ? 184 : 74,
+              left: isPortrait ? 68 : 92,
+              right: isPortrait ? 68 : 92,
               child: TrickArena(state: s, me: me),
             ),
 
+            // 1ب. نافذة مصغرة لآخر أكلة (أعلى اليسار تحت شريط التحكم كما في الألعاب العالمية)
+            if (s.lastTrick.isNotEmpty)
+              Positioned(
+                key: const ValueKey('mini_last_trick'),
+                top: isPortrait ? 48 : 44,
+                left: 10,
+                child: MiniLastTrickBox(state: s, me: me),
+              ),
+
             // 2. أزرار التحكم العليا (يسار)
             Positioned(
-              top: 8,
+              key: const ValueKey('top_controls'),
+              top: 6,
               left: 10,
-              child: TopControlsPill(state: s, me: me),
+              child: TopControlsPill(
+                state: s,
+                me: me,
+                onResync: onResync,
+              ),
             ),
 
             // 3. لوحة النقاط واللزمة (يمين)
             Positioned(
-              top: 8,
+              key: const ValueKey('score_hud'),
+              top: 6,
               right: 10,
               child: ScoreAndContractHud(state: s, me: me),
             ),
 
             // 4. محطة الشريك
             Positioned(
-              top: isPortrait ? 56 : 8,
+              key: const ValueKey('partner_station'),
+              top: isPortrait ? 54 : 4,
               left: 0,
               right: 0,
               child: Center(
@@ -353,34 +380,42 @@ class _GameBody extends StatelessWidget {
               ),
             ),
 
-            // 5. مؤشر المرحلة والدور المباشر (أو شريط اللعب التلقائي عند تفعيله)
+            // 5. مؤشر المرحلة والدور المباشر (أو شريط اللعب التلقائي في مساحة حرة بدون تغطية أي ورق)
             if (!finished && s.phase != GamePhase.idle)
               Positioned(
-                top: isPortrait ? 98 : 42,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: isAuto
-                      ? const AutoPlayBanner()
-                      : PhaseStatusTicker(state: s, me: me),
-                ),
+                key: const ValueKey('phase_status'),
+                top: isPortrait ? 99 : null,
+                bottom: isPortrait ? null : (onEmoteTap != null ? 54 : 10),
+                left: isPortrait ? 0 : null,
+                right: isPortrait ? 0 : 6,
+                child: isPortrait
+                    ? Center(
+                        child: isAuto
+                            ? const AutoPlayBanner()
+                            : PhaseStatusTicker(state: s, me: me),
+                      )
+                    : (isAuto
+                        ? const AutoPlayBanner(compact: true)
+                        : PhaseStatusTicker(state: s, me: me, compact: true)),
               ),
 
-            // 6. محطة الخصم الأيمن
+            // 6. محطة الخصم الأيمن (خارج إطار الطاولة)
             Positioned(
-              right: isPortrait ? 8 : 12,
-              top: isPortrait ? 108 : 56,
-              bottom: isPortrait ? 168 : 58,
+              key: const ValueKey('right_station'),
+              right: isPortrait ? 4 : 8,
+              top: isPortrait ? 126 : 48,
+              bottom: isPortrait ? 184 : 74,
               child: Center(
                 child: SideStation(state: s, seat: rightSeat, isRight: true),
               ),
             ),
 
-            // 7. محطة الخصم الأيسر
+            // 7. محطة الخصم الأيسر (خارج إطار الطاولة)
             Positioned(
-              left: isPortrait ? 8 : 12,
-              top: isPortrait ? 108 : 56,
-              bottom: isPortrait ? 168 : 58,
+              key: const ValueKey('left_station'),
+              left: isPortrait ? 4 : 8,
+              top: isPortrait ? 126 : 48,
+              bottom: isPortrait ? 184 : 74,
               child: Center(
                 child: SideStation(state: s, seat: leftSeat, isRight: false),
               ),
@@ -388,22 +423,25 @@ class _GameBody extends StatelessWidget {
 
             // 8. محطة اللاعب (أنت)
             Positioned(
+              key: const ValueKey('player_station'),
               left: 10,
-              bottom: isPortrait ? 128 : 12,
+              bottom: isPortrait ? 124 : 8,
               child: PlayerStation(state: s, seat: me),
             ),
 
             // 9. زر الدردشة
             if (onEmoteTap != null)
               Positioned(
+                key: const ValueKey('emote_btn'),
                 right: 10,
-                bottom: isPortrait ? 128 : 12,
+                bottom: isPortrait ? 124 : 8,
                 child: EmoteButton(onTap: onEmoteTap!),
               ),
 
             // 10. يد اللاعب في المنتصف أسفل الشاشة
             Positioned(
-              bottom: isPortrait ? 6 : 2,
+              key: const ValueKey('hand_view'),
+              bottom: isPortrait ? 4 : 0,
               left: 0,
               right: 0,
               child: HandView(state: s, me: me, isPortrait: isPortrait),
@@ -411,6 +449,7 @@ class _GameBody extends StatelessWidget {
 
             // 11. فقاعات الدردشة العائمة
             ValueListenableBuilder<Map<int, String>>(
+              key: const ValueKey('bubbles_layer'),
               valueListenable: bubbles,
               builder: (context, map, _) => Stack(
                 children: [
@@ -422,6 +461,7 @@ class _GameBody extends StatelessWidget {
             // 12. شاشات الحوار التفاعلية
             if (s.phase == GamePhase.idle)
               const Center(
+                key: ValueKey('idle_overlay'),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -436,15 +476,21 @@ class _GameBody extends StatelessWidget {
               ),
             if (humanBids)
               Align(
+                key: const ValueKey('bid_panel'),
                 alignment: Alignment(0, isPortrait ? 0.0 : -0.18),
                 child: BidPanel(state: s),
               ),
             if (humanTrump)
               Align(
+                key: const ValueKey('trump_picker'),
                 alignment: Alignment(0, isPortrait ? 0.0 : -0.18),
                 child: const TrumpPicker(),
               ),
-            if (finished) ResultOverlay(state: s),
+            if (finished)
+              ResultOverlay(
+                key: const ValueKey('result_overlay'),
+                state: s,
+              ),
           ],
         );
       },

@@ -26,12 +26,11 @@ class PlayingCardView extends StatelessWidget {
     final isRed = card.isJoker ? card.isRedJoker : card.suit!.isRed;
     final color = isRed ? AppColors.cardRed : AppColors.cardBlack;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
+    return RepaintBoundary(
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFFFFFFF), Color(0xFFFDFBF4), Color(0xFFF4EFE1)],
           stops: [0.0, 0.55, 1.0],
@@ -93,6 +92,7 @@ class PlayingCardView extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -539,7 +539,7 @@ class _CornerIndex extends StatelessWidget {
   }
 }
 
-/// ظهر الورقة الفاخر بنمط الزخرفة الملكية (Royal Guilloche Mandala).
+/// ظهر الورقة الفاخر بنمط الزخرفة الملكية (Royal Arabesque Guilloché & Gold Medallion).
 class CardBackView extends StatelessWidget {
   const CardBackView({super.key, this.width = 32, this.label});
 
@@ -550,84 +550,102 @@ class CardBackView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF96152A), Color(0xFF5A0915)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(width * 0.13),
-        border: Border.all(color: Colors.white, width: max(1.0, width * 0.055)),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black54,
-            blurRadius: 4,
-            offset: Offset(0, 2),
+    final radius = width * 0.13;
+    final outerPad = max(1.3, width * 0.068);
+    final innerRadius = max(2.0, radius - outerPad * 0.65);
+    return RepaintBoundary(
+      child: Container(
+        width: width,
+        height: height,
+        padding: EdgeInsets.all(outerPad),
+        decoration: BoxDecoration(
+          // حافة ورق اللعب العاجي الفاخر مثل أوراق اللعب العالمية
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFFFFF), Color(0xFFF6F0E2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(width * 0.10),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _CardBackPainter(),
-              ),
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: const Color(0xFFB8AA8E),
+            width: max(0.6, width * 0.018),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(135),
+              blurRadius: max(3.5, width * 0.12),
+              offset: Offset(0, max(1.5, width * 0.05)),
             ),
-            Positioned.fill(
-              child: Container(
-                margin: EdgeInsets.all(max(1.5, width * 0.085)),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(width * 0.06),
-                  border: Border.all(color: AppColors.goldLight.withAlpha(185), width: 0.9),
-                ),
-              ),
-            ),
-            if (label != null)
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: width * 0.15, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(180),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.gold, width: 1),
-                ),
-                child: Text(
-                  label!,
-                  style: TextStyle(
-                    color: AppColors.goldLight,
-                    fontWeight: FontWeight.w900,
-                    fontSize: width * 0.42,
-                    height: 1.1,
-                  ),
-                ),
-              )
-            else
-              Container(
-                width: width * 0.42,
-                height: width * 0.42,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const RadialGradient(
-                    colors: [Color(0xFF6B0B19), Color(0xFF3E040C)],
-                  ),
-                  border: Border.all(color: AppColors.gold, width: 1.0),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '♠',
-                  style: TextStyle(
-                    color: AppColors.goldLight,
-                    fontSize: width * 0.22,
-                    height: 1,
-                  ),
-                ),
-              ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(innerRadius),
+          child: Stack(
+            fit: StackFit.expand,
+            alignment: Alignment.center,
+            children: [
+              // خلفية عنابية ملكية عميقة بتدرج مركزي غني
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF9C162E),
+                      Color(0xFF6B0B1C),
+                      Color(0xFF3E040E),
+                    ],
+                    stops: [0.0, 0.58, 1.0],
+                  ),
+                ),
+              ),
+              // زخرفة هندسية عربية وميدالية ذهبية في الوسط
+              CustomPaint(
+                painter: _CardBackPainter(
+                  detailed: width >= 26,
+                  showMedallion: label == null,
+                ),
+              ),
+              // لمعة حريرية مائلة أعلى الورقة لإبراز ملمس الكوتشينة الأصلي
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withAlpha(34),
+                      Colors.transparent,
+                      Colors.black.withAlpha(24),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
+              if (label != null)
+                Center(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: width * 0.15,
+                      vertical: 1.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(190),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.gold, width: 1),
+                    ),
+                    child: Text(
+                      label!,
+                      style: TextStyle(
+                        color: AppColors.goldLight,
+                        fontWeight: FontWeight.w900,
+                        fontSize: width * 0.42,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -635,20 +653,135 @@ class CardBackView extends StatelessWidget {
 }
 
 class _CardBackPainter extends CustomPainter {
+  const _CardBackPainter({
+    required this.detailed,
+    required this.showMedallion,
+  });
+
+  final bool detailed;
+  final bool showMedallion;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.goldLight.withAlpha(32)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.7;
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
+    final cy = h / 2;
 
-    const step = 6.5;
-    for (double i = -size.height; i < size.width + size.height; i += step) {
-      canvas.drawLine(Offset(i, 0), Offset(i + size.height, size.height), paint);
-      canvas.drawLine(Offset(i, size.height), Offset(i + size.height, 0), paint);
+    // 1. شبكة معيّنات زخرفية دقيقة متناسقة مع حجم الورقة
+    final latticePaint = Paint()
+      ..color = AppColors.goldLight.withAlpha(detailed ? 42 : 52)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = detailed ? max(0.55, w * 0.012) : 0.7;
+
+    final step = max(5.0, w * 0.19);
+    for (double y = 0; y <= h + step; y += step) {
+      for (double x = 0; x <= w + step; x += step) {
+        final p = Path()
+          ..moveTo(x, y - step * 0.5)
+          ..lineTo(x + step * 0.5, y)
+          ..lineTo(x, y + step * 0.5)
+          ..lineTo(x - step * 0.5, y)
+          ..close();
+        canvas.drawPath(p, latticePaint);
+      }
     }
+
+    // 2. إطار ذهبي مزدوج أنيق
+    final m1 = max(1.5, w * 0.065);
+    final outerRect = RRect.fromRectAndRadius(
+      Rect.fromLTRB(m1, m1, w - m1, h - m1),
+      Radius.circular(max(1.5, w * 0.055)),
+    );
+    canvas.drawRRect(
+      outerRect,
+      Paint()
+        ..color = AppColors.goldLight.withAlpha(205)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(0.8, w * 0.022),
+    );
+
+    if (detailed) {
+      final m2 = m1 + max(2.2, w * 0.055);
+      final innerRect = RRect.fromRectAndRadius(
+        Rect.fromLTRB(m2, m2, w - m2, h - m2),
+        Radius.circular(max(1.2, w * 0.04)),
+      );
+      canvas.drawRRect(
+        innerRect,
+        Paint()
+          ..color = AppColors.gold.withAlpha(135)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = max(0.55, w * 0.012),
+      );
+
+      // زوايا ذهبية مقوّسة (Corner Filigree)
+      final cornerR = w * 0.14;
+      final cornerPaint = Paint()
+        ..color = AppColors.goldLight.withAlpha(165)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(0.7, w * 0.016);
+      canvas.drawCircle(Offset(m2, m2), cornerR * 0.45, cornerPaint);
+      canvas.drawCircle(Offset(w - m2, m2), cornerR * 0.45, cornerPaint);
+      canvas.drawCircle(Offset(m2, h - m2), cornerR * 0.45, cornerPaint);
+      canvas.drawCircle(Offset(w - m2, h - m2), cornerR * 0.45, cornerPaint);
+    }
+
+    if (!showMedallion) return;
+
+    // 3. ميدالية وسطية ملكية بنجمة ثمانية ذهبية (شعار الكوتشينة)
+    final medR = w * 0.25;
+    canvas.drawCircle(
+      Offset(cx, cy),
+      medR,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Color(0xFF5D0716), Color(0xFF2B030A)],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: medR)),
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      medR,
+      Paint()
+        ..color = AppColors.goldLight.withAlpha(220)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(0.8, w * 0.024),
+    );
+
+    if (detailed) {
+      canvas.drawCircle(
+        Offset(cx, cy),
+        medR * 0.78,
+        Paint()
+          ..color = AppColors.gold.withAlpha(140)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = max(0.5, w * 0.012),
+      );
+    }
+
+    // نجمة ثمانية متماثلة في مركز الورقة
+    final starPaint = Paint()
+      ..color = AppColors.goldLight
+      ..style = PaintingStyle.fill;
+    final outerStarR = medR * 0.62;
+    final innerStarR = medR * 0.26;
+    final starPath = Path();
+    for (var i = 0; i < 16; i++) {
+      final angle = (i * pi / 8) - pi / 2;
+      final r = i.isEven ? outerStarR : innerStarR;
+      final px = cx + cos(angle) * r;
+      final py = cy + sin(angle) * r;
+      if (i == 0) {
+        starPath.moveTo(px, py);
+      } else {
+        starPath.lineTo(px, py);
+      }
+    }
+    starPath.close();
+    canvas.drawPath(starPath, starPaint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CardBackPainter oldDelegate) =>
+      oldDelegate.detailed != detailed || oldDelegate.showMedallion != showMedallion;
 }

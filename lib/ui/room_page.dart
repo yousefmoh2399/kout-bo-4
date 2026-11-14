@@ -81,6 +81,7 @@ class _RoomPageState extends State<RoomPage> {
           onEmote: session.sendEmote,
           hostLost: session.hostLost,
           onTakeOverHost: session.promoteSelfFromCrash,
+          onResync: session.requestResync,
           onClose: () {
             session.dispose().then((_) {
               if (session.isHost && !session.migratedOut) {
@@ -207,8 +208,13 @@ class _RoomPageState extends State<RoomPage> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             onPressed: () {
               SoundService.instance.play(Sfx.click);
+              final box = context.findRenderObject() as RenderBox?;
+              final origin = box == null
+                  ? const Rect.fromLTWH(0, 0, 1, 1)
+                  : box.localToGlobal(Offset.zero) & box.size;
               Share.share(
                 'تعال العب معي كوت بو ٤! ادخل التطبيق واختر "انضم بكود" واكتب: ${room.code}',
+                sharePositionOrigin: origin,
               );
             },
           ),

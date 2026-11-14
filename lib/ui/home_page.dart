@@ -44,14 +44,16 @@ class _HomePageState extends State<HomePage> {
     _stats = context.read<StatsRepository>().summary();
     final uid = context.read<AuthCubit>().state.userId;
     if (AppConfig.isOnlineConfigured && uid != null && uid != 'local') {
-      _activeRoom = RoomRepository(Supabase.instance.client).findMyActiveRoom(uid);
+      _activeRoom =
+          RoomRepository(Supabase.instance.client).findMyActiveRoom(uid);
     } else {
       _activeRoom = null;
     }
   }
 
   Future<void> _playSolo() async {
-    final settings = await showGameSettingsSheet(context, confirmLabel: 'ابدأ اللعب');
+    final settings =
+        await showGameSettingsSheet(context, confirmLabel: 'ابدأ اللعب');
     if (settings == null || !mounted) return;
     final name = context.read<AuthCubit>().state.name;
     final bloc = GameBloc(
@@ -69,7 +71,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _createRoom() async {
-    final settings = await showGameSettingsSheet(context, confirmLabel: 'إنشاء الغرفة');
+    final settings =
+        await showGameSettingsSheet(context, confirmLabel: 'إنشاء الغرفة');
     if (settings == null || !mounted) return;
     await Navigator.push(
       context,
@@ -90,7 +93,11 @@ class _HomePageState extends State<HomePage> {
         textCapitalization: TextCapitalization.characters,
         textAlign: TextAlign.center,
         maxLength: 5,
-        style: const TextStyle(fontSize: 26, letterSpacing: 8, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontSize: 26,
+          letterSpacing: 8,
+          fontWeight: FontWeight.bold,
+        ),
         decoration: const InputDecoration(hintText: 'XXXXX', counterText: ''),
       ),
       actions: [
@@ -103,7 +110,8 @@ class _HomePageState extends State<HomePage> {
         GoldButton(
           label: 'انضم',
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-          onPressed: () => Navigator.pop(context, controller.text.trim().toUpperCase()),
+          onPressed: () =>
+              Navigator.pop(context, controller.text.trim().toUpperCase()),
         ),
       ],
     );
@@ -128,7 +136,9 @@ class _HomePageState extends State<HomePage> {
   void _openSettings() {
     SoundService.instance.play(Sfx.click);
     Navigator.push(context, appRoute<void>(const SettingsPage())).then((_) {
-      if (mounted) setState(() => _stats = context.read<StatsRepository>().summary());
+      if (mounted) {
+        setState(() => _stats = context.read<StatsRepository>().summary());
+      }
     });
   }
 
@@ -138,17 +148,16 @@ class _HomePageState extends State<HomePage> {
     final auth = context.watch<AuthCubit>().state;
 
     return Scaffold(
-      body: FeltBackground(
-        animated: true,
+      body: _HomeDiwaniyaBackdrop(
         child: SafeArea(
           child: Column(
             children: [
-              // 1. الشريط العلوي الملكي (ملف اللاعب + أزرار التنقل السريع)
+              // 1. الشريط العلوي الفاخر (ملف اللاعب + أزرار التنقل السريع)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
                 child: LayoutBuilder(
                   builder: (context, topC) {
-                    final compact = topC.maxWidth < 540;
+                    final compact = topC.maxWidth < 560;
                     return Row(
                       children: [
                         Flexible(
@@ -200,11 +209,14 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(width: 6),
                         ],
                         _NavIconCircle(
-                          tooltip: 'طريقة اللعب',
+                          tooltip: 'قوانين كوت بو ٤',
                           icon: Icons.menu_book_rounded,
                           onTap: () {
                             SoundService.instance.play(Sfx.click);
-                            Navigator.push(context, appRoute<void>(const RulesPage()));
+                            Navigator.push(
+                              context,
+                              appRoute<void>(const RulesPage()),
+                            );
                           },
                         ),
                         const SizedBox(width: 6),
@@ -215,9 +227,9 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(width: 6),
                         _NavIconCircle(
-                          tooltip: 'خروج',
+                          tooltip: 'تسجيل الخروج',
                           icon: Icons.logout_rounded,
-                          color: Colors.white60,
+                          color: Colors.white70,
                           onTap: () {
                             SoundService.instance.play(Sfx.click);
                             context.read<AuthCubit>().signOut();
@@ -229,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // شريط الغرفة النشطة للعودة السريعة إذا كان اللاعب منضماً لغرفة حالياً
+              // شريط العودة السريعة للغرفة النشطة
               if (_activeRoom != null)
                 FutureBuilder<Room?>(
                   future: _activeRoom,
@@ -242,20 +254,30 @@ class _HomePageState extends State<HomePage> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                           onTap: () => _rejoinRoom(room),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 9,
+                            ),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xEE2B2007), Color(0xEE141A0E)],
+                                colors: [Color(0xEE332308), Color(0xEE181F12)],
                               ),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.gold, width: 1.2),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.gold,
+                                width: 1.2,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.meeting_room_rounded, color: AppColors.goldLight, size: 20),
+                                const Icon(
+                                  Icons.meeting_room_rounded,
+                                  color: AppColors.goldLight,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -271,7 +293,11 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ),
                                 ),
-                                const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.goldLight, size: 14),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  color: AppColors.goldLight,
+                                  size: 14,
+                                ),
                               ],
                             ),
                           ),
@@ -281,28 +307,34 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
 
-              // 2. قلب الصفحة (تصميم مزدوج متوازن في الوضع الأفقي)
+              // 2. محتوى الصفحة المتجاوب مع الطولي والعرضي
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final isWide = constraints.maxWidth >= 560;
+                    final isWide = constraints.maxWidth >= 580;
                     if (isWide) {
                       return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 8,
+                          ),
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 880),
+                            constraints: const BoxConstraints(maxWidth: 920),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Expanded(
                                   flex: 5,
-                                  child: _HeroShowcase(statsFuture: _stats),
+                                  child: _HeroShowcase(
+                                    statsFuture: _stats,
+                                    compact: true,
+                                  ),
                                 ),
-                                const SizedBox(width: 28),
+                                const SizedBox(width: 26),
                                 Expanded(
-                                  flex: 5,
-                                  child: _PlayPanel(
+                                  flex: 6,
+                                  child: _PlayModesSection(
                                     online: online,
                                     onPlaySolo: _playSolo,
                                     onCreateRoom: _createRoom,
@@ -317,12 +349,12 @@ class _HomePageState extends State<HomePage> {
                     }
 
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
                       child: Column(
                         children: [
-                          _HeroShowcase(statsFuture: _stats),
-                          const SizedBox(height: 22),
-                          _PlayPanel(
+                          _HeroShowcase(statsFuture: _stats, compact: false),
+                          const SizedBox(height: 20),
+                          _PlayModesSection(
                             online: online,
                             onPlaySolo: _playSolo,
                             onCreateRoom: _createRoom,
@@ -340,6 +372,85 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+/// خلفية الديوانية الكويتية الملكية للشاشة الرئيسية.
+class _HomeDiwaniyaBackdrop extends StatelessWidget {
+  const _HomeDiwaniyaBackdrop({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0.0, -0.35),
+          radius: 1.25,
+          colors: [
+            Color(0xFF15382E),
+            Color(0xFF0B1F1D),
+            Color(0xFF061014),
+          ],
+          stops: [0.0, 0.55, 1.0],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const CustomPaint(painter: _HomeSaduPatternPainter()),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeSaduPatternPainter extends CustomPainter {
+  const _HomeSaduPatternPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final goldLine = Paint()
+      ..color = AppColors.gold.withAlpha(14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9;
+
+    final crimsonDiamond = Paint()
+      ..color = const Color(0xFF8E2430).withAlpha(22)
+      ..style = PaintingStyle.fill;
+
+    // زخرفة هندسية هادئة في الخلفية
+    const spacing = 76.0;
+    for (double y = 20; y < size.height; y += spacing) {
+      for (double x = 20; x < size.width; x += spacing) {
+        _diamond(canvas, Offset(x, y), 24, goldLine);
+        _diamond(canvas, Offset(x, y), 5, crimsonDiamond);
+      }
+    }
+
+    // هالة دائرية ذهبية خفيفة خلف الشعار العلوي
+    final cx = size.width / 2;
+    final cy = size.height * 0.26;
+    final ringPaint = Paint()
+      ..color = AppColors.gold.withAlpha(22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawCircle(Offset(cx, cy), min(size.width, size.height) * 0.28, ringPaint);
+  }
+
+  void _diamond(Canvas canvas, Offset c, double r, Paint paint) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + r, c.dy)
+      ..lineTo(c.dx, c.dy + r)
+      ..lineTo(c.dx - r, c.dy)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ProfilePill extends StatelessWidget {
@@ -360,32 +471,45 @@ class _ProfilePill extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(28),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 5, 6, 5),
+          padding: const EdgeInsets.fromLTRB(14, 6, 7, 6),
           decoration: BoxDecoration(
-            color: const Color(0xC8041B12),
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: AppColors.gold.withAlpha(110), width: 1.1),
+            gradient: const LinearGradient(
+              colors: [Color(0xDD0D2922), Color(0xDD061512)],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: AppColors.gold.withAlpha(120),
+              width: 1.2,
+            ),
             boxShadow: const [
-              BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 2)),
+              BoxShadow(
+                color: Colors.black45,
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [AppColors.goldLight, AppColors.gold, AppColors.goldDark],
+                    colors: [
+                      AppColors.goldLight,
+                      AppColors.gold,
+                      AppColors.goldDark,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(color: Colors.white, width: 1.3),
+                  border: Border.all(color: Colors.white, width: 1.4),
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -397,28 +521,43 @@ class _ProfilePill extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 9),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, height: 1.1),
-                  ),
-                  FutureBuilder<PlayerStats?>(
-                    future: statsFuture,
-                    builder: (context, snap) {
-                      final st = snap.data;
-                      return Text(
-                        st == null
-                            ? (isGuest ? 'حساب ضيف' : 'لاعب مميز')
-                            : 'فوز ${st.wins} من ${st.games}',
-                        style: const TextStyle(color: AppColors.goldLight, fontSize: 10.5, fontWeight: FontWeight.w600),
-                      );
-                    },
-                  ),
-                ],
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13.5,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FutureBuilder<PlayerStats?>(
+                      future: statsFuture,
+                      builder: (context, snap) {
+                        final st = snap.data;
+                        return Text(
+                          st == null
+                              ? (isGuest ? 'ضيف الديوانية' : 'عضو الديوانية')
+                              : 'فوز ${st.wins} من ${st.games}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.goldLight,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -444,14 +583,14 @@ class _NavActionPill extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xC0041B12),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.gold.withAlpha(90), width: 1),
+            color: const Color(0xCC0A221C),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppColors.gold.withAlpha(95), width: 1.0),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -494,15 +633,18 @@ class _NavIconCircle extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: Container(
-            width: 34,
-            height: 34,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xC0041B12),
-              border: Border.all(color: Colors.white24, width: 1),
+              color: const Color(0xCC0A221C),
+              border: Border.all(
+                color: AppColors.gold.withAlpha(75),
+                width: 1.0,
+              ),
             ),
             child: Icon(icon, size: 17, color: color ?? AppColors.goldLight),
           ),
@@ -512,19 +654,26 @@ class _NavIconCircle extends StatelessWidget {
   }
 }
 
-/// الواجهة الترحيبية اليسرى: مروحة أوراق ثلاثية الأبعاد + الشعار الملكي.
+/// الشعار الملكي لـ "كوت بو ٤" مع ميدالية الديوانية وشريط الإحصائيات.
 class _HeroShowcase extends StatefulWidget {
-  const _HeroShowcase({required this.statsFuture});
+  const _HeroShowcase({
+    required this.statsFuture,
+    required this.compact,
+  });
 
   final Future<PlayerStats?>? statsFuture;
+  final bool compact;
 
   @override
   State<_HeroShowcase> createState() => _HeroShowcaseState();
 }
 
-class _HeroShowcaseState extends State<_HeroShowcase> with SingleTickerProviderStateMixin {
-  late final AnimationController _floatCtrl =
-      AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
+class _HeroShowcaseState extends State<_HeroShowcase>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _floatCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 4),
+  )..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -537,73 +686,142 @@ class _HeroShowcaseState extends State<_HeroShowcase> with SingleTickerProviderS
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // مروحة أوراق الديوانية الفاخرة
+        // ميدالية أوراق الديوانية الملكية
         AnimatedBuilder(
           animation: _floatCtrl,
           builder: (context, child) {
-            final dy = sin(_floatCtrl.value * pi) * 4.5;
+            final dy = sin(_floatCtrl.value * pi) * 4.0;
             return Transform.translate(offset: Offset(0, -dy), child: child);
           },
           child: SizedBox(
-            height: 102,
-            width: 190,
+            height: widget.compact ? 112 : 124,
+            width: 230,
             child: Stack(
               alignment: Alignment.center,
               children: [
+                // هالة ذهبية خلف الأوراق
+                Container(
+                  width: widget.compact ? 96 : 108,
+                  height: widget.compact ? 96 : 108,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.gold.withAlpha(75),
+                        AppColors.gold.withAlpha(12),
+                        Colors.transparent,
+                      ],
+                    ),
+                    border: Border.all(
+                      color: AppColors.gold.withAlpha(90),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
                 Positioned(
                   left: 24,
-                  top: 14,
+                  top: 18,
                   child: Transform.rotate(
-                    angle: -0.22,
+                    angle: -0.32,
+                    child: const PlayingCardView(
+                      card: PlayingCard.suited(Suit.diamonds, Rank.ace),
+                      width: 48,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 52,
+                  top: 10,
+                  child: Transform.rotate(
+                    angle: -0.12,
                     child: const PlayingCardView(
                       card: PlayingCard.suited(Suit.hearts, Rank.king),
-                      width: 54,
+                      width: 52,
                     ),
                   ),
                 ),
                 Positioned(
                   right: 24,
-                  top: 14,
+                  top: 18,
                   child: Transform.rotate(
-                    angle: 0.22,
+                    angle: 0.32,
+                    child: const PlayingCardView(
+                      card: PlayingCard.suited(Suit.clubs, Rank.ten),
+                      width: 48,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 52,
+                  top: 10,
+                  child: Transform.rotate(
+                    angle: 0.12,
                     child: const PlayingCardView(
                       card: PlayingCard.suited(Suit.spades, Rank.ace),
-                      width: 54,
+                      width: 52,
                     ),
                   ),
                 ),
                 Positioned(
                   top: 4,
-                  child: Transform.rotate(
-                    angle: 0.02,
-                    child: const PlayingCardView(
-                      card: PlayingCard.joker(JokerKind.red),
-                      width: 58,
-                      highlighted: true,
-                    ),
+                  child: const PlayingCardView(
+                    card: PlayingCard.joker(JokerKind.red),
+                    width: 56,
+                    highlighted: true,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'كوت بو ٤',
-          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: AppColors.goldLight,
-                fontWeight: FontWeight.w900,
-                fontSize: 34,
-                height: 1.05,
-                shadows: [
-                  Shadow(color: Colors.black.withAlpha(180), blurRadius: 16, offset: const Offset(0, 4)),
-                  Shadow(color: AppColors.gold.withAlpha(130), blurRadius: 24),
-                ],
+        const SizedBox(height: 6),
+        // شارة العنوان الملكية
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withAlpha(35),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.gold.withAlpha(130)),
               ),
+              child: const Text(
+                '٤',
+                style: TextStyle(
+                  color: AppColors.goldLight,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  height: 1.0,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'كوت بو ٤',
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: AppColors.goldLight,
+                    fontWeight: FontWeight.w900,
+                    fontSize: widget.compact ? 30 : 34,
+                    height: 1.05,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withAlpha(200),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                      Shadow(
+                        color: AppColors.gold.withAlpha(120),
+                        blurRadius: 22,
+                      ),
+                    ],
+                  ),
+            ),
+          ],
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         const Text(
-          'ديوانية الورق الخليجية الأصيلة',
+          'ديوانية الورق الكويتية الأصيلة',
           style: TextStyle(
             color: Colors.white70,
             fontSize: 12.5,
@@ -612,6 +830,7 @@ class _HeroShowcaseState extends State<_HeroShowcase> with SingleTickerProviderS
           ),
         ),
         const SizedBox(height: 12),
+        // شريط الإحصائيات الزجاجي المذهب
         FutureBuilder<PlayerStats?>(
           future: widget.statsFuture,
           builder: (context, snap) {
@@ -620,18 +839,20 @@ class _HeroShowcaseState extends State<_HeroShowcase> with SingleTickerProviderS
             final wins = st?.wins ?? 0;
             final rate = games == 0 ? 0 : ((wins / games) * 100).round();
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withAlpha(90),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.gold.withAlpha(75)),
+                gradient: const LinearGradient(
+                  colors: [Color(0xCC0D2620), Color(0xCC061411)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.gold.withAlpha(90)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _miniStat('المباريات', '$games', Colors.white),
                   _sep(),
-                  _miniStat('الانتصارات', '$wins', const Color(0xFF48BB78)),
+                  _miniStat('الانتصارات', '$wins', const Color(0xFF4BE0A8)),
                   _sep(),
                   _miniStat('نسبة الفوز', '$rate%', AppColors.goldLight),
                 ],
@@ -647,23 +868,35 @@ class _HeroShowcaseState extends State<_HeroShowcase> with SingleTickerProviderS
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(val, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, height: 1.1)),
-        Text(label, style: const TextStyle(fontSize: 9.5, color: Colors.white60)),
+        Text(
+          val,
+          style: TextStyle(
+            fontSize: 15.5,
+            fontWeight: FontWeight.w900,
+            color: color,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Colors.white60),
+        ),
       ],
     );
   }
 
   Widget _sep() => Container(
         width: 1,
-        height: 22,
+        height: 24,
         margin: const EdgeInsets.symmetric(horizontal: 14),
         color: Colors.white12,
       );
 }
 
-/// لوحة أوضاع اللعب اليمنى (لعب فردي + غرف الأونلاين).
-class _PlayPanel extends StatelessWidget {
-  const _PlayPanel({
+/// بطاقات أوضاع اللعب الثلاث الفاخرة (لعب فردي، إنشاء ديوانية، انضمام بكود).
+class _PlayModesSection extends StatelessWidget {
+  const _PlayModesSection({
     required this.online,
     required this.onPlaySolo,
     required this.onCreateRoom,
@@ -677,148 +910,327 @@ class _PlayPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      borderColor: AppColors.gold.withAlpha(110),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // زر اللعب الفردي البارز
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () {
-                SoundService.instance.play(Sfx.click);
-                SoundService.instance.impact();
-                onPlaySolo();
-              },
-              child: Ink(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.goldLight, AppColors.gold, AppColors.goldDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. بطاقة اللعب الفردي الملكية
+        _LuxuryModeCard(
+          title: 'اللعب الفردي • طاولة فورية',
+          subtitle: 'نافس بوتات الديوانية بمستوى عادي أو محترف',
+          badge: 'بدون إنترنت',
+          icon: Icons.style_rounded,
+          gradientColors: const [
+            Color(0xFFE5C158),
+            Color(0xFFC89B2B),
+            Color(0xFF9C7214),
+          ],
+          darkText: true,
+          onTap: () {
+            SoundService.instance.play(Sfx.click);
+            SoundService.instance.impact();
+            onPlaySolo();
+          },
+        ),
+        const SizedBox(height: 12),
+
+        // 2. بطاقتا اللعب الجماعي أونلاين جنباً إلى جنب
+        Row(
+          children: [
+            Expanded(
+              child: _LuxurySubModeCard(
+                title: 'إنشاء ديوانية',
+                subtitle: 'افتح غرفة وشارك الكود',
+                icon: Icons.add_home_work_rounded,
+                accentColor: const Color(0xFF4BE0A8),
+                gradientColors: const [
+                  Color(0xEE143D32),
+                  Color(0xEE09211B),
+                ],
+                enabled: online,
+                onTap: () {
+                  SoundService.instance.play(Sfx.click);
+                  onCreateRoom();
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _LuxurySubModeCard(
+                title: 'انضم بكود',
+                subtitle: 'ادخل كود غرفة ربعك',
+                icon: Icons.vpn_key_rounded,
+                accentColor: AppColors.goldLight,
+                gradientColors: const [
+                  Color(0xEE381D24),
+                  Color(0xEE1E0E13),
+                ],
+                enabled: online,
+                onTap: () {
+                  SoundService.instance.play(Sfx.click);
+                  onJoinRoom();
+                },
+              ),
+            ),
+          ],
+        ),
+
+        if (!online) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(75),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.info_outline, size: 14, color: Colors.white54),
+                SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    'اللعب أونلاين غير مفعّل: اضبط مفاتيح Supabase.',
+                    style: TextStyle(color: Colors.white54, fontSize: 10.5),
                   ),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withAlpha(150), width: 1.2),
-                  boxShadow: [
-                    BoxShadow(color: AppColors.gold.withAlpha(90), blurRadius: 16, offset: const Offset(0, 4)),
-                  ],
                 ),
-                child: Row(
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _LuxuryModeCard extends StatelessWidget {
+  const _LuxuryModeCard({
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.icon,
+    required this.gradientColors,
+    required this.darkText,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String badge;
+  final IconData icon;
+  final List<Color> gradientColors;
+  final bool darkText;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = darkText ? const Color(0xFF1B1102) : Colors.white;
+    final subFg = darkText ? const Color(0xFF3E2908) : Colors.white70;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: Colors.white.withAlpha(160),
+              width: 1.3,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.gold.withAlpha(95),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: fg.withAlpha(28),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: fg, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1304).withAlpha(25),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.play_arrow_rounded, color: Color(0xFF1E1304), size: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'العب ضد البوتات',
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
                             style: TextStyle(
-                              color: Color(0xFF1E1304),
+                              color: fg,
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
-                          Text(
-                            'طاولة سريعة وذكاء اصطناعي متقدم',
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: fg.withAlpha(24),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            badge,
                             style: TextStyle(
-                              color: Color(0xFF3E2908),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              color: fg,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: subFg,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF1E1304), size: 16),
                   ],
                 ),
               ),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: fg.withAlpha(24),
+                ),
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  color: fg,
+                  size: 22,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LuxurySubModeCard extends StatelessWidget {
+  const _LuxurySubModeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accentColor,
+    required this.gradientColors,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accentColor;
+  final List<Color> gradientColors;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: enabled ? onTap : null,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: gradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: accentColor.withAlpha(130),
+                width: 1.2,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black45,
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
-          ),
-
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              const Expanded(child: Divider(color: Colors.white12)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  'اللعب الجماعي أونلاين',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: online ? AppColors.goldLight : Colors.white38,
-                  ),
-                ),
-              ),
-              const Expanded(child: Divider(color: Colors.white12)),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: GoldButton(
-                  label: 'إنشاء غرفة',
-                  icon: Icons.group_add_rounded,
-                  outlined: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  onPressed: online ? onCreateRoom : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GoldButton(
-                  label: 'انضم بكود',
-                  icon: Icons.vpn_key_rounded,
-                  outlined: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  onPressed: online ? onJoinRoom : null,
-                ),
-              ),
-            ],
-          ),
-
-          if (!online) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: Colors.black.withAlpha(65),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.info_outline, size: 14, color: Colors.white54),
-                  SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      'اللعب أونلاين غير مفعّل: اضبط مفاتيح Supabase.',
-                      style: TextStyle(color: Colors.white54, fontSize: 10.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: accentColor.withAlpha(32),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: accentColor, size: 22),
                     ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: accentColor.withAlpha(180),
+                      size: 14,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }

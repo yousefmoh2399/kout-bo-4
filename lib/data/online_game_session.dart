@@ -250,6 +250,21 @@ class OnlineGameSession {
     ));
   }
 
+  /// طلب مزامنة فورية للحالة الحالية عند شعور اللاعب بتأخر الشبكة.
+  void requestResync() {
+    if (_disposed) return;
+    if (isHost) {
+      _publish(bloc.state);
+    } else {
+      hostLost.value = false;
+      _lastStateAt = DateTime.now();
+      _channel?.sendBroadcastMessage(
+        event: 'sync',
+        payload: {'seat': mySeat},
+      );
+    }
+  }
+
   void sendEmote(String text) {
     if (!kQuickPhrases.contains(text)) return;
     _emotes.add(Emote(seat: mySeat, text: text));

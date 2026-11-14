@@ -651,7 +651,14 @@ class _SettingsPageState extends State<SettingsPage> {
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white54),
           onTap: () {
             SoundService.instance.play(Sfx.click);
-            Share.share('العب كوت بو ٤ - لعبة الورق الخليجية الممتعة أونلاين وضد البوتات!');
+            final box = context.findRenderObject() as RenderBox?;
+            final origin = box == null
+                ? const Rect.fromLTWH(0, 0, 1, 1)
+                : box.localToGlobal(Offset.zero) & box.size;
+            Share.share(
+              'العب كوت بو ٤ - لعبة الورق الخليجية الممتعة أونلاين وضد البوتات!',
+              sharePositionOrigin: origin,
+            );
           },
         ),
         if (AppConfig.privacyUrl.isNotEmpty) ...[

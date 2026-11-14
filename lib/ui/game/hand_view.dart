@@ -58,14 +58,17 @@ class _HandViewState extends State<HandView> {
     final List<PlayingCard> legal =
         canPlay ? state.legalMoves(me) : const <PlayingCard>[];
 
+    final playerOrder = (me - state.dealer - 1 + 8) % 4;
+
     return SizedBox(
-      height: isPortrait ? 116 : 108,
+      height: isPortrait ? 114 : 84,
       child: LayoutBuilder(
         builder: (context, c) {
           final safeWidth = isPortrait
               ? max(240.0, c.maxWidth - 16)
-              : max(220.0, c.maxWidth - 220);
-          final cardW = (safeWidth / (isPortrait ? 7.0 : 8.6)).clamp(52.0, 72.0);
+              : max(220.0, c.maxWidth - 290);
+          final cardW = (safeWidth / (isPortrait ? 7.0 : 9.4))
+              .clamp(isPortrait ? 52.0 : 44.0, isPortrait ? 70.0 : 56.0);
           final n = hand.length;
           final step = n <= 1
               ? 0.0
@@ -81,15 +84,15 @@ class _HandViewState extends State<HandView> {
               for (var i = 0; i < n; i++)
                 AnimatedPositioned(
                   key: ValueKey('${state.roundNumber}|${hand[i]}'),
-                  duration: const Duration(milliseconds: 220),
+                  duration: const Duration(milliseconds: 160),
                   curve: Curves.easeOutCubic,
                   left: startX + i * step,
-                  top: (legal.contains(hand[i]) ? 0.0 : 14.0) +
-                      pow((i - mid).abs(), 1.35) * 0.95,
+                  top: (legal.contains(hand[i]) ? 0.0 : 12.0) +
+                      pow((i - mid).abs(), 1.35) * 0.85,
                   child: _DealIn(
                     index: i,
-                    cardWidth: cardW,
-                    angle: (i - mid) * 0.028,
+                    playerOrder: playerOrder,
+                    angle: (i - mid) * 0.026,
                     dxFromCenter: centerX - (startX + i * step + cardW / 2),
                     child: _InteractiveHandCard(
                       card: hand[i],
@@ -205,9 +208,15 @@ class _InteractiveHandCardState extends State<_InteractiveHandCard>
       onVerticalDragStart:
           playable ? (_) => setState(() => _pressed = true) : null,
       onVerticalDragUpdate: playable
-          ? (d) => setState(() {
-                _dragDy = (_dragDy + d.delta.dy).clamp(-56.0, 10.0);
-              })
+          ? (d) {
+              final prevReady = _dragDy <= -24.0;
+              final nextDy = (_dragDy + d.delta.dy).clamp(-56.0, 10.0);
+              final nextReady = nextDy <= -24.0;
+              if (!prevReady && nextReady) {
+                SoundService.instance.tap();
+              }
+              setState(() => _dragDy = nextDy);
+            }
           : null,
       onVerticalDragEnd: playable
           ? (_) {
@@ -239,11 +248,47 @@ class _InteractiveHandCardState extends State<_InteractiveHandCard>
             scale: _pressed || _dragDy < -8 ? 1.12 : 1.0,
             duration: const Duration(milliseconds: 110),
             curve: Curves.easeOut,
-            child: PlayingCardView(
-              card: widget.card,
-              width: widget.width,
-              dimmed: illegalOnTurn,
-              highlighted: playable,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                PlayingCardView(
+                  card: widget.card,
+                  width: widget.width,
+                  dimmed: illegalOnTurn,
+                  highlighted: playable,
+                ),
+                if (_dragDy < -12)
+                  Positioned(
+                    top: -22,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _dragDy <= -24
+                            ? AppColors.gold
+                            : Colors.black.withAlpha(190),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.goldLight,
+                          width: 0.9,
+                        ),
+                      ),
+                      child: Text(
+                        _dragDy <= -24 ? 'افلت للعب ↑' : 'اسحب للأعلى ↑',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: _dragDy <= -24
+                              ? const Color(0xFF1A0F00)
+                              : AppColors.goldLight,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -252,20 +297,18 @@ class _InteractiveHandCardState extends State<_InteractiveHandCard>
   }
 }
 
-/// توزيع احترافي على مرحلتين:
-/// 1) وصول الأوراق مقلوبة واحدة تلو الأخرى بالترتيب من كومة الوسط إلى اليد.
-/// 2) بعد اكتمال التوزيع، تنقلب الأوراق في موجة متتابعة ثلاثية الأبعاد (3D Flip) لتكشف وجهها.
+/// انسياب احترافي لوصول أوراق اللاعب بالتزامن مع دوره في التوزيع المتسلسل (لاعب تلو الآخر).
 class _DealIn extends StatefulWidget {
   const _DealIn({
     required this.index,
-    required this.cardWidth,
+    required this.playerOrder,
     required this.angle,
     required this.dxFromCenter,
     required this.child,
   });
 
   final int index;
-  final double cardWidth;
+  final int playerOrder;
   final double angle;
   final double dxFromCenter;
   final Widget child;
@@ -277,7 +320,7 @@ class _DealIn extends StatefulWidget {
 class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1950),
+    duration: const Duration(milliseconds: 1450),
   )..forward();
 
   @override
@@ -288,13 +331,9 @@ class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // المرحلة 1 (0.00 -> 0.68): نزول كل ورقة مقلوبة بالترتيب واحدة بعد واحدة
-    final dealStart = widget.index * 0.060; // 0.00 .. 0.48
-    const dealSpan = 0.17; // ~330ms طيران لكل ورقة
-
-    // المرحلة 2 (0.70 -> 1.00): بعد اكتمال توزيع الـ 9 ورقات، تنقلب في موجة متتابعة
-    final flipStart = 0.70 + widget.index * 0.024; // 0.70 .. 0.892
-    const flipSpan = 0.105; // ~205ms انقلاب لكل ورقة
+    // يبدأ توزيع أوراق هذا اللاعب فقط عندما يصل دوره ضمن الـ 4 لاعبين
+    final dealStart = widget.playerOrder * 0.24 + widget.index * 0.017;
+    const dealSpan = 0.095;
 
     return AnimatedBuilder(
       animation: _c,
@@ -303,31 +342,18 @@ class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
         if (v < dealStart) {
           return const SizedBox.shrink();
         }
-        if (v >= 0.999) {
+        if (v >= dealStart + dealSpan) {
           return Transform.rotate(angle: widget.angle, child: c);
         }
 
         final dealLocal = ((v - dealStart) / dealSpan).clamp(0.0, 1.0);
         final flyT = Curves.easeOutCubic.transform(dealLocal);
-
-        final flipLocal = ((v - flipStart) / flipSpan).clamp(0.0, 1.0);
-        final flipT = Curves.easeInOutCubic.transform(flipLocal);
-
-        final arcLift = sin(flyT * pi) * 28.0;
-        final flipLift = sin(flipT * pi) * 14.0;
+        final arcLift = sin(flyT * pi) * 20.0;
         final dx = widget.dxFromCenter * (1.0 - flyT);
-        final dy = -195.0 * (1.0 - flyT) - arcLift - flipLift;
-        final scale = (0.42 + 0.58 * flyT) + sin(flipT * pi) * 0.08;
-        final rotZ = (widget.dxFromCenter.sign * 0.34) * (1.0 - flyT) +
-            widget.angle * flyT;
-        final opacity = (flyT * 4.5).clamp(0.0, 1.0);
-
-        final showFront = flipT >= 0.5;
-        final flipAngle = showFront ? (1.0 - flipT) * pi : flipT * pi;
-
-        final matrix = Matrix4.identity()
-          ..setEntry(3, 2, 0.0022)
-          ..rotateY(flipAngle);
+        final dy = -155.0 * (1.0 - flyT) - arcLift;
+        final scale = 0.55 + 0.45 * flyT;
+        final rotZ = widget.angle * flyT;
+        final opacity = (flyT * 4.0).clamp(0.0, 1.0);
 
         return Transform.translate(
           offset: Offset(dx, dy),
@@ -335,19 +361,14 @@ class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
             scale: scale,
             child: Transform.rotate(
               angle: rotZ,
-              child: Opacity(
-                opacity: opacity,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: matrix,
-                  child: showFront ? c : CardBackView(width: widget.cardWidth),
-                ),
-              ),
+              child: opacity < 0.99
+                  ? Opacity(opacity: opacity, child: c)
+                  : c,
             ),
           ),
         );
       },
-      child: widget.child,
+      child: RepaintBoundary(child: widget.child),
     );
   }
 }

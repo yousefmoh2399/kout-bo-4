@@ -37,7 +37,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     this.botDifficulty = BotDifficulty.normal,
     List<String>? names,
     this.botDelay = const Duration(milliseconds: 800),
-    this.trickDelay = const Duration(milliseconds: 1300),
+    this.trickDelay = const Duration(milliseconds: 1450),
   })  : humanSeats = humanSeats ?? {localSeat},
         names = names ?? const ['أنت', 'خصم ١', 'شريكك', 'خصم ٢'],
         _rng = random ?? Random(),
