@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "test_build_game",
+            "request": "launch",
+            "type": "dart",
+            "toolArgs": [
+                "--dart-define-from-file=.vscode/dart_defines.json"
+            ]
+        },
+        {
+            "name": "test_build_game (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "toolArgs": [
+                "--dart-define-from-file=.vscode/dart_defines.json"
+            ]
+        },
+        {
+            "name": "test_build_game (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "toolArgs": [
+                "--dart-define-from-file=.vscode/dart_defines.json"
+            ]
+        }
+    ]
+}

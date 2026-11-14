@@ -1,0 +1,6 @@
+{
+  "SUPABASE_URL": "https://xuptmbpeumjcksiehkcl.supabase.co",
+  "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1cHRtYnBldW1qY2tzaWVoa2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2MTA4MDksImV4cCI6MjExMDE4NjgwOX0.H3torKKPVNgBwPevGfROXYR2-OH-CNHdR3STb8CT8Ik",
+  "PRIVACY_URL": "https://example.com/privacy",
+  "APP_VERSION": "1.2.0"
+}
