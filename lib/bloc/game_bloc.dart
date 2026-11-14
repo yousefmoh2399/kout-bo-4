@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/config.dart';
 import '../domain/bot_strategy.dart';
 import '../domain/card.dart';
 import '../domain/deck.dart';
@@ -31,7 +32,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     Set<int>? humanSeats,
     this.remote = false,
     this.turnSeconds = 0,
+    this.matchMinutes = 0,
     this.targetScore = 101,
+    this.botDifficulty = BotDifficulty.normal,
     List<String>? names,
     this.botDelay = const Duration(milliseconds: 800),
     this.trickDelay = const Duration(milliseconds: 1300),
@@ -46,14 +49,19 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<NextRoundRequested>(_onNextRound);
     on<TurnTimedOut>(_onTimeout);
     on<SeatLeft>(_onSeatLeft);
+    on<AutoPlayToggled>(_onAutoPlayToggled);
+    on<MatchTimedOut>(_onMatchTimedOut);
+    on<HostMigrated>(_onHostMigrated);
     on<StateReceived>((e, emit) => emit(e.state));
   }
 
   final int localSeat;
   final Set<int> humanSeats;
-  final bool remote;
+  bool remote;
   final int turnSeconds;
+  final int matchMinutes;
   final int targetScore;
+  final BotDifficulty botDifficulty;
   final List<String> names;
   final Duration botDelay;
   final Duration trickDelay;
@@ -68,6 +76,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   /// مقاعد غادرها أصحابها نهائياً.
   final Set<int> _leftSeats = {};
   Timer? _turnTimer;
+  Timer? _matchTimer;
 
   /// يزداد مع كل لعبة جديدة لإيقاف أي حلقة بوتات قديمة.
   int _epoch = 0;
@@ -103,18 +112,20 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   @override
   Future<void> close() {
     _turnTimer?.cancel();
+    _matchTimer?.cancel();
     return super.close();
   }
 
-  /// يضبط موعد انتهاء مهلة الدور حسب من عليه الدور.
+  /// يضبط موعد انتهاء مهلة الدور حسب من عليه الدور ويحدّث حالة اللعب التلقائي.
   GameState _stamp(GameState s) {
     final actor = s.actor;
+    final synced = s.copyWith(autoSeats: Set.unmodifiable(_autoSeats));
     if (!remote && turnSeconds > 0 && actor != null && _isHuman(actor)) {
-      return s.copyWith(
+      return synced.copyWith(
         turnEndsAt: DateTime.now().add(Duration(seconds: turnSeconds)),
       );
     }
-    return s.copyWith(turnEndsAt: null);
+    return synced.copyWith(turnEndsAt: null);
   }
 
   // ───────────────────────── الأحداث ─────────────────────────
@@ -126,13 +137,57 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
     _epoch++;
     _autoSeats.clear();
+    _matchTimer?.cancel();
+    final now = DateTime.now();
+    final matchEnd =
+        matchMinutes > 0 ? now.add(Duration(minutes: matchMinutes)) : null;
+    if (matchEnd != null) {
+      _matchTimer = Timer(Duration(minutes: matchMinutes), () {
+        if (!isClosed) add(const MatchTimedOut());
+      });
+    }
     emit(_stamp(_newRound(
       scores: const [0, 0],
       roundNumber: 1,
       dealer: _rng.nextInt(4),
-      startedAt: DateTime.now(),
-    )));
+      startedAt: now,
+    ).copyWith(matchEndsAt: matchEnd)));
     await _runBots(emit);
+  }
+
+  Future<void> _onHostMigrated(
+    HostMigrated event,
+    Emitter<GameState> emit,
+  ) async {
+    remote = false;
+    sendAction = null;
+    _epoch++;
+    _leftSeats.add(event.oldHostSeat);
+    _autoSeats.remove(event.oldHostSeat);
+    emit(_stamp(event.fullState));
+    await _runBots(emit);
+  }
+
+  void _endByMatchTimeout(Emitter<GameState> emit) {
+    _epoch++;
+    _turnTimer?.cancel();
+    _matchTimer?.cancel();
+    final winner = state.scores[0] >= state.scores[1] ? 0 : 1;
+    emit(state.copyWith(
+      phase: GamePhase.gameOver,
+      winnerTeam: winner,
+      endedAt: DateTime.now(),
+      turnEndsAt: null,
+    ));
+  }
+
+  void _onMatchTimedOut(MatchTimedOut event, Emitter<GameState> emit) {
+    if (remote ||
+        state.phase == GamePhase.idle ||
+        state.phase == GamePhase.gameOver) {
+      return;
+    }
+    _endByMatchTimeout(emit);
   }
 
   Future<void> _onNextRound(
@@ -144,11 +199,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
     if (state.phase != GamePhase.roundOver) return;
+    final matchEnd = state.matchEndsAt;
+    if (matchEnd != null && !DateTime.now().isBefore(matchEnd)) {
+      _endByMatchTimeout(emit);
+      return;
+    }
     emit(_stamp(_newRound(
       scores: state.scores,
       roundNumber: state.roundNumber + 1,
       dealer: (state.dealer + 1) % 4,
       startedAt: state.startedAt,
+      matchEndsAt: matchEnd,
+      roundHistory: state.roundHistory,
     )));
     await _runBots(emit);
   }
@@ -215,7 +277,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final s = state;
     if (s.turnEndsAt != event.deadline || s.actor != event.seat) return;
     _autoSeats.add(event.seat);
-    emit(s.copyWith(turnEndsAt: null));
+    emit(s.copyWith(
+      turnEndsAt: null,
+      autoSeats: Set.unmodifiable(_autoSeats),
+    ));
     await _runBots(emit);
   }
 
@@ -229,6 +294,31 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
   }
 
+  Future<void> _onAutoPlayToggled(
+    AutoPlayToggled event,
+    Emitter<GameState> emit,
+  ) async {
+    if (remote) {
+      sendAction?.call(event);
+      return;
+    }
+    final seat = event.seat ?? localSeat;
+    if (!humanSeats.contains(seat)) return;
+    if (event.enabled) {
+      _autoSeats.add(seat);
+      emit(state.copyWith(
+        autoSeats: Set.unmodifiable(_autoSeats),
+        turnEndsAt: state.actor == seat ? null : state.turnEndsAt,
+      ));
+      if (state.actor == seat) {
+        await _runBots(emit);
+      }
+    } else {
+      _autoSeats.remove(seat);
+      emit(_stamp(state));
+    }
+  }
+
   // ───────────────────── حلقة اللاعبين الآليين ─────────────────────
 
   Future<void> _runBots(Emitter<GameState> emit) async {
@@ -237,6 +327,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     while (!cancelled()) {
       final s = state;
+      final matchEnd = s.matchEndsAt;
+      if (matchEnd != null &&
+          !DateTime.now().isBefore(matchEnd) &&
+          s.phase != GamePhase.idle &&
+          s.phase != GamePhase.gameOver) {
+        _endByMatchTimeout(emit);
+        return;
+      }
       switch (s.phase) {
         case GamePhase.bidding:
           {
@@ -284,6 +382,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
               trump: s.trump!,
               player: p,
               bidderTeam: s.bidderTeam!,
+              difficulty: botDifficulty,
+              playedCards: s.playedCards,
             );
             emit(_stamp(_applyPlay(s, p, card)));
             break;
@@ -304,6 +404,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     required int roundNumber,
     required int dealer,
     required DateTime? startedAt,
+    DateTime? matchEndsAt,
+    List<RoundResult> roundHistory = const [],
   }) {
     return GameState(
       phase: GamePhase.bidding,
@@ -316,6 +418,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       names: names,
       targetScore: targetScore,
       startedAt: startedAt,
+      matchEndsAt: matchEndsAt,
+      roundHistory: roundHistory,
     );
   }
 
@@ -403,6 +507,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       trick: const Trick(),
       currentPlayer: winner,
       lastTrickWinner: winner,
+      lastTrick: s.trick.plays,
     );
     if (!bidderDone && !bidderFailed) return next;
     return _finishRound(next, success: bidderDone);
@@ -439,19 +544,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       winner = bidderTeam; // باون ناجحة في أول جولة
     }
 
+    final result = RoundResult(
+      bidderTeam: bidderTeam,
+      bid: bid,
+      forced: s.forcedBid,
+      success: success,
+      scoringTeam: scoringTeam,
+      points: points,
+    );
     return s.copyWith(
       scores: scores,
       phase: winner == null ? GamePhase.roundOver : GamePhase.gameOver,
       winnerTeam: winner,
       endedAt: winner == null ? null : DateTime.now(),
-      result: RoundResult(
-        bidderTeam: bidderTeam,
-        bid: bid,
-        forced: s.forcedBid,
-        success: success,
-        scoringTeam: scoringTeam,
-        points: points,
-      ),
+      result: result,
+      roundHistory: [...s.roundHistory, result],
     );
   }
 }

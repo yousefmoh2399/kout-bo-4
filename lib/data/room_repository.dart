@@ -23,11 +23,43 @@ class RoomRepository {
   }
 
   Future<Room> joinRoom({required String code, required String name}) async {
+    final cleanCode = code.trim().toUpperCase();
+    final uid = _client.auth.currentUser?.id;
+    if (uid != null) {
+      try {
+        final existing = await _client
+            .from('rooms')
+            .select()
+            .eq('code', cleanCode)
+            .maybeSingle();
+        if (existing != null) {
+          final room = Room.fromJson(Map<String, dynamic>.from(existing));
+          if (room.seatOf(uid) != null) return room;
+        }
+      } catch (_) {}
+    }
     final json = await _client.rpc('join_room', params: {
-      'p_code': code.trim().toUpperCase(),
+      'p_code': cleanCode,
       'p_name': name,
     });
     return Room.fromJson(Map<String, dynamic>.from(json as Map));
+  }
+
+  /// يبحث عن أي غرفة نشطة (منتظرة أو جارية) يشغلها اللاعب حالياً للعودة إليها.
+  Future<Room?> findMyActiveRoom(String userId) async {
+    try {
+      final rows = await _client
+          .from('rooms')
+          .select()
+          .inFilter('status', ['waiting', 'playing'])
+          .order('created_at', ascending: false)
+          .limit(12);
+      for (final r in rows) {
+        final room = Room.fromJson(Map<String, dynamic>.from(r));
+        if (room.seatOf(userId) != null) return room;
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> leaveRoom(String code) =>

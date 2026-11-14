@@ -79,3 +79,28 @@ class SeatLeft extends GameEvent {
   @override
   List<Object?> get props => [seat];
 }
+
+/// تفعيل أو إيقاف اللعب التلقائي (البوت يلعب عن اللاعب).
+class AutoPlayToggled extends GameEvent {
+  const AutoPlayToggled({required this.enabled, this.seat});
+  final bool enabled;
+  final int? seat;
+
+  @override
+  List<Object?> get props => [enabled, seat];
+}
+
+/// انتهاء الوقت المحدد للمباراة.
+class MatchTimedOut extends GameEvent {
+  const MatchTimedOut();
+}
+
+/// استلام استضافة الغرفة بعد خروج المضيف السابق.
+class HostMigrated extends GameEvent {
+  const HostMigrated({required this.fullState, required this.oldHostSeat});
+  final GameState fullState;
+  final int oldHostSeat;
+
+  @override
+  List<Object?> get props => [fullState, oldHostSeat];
+}

@@ -57,14 +57,19 @@ class _RoomPageState extends State<RoomPage> {
   Future<void> _launch(Room room) async {
     _launched = true;
     final client = Supabase.instance.client;
-    final session = OnlineGameSession(client: client, room: room, userId: _userId);
+    final session = OnlineGameSession(
+      client: client,
+      room: room,
+      userId: _userId,
+      matchMinutes: widget.create?.matchMinutes ?? 0,
+      botDifficulty: widget.create?.botDifficulty ?? BotDifficulty.normal,
+    );
     await session.start();
     if (!mounted) {
       await session.dispose();
       return;
     }
     final code = room.code;
-    final isHost = session.isHost;
     final repo = _repo;
     await Navigator.pushReplacement(
       context,
@@ -75,10 +80,14 @@ class _RoomPageState extends State<RoomPage> {
           emotes: session.emotes,
           onEmote: session.sendEmote,
           hostLost: session.hostLost,
+          onTakeOverHost: session.promoteSelfFromCrash,
           onClose: () {
-            session.dispose();
-            if (isHost) repo.finishRoom(code);
-            repo.leaveRoom(code);
+            session.dispose().then((_) {
+              if (session.isHost && !session.migratedOut) {
+                repo.finishRoom(code);
+              }
+              repo.leaveRoom(code);
+            });
           },
         ),
       ),

@@ -130,6 +130,7 @@ class BidPanel extends StatelessWidget {
   }
 }
 
+
 class _BidChip extends StatelessWidget {
   const _BidChip({required this.value, required this.enabled, required this.onPressed});
 
@@ -227,6 +228,7 @@ class TrumpPicker extends StatelessWidget {
   }
 }
 
+
 class _SuitOption extends StatelessWidget {
   const _SuitOption({required this.suit, required this.label, required this.onTap});
 
@@ -299,19 +301,25 @@ class ResultOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloc = context.read<GameBloc>();
     final lt = bloc.localTeam;
-    final r = state.result!;
+    final r = state.result;
     final over = state.phase == GamePhase.gameOver;
     final won = over && state.winnerTeam == lt;
 
-    final contract = '${teamLabel(r.bidderTeam, lt)} زايد بـ ${r.bid}'
-        '${r.forced ? ' (${S.forced})' : ''}';
-    final outcome = r.success
-        ? 'نجح! +${r.points} نقطة لـ ${teamLabel(r.scoringTeam, lt)}'
-        : 'فشل! +${r.points} نقطة لـ ${teamLabel(r.scoringTeam, lt)}';
+    final contract = r == null
+        ? 'انتهى الوقت المحدد للمباراة'
+        : '${teamLabel(r.bidderTeam, lt)} زايد بـ ${r.bid}'
+            '${r.forced ? ' (${S.forced})' : ''}';
+    final outcome = r == null
+        ? (won ? 'الفوز بأعلى نقاط' : 'انتهت المباراة بأعلى نقاط')
+        : (r.success
+            ? 'نجح! +${r.points} نقطة لـ ${teamLabel(r.scoringTeam, lt)}'
+            : 'فشل! +${r.points} نقطة لـ ${teamLabel(r.scoringTeam, lt)}');
 
     final title = over
         ? (state.winnerTeam == lt ? 'مبروك! فزتم باللعبة' : 'فاز الخصوم باللعبة')
         : 'انتهت الجولة ${state.roundNumber}';
+
+    final outcomePositive = r == null ? won : r.scoringTeam == lt;
 
     return Container(
       color: Colors.black.withAlpha(170),
@@ -319,7 +327,7 @@ class ResultOverlay extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          if (won || (!over && r.scoringTeam == lt && r.success))
+          if (won || (!over && r != null && r.scoringTeam == lt && r.success))
             const Positioned.fill(child: ConfettiOverlay()),
           Center(
             child: SingleChildScrollView(
@@ -379,10 +387,10 @@ class ResultOverlay extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: (r.scoringTeam == lt ? AppColors.success : AppColors.danger).withAlpha(40),
+                          color: (outcomePositive ? AppColors.success : AppColors.danger).withAlpha(40),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: (r.scoringTeam == lt ? AppColors.success : AppColors.danger).withAlpha(160),
+                            color: (outcomePositive ? AppColors.success : AppColors.danger).withAlpha(160),
                           ),
                         ),
                         child: Text(
@@ -390,7 +398,7 @@ class ResultOverlay extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 13,
-                            color: r.scoringTeam == lt ? const Color(0xFF68D391) : const Color(0xFFFC8181),
+                            color: outcomePositive ? const Color(0xFF68D391) : const Color(0xFFFC8181),
                           ),
                         ),
                       ),
@@ -413,6 +421,12 @@ class ResultOverlay extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      _TargetProgressBar(
+                        us: state.scores[lt],
+                        them: state.scores[1 - lt],
+                        target: state.targetScore,
+                      ),
                       if (over) ...[
                         const SizedBox(height: 10),
                         Text(
@@ -421,14 +435,34 @@ class ResultOverlay extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      GoldButton(
-                        label: over ? S.newGame : S.nextRound,
-                        icon: over ? Icons.replay_rounded : Icons.arrow_forward_rounded,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
-                        onPressed: () => bloc.add(
-                          over ? const GameStarted() : const NextRoundRequested(),
+                      if (over)
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            GoldButton(
+                              label: 'الرئيسية',
+                              icon: Icons.home_rounded,
+                              outlined: true,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            GoldButton(
+                              label: 'إعادة المباراة',
+                              icon: Icons.replay_rounded,
+                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+                              onPressed: () => bloc.add(const GameStarted()),
+                            ),
+                          ],
+                        )
+                      else
+                        GoldButton(
+                          label: S.nextRound,
+                          icon: Icons.arrow_forward_rounded,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
+                          onPressed: () => bloc.add(const NextRoundRequested()),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -440,6 +474,7 @@ class ResultOverlay extends StatelessWidget {
     );
   }
 }
+
 
 class _ScorePlate extends StatelessWidget {
   const _ScorePlate({
@@ -483,3 +518,67 @@ class _ScorePlate extends StatelessWidget {
     );
   }
 }
+
+class _TargetProgressBar extends StatelessWidget {
+  const _TargetProgressBar({
+    required this.us,
+    required this.them,
+    required this.target,
+  });
+
+  final int us;
+  final int them;
+  final int target;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeTarget = target <= 0 ? 51 : target;
+    final usFrac = (us / safeTarget).clamp(0.0, 1.0);
+    final themFrac = (them / safeTarget).clamp(0.0, 1.0);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'الهدف: $safeTarget نقطة',
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+            Text(
+              'لنا $us / لهم $them',
+              style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(
+            height: 7,
+            child: Stack(
+              children: [
+                Container(color: Colors.white12),
+                FractionallySizedBox(
+                  widthFactor: themFrac,
+                  child: Container(color: Colors.white38),
+                ),
+                FractionallySizedBox(
+                  widthFactor: usFrac,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.gold, AppColors.goldLight],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

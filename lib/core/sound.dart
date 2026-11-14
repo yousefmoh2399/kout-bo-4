@@ -15,8 +15,10 @@ class SoundService {
   final ValueNotifier<bool> turnAlert = ValueNotifier<bool>(true);
 
   final List<AudioPlayer> _pool = [];
+  final Map<Sfx, DateTime> _lastPlayed = {};
   int _nextIdx = 0;
   bool _initialized = false;
+  static const int _poolSize = 5;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -43,17 +45,22 @@ class SoundService {
           ),
         ),
       );
-      _ensurePool();
+      await _ensurePool();
       _initialized = true;
     } catch (_) {}
   }
 
-  void _ensurePool() {
+  Future<AudioPlayer> _createPlayer() async {
+    final p = AudioPlayer();
+    await p.setReleaseMode(ReleaseMode.stop);
+    await p.setPlayerMode(PlayerMode.mediaPlayer);
+    return p;
+  }
+
+  Future<void> _ensurePool() async {
     if (_pool.isNotEmpty) return;
-    for (var i = 0; i < 3; i++) {
-      final p = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-      p.setPlayerMode(PlayerMode.lowLatency);
-      _pool.add(p);
+    for (var i = 0; i < _poolSize; i++) {
+      _pool.add(await _createPlayer());
     }
   }
 
@@ -92,13 +99,45 @@ class SoundService {
   Future<void> play(Sfx sfx) async {
     if (!enabled.value) return;
     if (sfx == Sfx.turn && !turnAlert.value) return;
+
+    final now = DateTime.now();
+    final prev = _lastPlayed[sfx];
+    if (prev != null && now.difference(prev).inMilliseconds < 35) return;
+    _lastPlayed[sfx] = now;
+
     try {
-      if (!_initialized) _ensurePool();
+      if (!_initialized) {
+        await _ensurePool();
+        _initialized = true;
+      }
       if (_pool.isEmpty) return;
-      final player = _pool[_nextIdx % _pool.length];
-      _nextIdx = (_nextIdx + 1) % _pool.length;
-      await player.setVolume(volume.value);
-      await player.play(AssetSource('sounds/${sfx.name}.wav'));
+
+      var idx = _nextIdx;
+      for (var i = 0; i < _pool.length; i++) {
+        final candidate = (_nextIdx + i) % _pool.length;
+        if (_pool[candidate].state != PlayerState.playing) {
+          idx = candidate;
+          break;
+        }
+      }
+      _nextIdx = (idx + 1) % _pool.length;
+
+      final source = AssetSource('sounds/${sfx.name}.wav');
+      final player = _pool[idx];
+      try {
+        if (player.state == PlayerState.playing) {
+          await player.stop();
+        }
+        await player.play(source, volume: volume.value);
+      } catch (_) {
+        // استبدال المشغل تلقائياً إذا تعطل لضمان عدم توقف الصوت أبداً.
+        try {
+          await player.dispose();
+        } catch (_) {}
+        final fresh = await _createPlayer();
+        _pool[idx] = fresh;
+        await fresh.play(source, volume: volume.value);
+      }
     } catch (_) {}
   }
 }

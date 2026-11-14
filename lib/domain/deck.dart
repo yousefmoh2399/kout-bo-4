@@ -5,7 +5,6 @@ import 'card.dart';
 class Deck {
   Deck._();
 
-  /// 36 ورقة: 4 أنواع × (6..A) ناقص ورقتي الـ 6 الحمراء + جيكر + ميكر.
   static List<PlayingCard> build() {
     final cards = <PlayingCard>[];
     for (final suit in Suit.values) {
@@ -19,7 +18,6 @@ class Deck {
     return cards;
   }
 
-  /// يوزع 9 أوراق لكل لاعب من 4 لاعبين.
   static List<List<PlayingCard>> deal(Random rng) {
     final deck = build()..shuffle(rng);
     return [

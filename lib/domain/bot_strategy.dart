@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../core/config.dart';
 import 'card.dart';
 import 'rules.dart';
 
@@ -73,19 +74,53 @@ class BotStrategy {
     required Suit trump,
     required int player,
     required int bidderTeam,
+    BotDifficulty difficulty = BotDifficulty.normal,
+    List<PlayingCard> playedCards = const [],
   }) {
     if (legal.length == 1) return legal.first;
-    if (trick.plays.isEmpty) return _chooseLead(legal, trump, player, bidderTeam);
+    if (trick.plays.isEmpty) {
+      return _chooseLead(
+        legal,
+        trump,
+        player,
+        bidderTeam,
+        difficulty: difficulty,
+        playedCards: playedCards,
+      );
+    }
 
     final currentWinner = Rules.trickWinner(trick, trump);
     final partnerWinning = Rules.teamOf(currentWinner) == Rules.teamOf(player);
-    if (partnerWinning) return _cheapest(legal, trump);
+    if (partnerWinning) {
+      if (difficulty == BotDifficulty.pro && trick.plays.length < 3) {
+        final winningCard =
+            trick.plays.firstWhere((p) => p.player == currentWinner).card;
+        // إذا كان الشريك متقدماً بورقة ضعيفة وهناك خصم سيلعب بعدنا، نحاول تأمين الأكلة بورقة متوسطة
+        if (!winningCard.isJoker &&
+            winningCard.suit != trump &&
+            winningCard.rank!.value < Rank.queen.value) {
+          final safeBoost = legal
+              .where((c) => !c.isJoker && c.suit != trump && c.rank!.value >= Rank.king.value)
+              .toList();
+          if (safeBoost.isNotEmpty) return _cheapest(safeBoost, trump);
+        }
+      }
+      return _cheapest(legal, trump);
+    }
 
     final winners = legal.where((c) {
       final next = trick.add(PlayedCard(player: player, card: c));
       return Rules.trickWinner(next, trump) == player;
     }).toList();
-    if (winners.isNotEmpty) return _cheapest(winners, trump);
+    if (winners.isNotEmpty) {
+      if (difficulty == BotDifficulty.pro) {
+        final nonJokerWinners = winners.where((c) => !c.isJoker).toList();
+        if (nonJokerWinners.isNotEmpty) {
+          return _cheapest(nonJokerWinners, trump);
+        }
+      }
+      return _cheapest(winners, trump);
+    }
     return _cheapest(legal, trump);
   }
 
@@ -93,13 +128,37 @@ class BotStrategy {
     List<PlayingCard> legal,
     Suit trump,
     int player,
-    int bidderTeam,
-  ) {
+    int bidderTeam, {
+    BotDifficulty difficulty = BotDifficulty.normal,
+    List<PlayingCard> playedCards = const [],
+  }) {
+    final nonTrump = legal.where((c) => c.suit != trump).toList();
+    if (difficulty == BotDifficulty.pro) {
+      // في المستوى المحترف: نلعب الآصات أو الملوك الرابحة أولاً ونحتفظ بالجيكر لوقت الحسم
+      final aces = nonTrump.where((c) => c.rank == Rank.ace).toList();
+      if (aces.isNotEmpty) return aces.first;
+
+      final bossKings = nonTrump.where((c) {
+        if (c.rank != Rank.king) return false;
+        return playedCards.any((p) => p.suit == c.suit && p.rank == Rank.ace);
+      }).toList();
+      if (bossKings.isNotEmpty) return bossKings.first;
+
+      if (Rules.teamOf(player) == bidderTeam) {
+        final topTrumps = legal
+            .where((c) => c.suit == trump && c.rank!.value >= Rank.king.value)
+            .toList();
+        if (topTrumps.isNotEmpty) {
+          topTrumps.sort((a, b) => b.rank!.value.compareTo(a.rank!.value));
+          return topTrumps.first;
+        }
+      }
+    }
+
     final jokers = legal.where((c) => c.isJoker).toList();
     if (jokers.isNotEmpty) {
       return jokers.firstWhere((c) => c.isRedJoker, orElse: () => jokers.first);
     }
-    final nonTrump = legal.where((c) => c.suit != trump).toList();
     final aces = nonTrump.where((c) => c.rank == Rank.ace).toList();
     if (aces.isNotEmpty) return aces.first;
 

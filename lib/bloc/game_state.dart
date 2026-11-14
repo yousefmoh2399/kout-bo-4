@@ -41,13 +41,17 @@ class GameState extends Equatable {
     this.scores = const [0, 0],
     this.roundNumber = 0,
     this.lastTrickWinner,
+    this.lastTrick = const [],
     this.result,
+    this.roundHistory = const [],
     this.winnerTeam,
     this.names = const ['لاعب ١', 'لاعب ٢', 'لاعب ٣', 'لاعب ٤'],
     this.targetScore = 101,
     this.startedAt,
     this.endedAt,
     this.turnEndsAt,
+    this.matchEndsAt,
+    this.autoSeats = const {},
   });
 
   final GamePhase phase;
@@ -74,7 +78,9 @@ class GameState extends Equatable {
   final List<int> scores;
   final int roundNumber;
   final int? lastTrickWinner;
+  final List<PlayedCard> lastTrick;
   final RoundResult? result;
+  final List<RoundResult> roundHistory;
   final int? winnerTeam;
 
   final List<String> names;
@@ -84,6 +90,10 @@ class GameState extends Equatable {
 
   /// موعد انتهاء مهلة الدور الحالي (null = بدون مؤقت).
   final DateTime? turnEndsAt;
+
+  /// موعد انتهاء وقت المباراة (null = وقت مفتوح).
+  final DateTime? matchEndsAt;
+  final Set<int> autoSeats;
 
   int? get bidderTeam => bidder == null ? null : Rules.teamOf(bidder!);
 
@@ -142,13 +152,17 @@ class GameState extends Equatable {
     List<int>? scores,
     int? roundNumber,
     Object? lastTrickWinner = _unset,
+    List<PlayedCard>? lastTrick,
     Object? result = _unset,
+    List<RoundResult>? roundHistory,
     Object? winnerTeam = _unset,
     List<String>? names,
     int? targetScore,
     Object? startedAt = _unset,
     Object? endedAt = _unset,
     Object? turnEndsAt = _unset,
+    Object? matchEndsAt = _unset,
+    Set<int>? autoSeats,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -168,7 +182,9 @@ class GameState extends Equatable {
       lastTrickWinner: identical(lastTrickWinner, _unset)
           ? this.lastTrickWinner
           : lastTrickWinner as int?,
+      lastTrick: lastTrick ?? this.lastTrick,
       result: identical(result, _unset) ? this.result : result as RoundResult?,
+      roundHistory: roundHistory ?? this.roundHistory,
       winnerTeam:
           identical(winnerTeam, _unset) ? this.winnerTeam : winnerTeam as int?,
       names: names ?? this.names,
@@ -179,6 +195,10 @@ class GameState extends Equatable {
       turnEndsAt: identical(turnEndsAt, _unset)
           ? this.turnEndsAt
           : turnEndsAt as DateTime?,
+      matchEndsAt: identical(matchEndsAt, _unset)
+          ? this.matchEndsAt
+          : matchEndsAt as DateTime?,
+      autoSeats: autoSeats ?? this.autoSeats,
     );
   }
 
@@ -199,12 +219,16 @@ class GameState extends Equatable {
         scores,
         roundNumber,
         lastTrickWinner,
+        lastTrick,
         result,
+        roundHistory,
         winnerTeam,
         names,
         targetScore,
         startedAt,
         endedAt,
         turnEndsAt,
+        matchEndsAt,
+        autoSeats,
       ];
 }

@@ -137,8 +137,7 @@ class GoldButton extends StatelessWidget {
                       style: TextStyle(
                         color: fg,
                         fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        letterSpacing: 0.3,
+                        fontSize: 15.5,
                       ),
                     ),
                   ),
@@ -151,8 +150,7 @@ class GoldButton extends StatelessWidget {
                 style: TextStyle(
                   color: fg,
                   fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  letterSpacing: 0.3,
+                  fontSize: 15.5,
                 ),
               ));
 

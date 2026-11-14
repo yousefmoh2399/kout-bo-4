@@ -15,6 +15,7 @@ import 'data/stats_repository.dart';
 import 'ui/auth_page.dart';
 import 'ui/home_page.dart';
 import 'ui/strings.dart';
+import 'ui/widgets.dart';
 
 Future<void> main() async {
   await runZonedGuarded(() async {
@@ -24,6 +25,7 @@ Future<void> main() async {
       reportError(details.exception, details.stack, where: 'flutter');
     };
     await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
@@ -80,13 +82,81 @@ class _Root extends StatelessWidget {
       builder: (context, s) {
         switch (s.status) {
           case AuthStatus.loading:
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const _LuxuryLoadingScreen();
           case AuthStatus.signedOut:
             return const AuthPage();
           case AuthStatus.signedIn:
             return const HomePage();
         }
       },
+    );
+  }
+}
+
+class _LuxuryLoadingScreen extends StatelessWidget {
+  const _LuxuryLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FeltBackground(
+        animated: true,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF134832), Color(0xFF062116)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(color: AppColors.gold, width: 2.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.gold.withAlpha(75),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  '♠',
+                  style: TextStyle(
+                    fontSize: 42,
+                    color: AppColors.goldLight,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                S.appTitle,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.goldLight,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.6,
+                  color: AppColors.goldLight,
+                  backgroundColor: AppColors.gold.withAlpha(45),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

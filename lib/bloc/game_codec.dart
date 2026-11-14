@@ -49,6 +49,9 @@ class GameCodec {
       'scores': s.scores,
       'round': s.roundNumber,
       'lastTrickWinner': s.lastTrickWinner,
+      'lastTrick': [
+        for (final p in s.lastTrick) {'p': p.player, 'c': cardToJson(p.card)},
+      ],
       'result': r == null
           ? null
           : {
@@ -59,6 +62,17 @@ class GameCodec {
               'st': r.scoringTeam,
               'pts': r.points,
             },
+      'history': [
+        for (final h in s.roundHistory)
+          {
+            'bt': h.bidderTeam,
+            'bid': h.bid,
+            'forced': h.forced,
+            'ok': h.success,
+            'st': h.scoringTeam,
+            'pts': h.points,
+          },
+      ],
       'winner': s.winnerTeam,
       'names': s.names,
       'target': s.targetScore,
@@ -66,26 +80,43 @@ class GameCodec {
       'endedMs': s.endedAt?.millisecondsSinceEpoch,
       // نرسل الزمن المتبقي لأن ساعات الأجهزة قد تختلف.
       'turnLeftMs': s.turnEndsAt?.difference(DateTime.now()).inMilliseconds,
+      'matchLeftMs': s.matchEndsAt?.difference(DateTime.now()).inMilliseconds,
+      'autoSeats': s.autoSeats.toList(),
     };
   }
+
+  /// نسخة كاملة من الحالة لنقل الاستضافة (تتضمن أوراق كل اللاعبين).
+  static Map<String, dynamic> encodeFull(GameState s, {required int forSeat}) =>
+      encode(s, forSeat: forSeat)
+        ..['allHands'] = s.hands.map((h) => h.map(cardToJson).toList()).toList();
 
   static GameState decode(Map<String, dynamic> j) {
     final seat = j['seat'] as int;
     final counts = (j['counts'] as List).cast<int>();
     final myHand =
         (j['hand'] as List).map((e) => cardFromJson(e as String)).toList();
+    final allRaw = j['allHands'] as List?;
+    final decodedHands = allRaw != null
+        ? [
+            for (final h in allRaw)
+              (h as List).map((e) => cardFromJson(e as String)).toList(),
+          ]
+        : [
+            for (var i = 0; i < 4; i++)
+              i == seat ? myHand : List<PlayingCard>.filled(counts[i], hiddenCard),
+          ];
     final res = j['result'] as Map?;
     final trick = j['trick'] as Map;
     final startedMs = j['startedMs'] as int?;
     final endedMs = j['endedMs'] as int?;
     final leftMs = j['turnLeftMs'] as int?;
+    final matchLeftMs = j['matchLeftMs'] as int?;
+    final lastTrickRaw = (j['lastTrick'] as List?) ?? const [];
+    final historyRaw = (j['history'] as List?) ?? const [];
 
     return GameState(
       phase: GamePhase.values[j['phase'] as int],
-      hands: [
-        for (var i = 0; i < 4; i++)
-          i == seat ? myHand : List<PlayingCard>.filled(counts[i], hiddenCard),
-      ],
+      hands: decodedHands,
       dealer: j['dealer'] as int,
       currentPlayer: j['current'] as int,
       bids: (j['bids'] as List).map((e) => e as int?).toList(),
@@ -110,6 +141,13 @@ class GameCodec {
       scores: (j['scores'] as List).cast<int>(),
       roundNumber: j['round'] as int,
       lastTrickWinner: j['lastTrickWinner'] as int?,
+      lastTrick: [
+        for (final p in lastTrickRaw)
+          PlayedCard(
+            player: (p as Map)['p'] as int,
+            card: cardFromJson(p['c'] as String),
+          ),
+      ],
       result: res == null
           ? null
           : RoundResult(
@@ -120,6 +158,17 @@ class GameCodec {
               scoringTeam: res['st'] as int,
               points: res['pts'] as int,
             ),
+      roundHistory: [
+        for (final h in historyRaw)
+          RoundResult(
+            bidderTeam: (h as Map)['bt'] as int,
+            bid: h['bid'] as int,
+            forced: h['forced'] as bool,
+            success: h['ok'] as bool,
+            scoringTeam: h['st'] as int,
+            points: h['pts'] as int,
+          ),
+      ],
       winnerTeam: j['winner'] as int?,
       names: (j['names'] as List).cast<String>(),
       targetScore: j['target'] as int,
@@ -131,6 +180,10 @@ class GameCodec {
       turnEndsAt: leftMs == null
           ? null
           : DateTime.now().add(Duration(milliseconds: leftMs)),
+      matchEndsAt: matchLeftMs == null
+          ? null
+          : DateTime.now().add(Duration(milliseconds: matchLeftMs)),
+      autoSeats: (j['autoSeats'] as List?)?.cast<int>().toSet() ?? const {},
     );
   }
 
@@ -146,6 +199,7 @@ class GameCodec {
     }
     if (e is NextRoundRequested) return {'seat': seat, 'kind': 'next'};
     if (e is SeatLeft) return {'seat': seat, 'kind': 'leave'};
+    if (e is AutoPlayToggled) return {'seat': seat, 'kind': 'auto', 'v': e.enabled};
     return {'seat': seat, 'kind': 'restart'};
   }
 
@@ -162,6 +216,8 @@ class GameCodec {
         return NextRoundRequested(seat: seat);
       case 'leave':
         return SeatLeft(seat);
+      case 'auto':
+        return AutoPlayToggled(enabled: j['v'] as bool, seat: seat);
       case 'restart':
         return GameStarted(seat: seat);
     }

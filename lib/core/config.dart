@@ -16,8 +16,15 @@ class AppConfig {
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 }
 
+enum BotDifficulty { normal, pro }
+
 class GameSettings {
-  const GameSettings({this.targetScore = 101, this.turnSeconds = 20});
+  const GameSettings({
+    this.targetScore = 101,
+    this.turnSeconds = 20,
+    this.matchMinutes = 0,
+    this.botDifficulty = BotDifficulty.normal,
+  });
 
   /// الهدف: 51 أو 101 نقطة.
   final int targetScore;
@@ -25,8 +32,22 @@ class GameSettings {
   /// مهلة الدور بالثواني (0 = بدون مؤقت).
   final int turnSeconds;
 
-  GameSettings copyWith({int? targetScore, int? turnSeconds}) => GameSettings(
+  /// مدة المباراة بالدقائق (0 = وقت مفتوح).
+  final int matchMinutes;
+
+  /// مستوى ذكاء البوتات.
+  final BotDifficulty botDifficulty;
+
+  GameSettings copyWith({
+    int? targetScore,
+    int? turnSeconds,
+    int? matchMinutes,
+    BotDifficulty? botDifficulty,
+  }) =>
+      GameSettings(
         targetScore: targetScore ?? this.targetScore,
         turnSeconds: turnSeconds ?? this.turnSeconds,
+        matchMinutes: matchMinutes ?? this.matchMinutes,
+        botDifficulty: botDifficulty ?? this.botDifficulty,
       );
 }

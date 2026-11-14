@@ -54,7 +54,7 @@ class AppTheme {
     );
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.feltDark,
-      textTheme: GoogleFonts.cairoTextTheme(base.textTheme).apply(
+      textTheme: GoogleFonts.tajawalTextTheme(base.textTheme).apply(
         bodyColor: Colors.white,
         displayColor: AppColors.goldLight,
       ),

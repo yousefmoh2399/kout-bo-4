@@ -11,7 +11,6 @@ enum Suit {
   final bool isRed;
 }
 
-/// كوت بو 4: الأوراق من 6 إلى A فقط (الأوراق 2-5 محذوفة).
 enum Rank {
   six(6, '6'),
   seven(7, '7'),
@@ -28,7 +27,6 @@ enum Rank {
   final String label;
 }
 
-/// red = الجيكر (الأقوى)، black = الميكر
 enum JokerKind { red, black }
 
 class PlayingCard extends Equatable {
