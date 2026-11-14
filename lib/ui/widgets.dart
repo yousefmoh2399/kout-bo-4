@@ -4,13 +4,13 @@ import '../core/sound.dart';
 import '../core/theme.dart';
 import 'effects.dart';
 
-/// خلفية "الجوخ" الخضراء المشتركة بين كل الشاشات.
+/// خلفية "الجوخ الأخضر الفاخر" المستوحاة من كبرى صالات الألعاب.
 class FeltBackground extends StatelessWidget {
   const FeltBackground({super.key, required this.child, this.animated = false});
 
   final Widget child;
 
-  /// رموز الورق الطافية (للشاشات الهادئة فقط، لا للطاولة).
+  /// رموز الورق الطافية بأناقة في الخلفية
   final bool animated;
 
   @override
@@ -18,39 +18,82 @@ class FeltBackground extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
-          center: Alignment(0, -0.2),
-          radius: 1.2,
-          colors: [Color(0xFF14804F), AppColors.feltDark],
+          center: Alignment(0, -0.25),
+          radius: 1.35,
+          colors: [
+            AppColors.feltVibrant,
+            AppColors.felt,
+            AppColors.feltDark,
+            AppColors.feltDeep,
+          ],
+          stops: [0.0, 0.45, 0.85, 1.0],
         ),
       ),
-      child: animated
-          ? Stack(children: [const Positioned.fill(child: FloatingSuits()), child])
-          : child,
+      child: Stack(
+        children: [
+          // تدرج إضاءة فينييت ناعم على الحواف
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.2,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withAlpha(90),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (animated) const Positioned.fill(child: FloatingSuits()),
+          child,
+        ],
+      ),
     );
   }
 }
 
+/// بطاقة زجاجية فاخرة (Frosted Glass Card) مع إطار مضيء ناعم.
 class GlassCard extends StatelessWidget {
-  const GlassCard({super.key, required this.child, this.padding = const EdgeInsets.all(16)});
+  const GlassCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.borderRadius = 22,
+    this.borderColor,
+  });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final double borderRadius;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.black.withAlpha(90),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withAlpha(30)),
+        color: Colors.black.withAlpha(100),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: borderColor ?? Colors.white.withAlpha(35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(80),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: child,
     );
   }
 }
 
-/// زر ذهبي رئيسي أو شفاف ثانوي.
+/// زر ذهبي ملكي بارز مع تأثيرات حركية ولمسة فاخرة.
 class GoldButton extends StatelessWidget {
   const GoldButton({
     super.key,
@@ -59,6 +102,7 @@ class GoldButton extends StatelessWidget {
     this.icon,
     this.outlined = false,
     this.busy = false,
+    this.padding = const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
   });
 
   final String label;
@@ -66,29 +110,54 @@ class GoldButton extends StatelessWidget {
   final IconData? icon;
   final bool outlined;
   final bool busy;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !busy;
-    final fg = outlined ? AppColors.gold : Colors.black87;
-    final child = busy
+    final fg = outlined ? AppColors.goldLight : const Color(0xFF1C1305);
+
+    final childWidget = busy
         ? SizedBox(
-            width: 20,
-            height: 20,
+            width: 22,
+            height: 22,
             child: CircularProgressIndicator(strokeWidth: 2.5, color: fg),
           )
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[Icon(icon, color: fg, size: 20), const SizedBox(width: 8)],
-              Text(
+        : (icon != null
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: fg, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: fg,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Text(
                 label,
-                style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontSize: 16),
-              ),
-            ],
-          );
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  letterSpacing: 0.3,
+                ),
+              ));
+
     return Opacity(
-      opacity: enabled || busy ? 1 : 0.45,
+      opacity: enabled || busy ? 1.0 : 0.45,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -96,28 +165,92 @@ class GoldButton extends StatelessWidget {
           onTap: enabled
               ? () {
                   SoundService.instance.play(Sfx.click);
+                  SoundService.instance.tap();
                   onPressed!();
                 }
               : null,
           child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            padding: padding,
             decoration: BoxDecoration(
               gradient: outlined
                   ? null
                   : const LinearGradient(
-                      colors: [AppColors.gold, AppColors.goldDark],
+                      colors: [
+                        AppColors.goldLight,
+                        AppColors.gold,
+                        AppColors.goldDark,
+                      ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
+                      stops: [0.0, 0.45, 1.0],
                     ),
+              color: outlined ? Colors.black.withAlpha(70) : null,
               borderRadius: BorderRadius.circular(16),
-              border: outlined ? Border.all(color: AppColors.gold, width: 1.6) : null,
+              border: Border.all(
+                color: outlined ? AppColors.gold.withAlpha(200) : AppColors.goldLight.withAlpha(160),
+                width: outlined ? 1.5 : 1.0,
+              ),
               boxShadow: outlined
                   ? null
-                  : const [BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 3))],
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(110),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: AppColors.gold.withAlpha(50),
+                        blurRadius: 12,
+                        spreadRadius: -2,
+                      ),
+                    ],
             ),
-            child: Center(widthFactor: 1, child: child),
+            child: Center(widthFactor: 1, child: childWidget),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// شارة مذهبة أنيقة للمعلومات والحالات.
+class GoldBadge extends StatelessWidget {
+  const GoldBadge({
+    super.key,
+    required this.text,
+    this.icon,
+    this.color = AppColors.gold,
+  });
+
+  final String text;
+  final IconData? icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(160), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -126,5 +259,18 @@ class GoldButton extends StatelessWidget {
 void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.feltDark,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.gold.withAlpha(140)),
+        ),
+      ),
+    );
 }

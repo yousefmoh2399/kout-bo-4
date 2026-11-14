@@ -87,11 +87,40 @@ class AuthCubit extends Cubit<AppAuthState> {
       userId: u.id,
       isGuest: u.isAnonymous,
     ));
+
+    // مزامنة فورية للبروفايل مع قاعدة البيانات
+    final c = _client;
+    if (c != null) {
+      c.from('profiles').upsert({
+        'id': u.id,
+        'name': name,
+        'is_guest': u.isAnonymous,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).then((_) {}).catchError((_) {});
+    }
   }
 
   Future<void> _saveName(String name) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('name', name);
+  }
+
+  Future<void> updateName(String newName) async {
+    final clean = newName.trim();
+    if (clean.isEmpty) return;
+    await _saveName(clean);
+    final c = _client;
+    if (c != null && c.auth.currentUser != null) {
+      try {
+        await c.auth.updateUser(sb.UserAttributes(data: {'display_name': clean}));
+        await c.from('profiles').upsert({
+          'id': c.auth.currentUser!.id,
+          'name': clean,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      } catch (_) {}
+    }
+    emit(state.copyWith(name: clean));
   }
 
   Future<void> signInGuest(String name) async {

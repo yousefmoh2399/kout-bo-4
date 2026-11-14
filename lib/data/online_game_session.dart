@@ -16,11 +16,10 @@ import 'room.dart';
 /// الدردشة السريعة على الحدث `emote` من الجميع للجميع.
 class OnlineGameSession {
   OnlineGameSession({
-    required SupabaseClient client,
+    required this.client,
     required this.room,
     required this.userId,
-  })  : _client = client,
-        mySeat = room.seatOf(userId)!,
+  })  : mySeat = room.seatOf(userId)!,
         isHost = room.hostId == userId {
     bloc = GameBloc(
       localSeat: mySeat,
@@ -34,7 +33,7 @@ class OnlineGameSession {
 
   static const Duration _hostTimeout = Duration(seconds: 15);
 
-  final SupabaseClient _client;
+  final SupabaseClient client;
   final Room room;
   final String userId;
   final int mySeat;
@@ -54,7 +53,7 @@ class OnlineGameSession {
   bool _disposed = false;
 
   Future<void> start() async {
-    final channel = _client.channel(
+    final channel = client.channel(
       'game-${room.code}',
       opts: const RealtimeChannelConfig(self: false),
     );
@@ -174,7 +173,7 @@ class OnlineGameSession {
           );
         } catch (_) {}
       }
-      await _client.removeChannel(c);
+      await client.removeChannel(c);
     }
     await _emotes.close();
   }

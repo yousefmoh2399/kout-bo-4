@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui' show FontFeature;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -33,16 +32,10 @@ class GamePage extends StatefulWidget {
   });
 
   final GameBloc bloc;
-
-  /// يُستدعى عند الخروج (مثلاً لمغادرة الغرفة وإغلاق القناة).
   final VoidCallback? onClose;
   final String? roomCode;
-
-  /// الدردشة السريعة (أونلاين فقط).
   final Stream<Emote>? emotes;
   final ValueChanged<String>? onEmote;
-
-  /// true = انقطع المضيف (أونلاين فقط).
   final ValueListenable<bool>? hostLost;
 
   @override
@@ -121,7 +114,7 @@ class _GamePageState extends State<GamePage> {
     }
 
     if (p.phase == GamePhase.gameOver && s.phase != GamePhase.gameOver) {
-      _saved = false; // لعبة جديدة
+      _saved = false;
     }
     if (s.phase == GamePhase.gameOver && !_saved && mounted) {
       _saved = true;
@@ -132,6 +125,7 @@ class _GamePageState extends State<GamePage> {
             scoreThem: s.scores[1 - lt],
             seconds: s.elapsed.inSeconds,
             rounds: s.roundNumber,
+            playerName: s.names[me],
           );
     }
   }
@@ -189,68 +183,66 @@ class _GamePageState extends State<GamePage> {
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final ok = await _confirmExit();
-        if (ok && mounted) Navigator.of(context).pop();
+        if (ok && context.mounted) Navigator.of(context).pop();
       },
       child: BlocProvider<GameBloc>.value(
         value: widget.bloc,
         child: Scaffold(
-          body: FeltBackground(
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  BlocBuilder<GameBloc, GameState>(
-                    builder: (context, s) => _GameBody(
-                      state: s,
-                      me: widget.bloc.localSeat,
-                      bubbles: _bubbles,
-                    ),
-                  ),
-                  if (widget.onEmote != null)
-                    Positioned(
-                      left: 12,
-                      bottom: 150,
-                      child: FloatingActionButton.small(
-                        heroTag: 'chat',
-                        backgroundColor: Colors.black54,
-                        onPressed: _showPhrases,
-                        child: const Icon(Icons.chat_bubble_outline_rounded),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. سطح طاولة الديوانية الفاخرة يغطي كامل الشاشة بدون حواف سوداء
+              const Positioned.fill(
+                child: DiwaniyaTableSurface(),
+              ),
+              // 2. ساحة اللعب التفاعلية
+              SafeArea(
+                child: Stack(
+                  children: [
+                    BlocBuilder<GameBloc, GameState>(
+                      builder: (context, s) => _GameBody(
+                        state: s,
+                        me: widget.bloc.localSeat,
+                        bubbles: _bubbles,
+                        onEmoteTap: widget.onEmote == null ? null : _showPhrases,
                       ),
                     ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: widget.hostLost ?? _neverLost,
-                    builder: (context, lost, _) {
-                      if (!lost) return const SizedBox.shrink();
-                      return Container(
-                        color: Colors.black87,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.wifi_off_rounded, size: 54, color: AppColors.gold),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'انقطع الاتصال بصاحب الغرفة',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'ننتظر عودته... أو يمكنك الخروج.',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            const SizedBox(height: 18),
-                            GoldButton(
-                              label: 'خروج',
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                    ValueListenableBuilder<bool>(
+                      valueListenable: widget.hostLost ?? _neverLost,
+                      builder: (context, lost, _) {
+                        if (!lost) return const SizedBox.shrink();
+                        return Container(
+                          color: Colors.black87,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.wifi_off_rounded, size: 54, color: AppColors.gold),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'انقطع الاتصال بصاحب الغرفة',
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'ننتظر عودته... أو يمكنك الخروج.',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              const SizedBox(height: 18),
+                              GoldButton(
+                                label: 'خروج',
+                                onPressed: () => Navigator.of(context).pop(),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -258,12 +250,99 @@ class _GamePageState extends State<GamePage> {
   }
 }
 
+/// طاولة الديوانية البيضاوية الفاخرة: إطار ماهوجني محفور، بطانة جلدية، إضاءة كازينو، وخطوط ذهبية.
+class DiwaniyaTableSurface extends StatelessWidget {
+  const DiwaniyaTableSurface({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF2B170C), Color(0xFF170B05), Color(0xFF2B170C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // حافة الجلد والخشب الخارجية
+          Container(
+            margin: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(56),
+              border: Border.all(color: AppColors.woodBorder.withAlpha(220), width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(180),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+              gradient: const RadialGradient(
+                center: Alignment(0, -0.05),
+                radius: 1.05,
+                colors: [
+                  Color(0xFF1E9B63),
+                  Color(0xFF137348),
+                  Color(0xFF0B4E30),
+                  Color(0xFF052A1A),
+                ],
+                stops: [0.0, 0.42, 0.78, 1.0],
+              ),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // خياطة ذهبية داخلية أنيقة
+                Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(48),
+                    border: Border.all(
+                      color: AppColors.gold.withAlpha(75),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
+                // خط بيضاوي خفيف في قلب الطاولة
+                Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.56,
+                    heightFactor: 0.54,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(140),
+                        border: Border.all(
+                          color: AppColors.gold.withAlpha(24),
+                          width: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GameBody extends StatelessWidget {
-  const _GameBody({required this.state, required this.me, required this.bubbles});
+  const _GameBody({
+    required this.state,
+    required this.me,
+    required this.bubbles,
+    this.onEmoteTap,
+  });
 
   final GameState state;
   final int me;
   final ValueListenable<Map<int, String>> bubbles;
+  final VoidCallback? onEmoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -273,165 +352,338 @@ class _GameBody extends StatelessWidget {
     final finished = (s.phase == GamePhase.roundOver || s.phase == GamePhase.gameOver) &&
         s.result != null;
 
+    final partnerSeat = (me + 2) % 4;
+    final rightSeat = (me + 1) % 4;
+    final leftSeat = (me + 3) % 4;
+
     return Stack(
       children: [
-        Column(
-          children: [
-            _TopBar(state: s, me: me),
-            Expanded(child: TableView(state: s, me: me, bubbles: bubbles)),
-            HandView(state: s, me: me),
-          ],
+        // 1. ساحة لعب الكروت المركزية (في المساحة الوسطى الرحبة)
+        Positioned.fill(
+          top: 46,
+          bottom: 84,
+          left: 108,
+          right: 108,
+          child: TrickArena(state: s, me: me),
         ),
+
+        // 2. أدوات التحكم العلوية (أعلى اليسار)
+        Positioned(
+          top: 6,
+          left: 12,
+          child: _TopControlsPill(state: s),
+        ),
+
+        // 3. لوحة النتيجة والحكم (أعلى اليمين)
+        Positioned(
+          top: 6,
+          right: 12,
+          child: _ScoreAndContractHud(state: s, me: me),
+        ),
+
+        // 4. محطة الشريك في الأعلى في المنتصف (على الحافة العلوية مباشرة)
+        Positioned(
+          top: 6,
+          left: 150,
+          right: 150,
+          child: Center(
+            child: _PartnerStation(state: s, seat: partnerSeat),
+          ),
+        ),
+
+        // 5. محطة الخصم الأيمن
+        Positioned(
+          right: 12,
+          top: 56,
+          bottom: 58,
+          child: Center(
+            child: _SideStation(state: s, seat: rightSeat, isRight: true),
+          ),
+        ),
+
+        // 6. محطة الخصم الأيسر
+        Positioned(
+          left: 12,
+          top: 56,
+          bottom: 58,
+          child: Center(
+            child: _SideStation(state: s, seat: leftSeat, isRight: false),
+          ),
+        ),
+
+        // 7. محطة اللاعب (أنت) في زاوية أسفل اليسار
+        Positioned(
+          left: 12,
+          bottom: 10,
+          child: _PlayerStation(state: s, seat: me),
+        ),
+
+        // 8. زر الدردشة في زاوية أسفل اليمين
+        if (onEmoteTap != null)
+          Positioned(
+            right: 12,
+            bottom: 10,
+            child: _EmoteButton(onTap: onEmoteTap!),
+          ),
+
+        // 9. يد اللاعب في المنتصف أسفل الشاشة
+        Positioned(
+          bottom: 2,
+          left: 0,
+          right: 0,
+          child: HandView(state: s, me: me),
+        ),
+
+        // 10. فقاعات الدردشة العائمة
+        ValueListenableBuilder<Map<int, String>>(
+          valueListenable: bubbles,
+          builder: (context, map, _) => Stack(
+            children: [
+              for (final e in map.entries) _buildBubble(e.key, e.value),
+            ],
+          ),
+        ),
+
+        // 11. شاشات الحوار التفاعلية (في الجزء العلوي-الأوسط لكي لا تحجب أوراق يدك أبداً!)
         if (s.phase == GamePhase.idle)
           const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
+                CircularProgressIndicator(color: AppColors.gold),
                 SizedBox(height: 12),
-                Text('بانتظار بدء اللعبة...'),
+                Text('بانتظار بدء اللعبة...', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
           ),
-        if (humanBids) Align(alignment: const Alignment(0, 0.15), child: BidPanel(state: s)),
-        if (humanTrump) const Align(alignment: Alignment(0, 0.15), child: TrumpPicker()),
+        if (humanBids)
+          Align(
+            alignment: const Alignment(0, -0.18),
+            child: BidPanel(state: s),
+          ),
+        if (humanTrump)
+          const Align(
+            alignment: Alignment(0, -0.18),
+            child: TrumpPicker(),
+          ),
         if (finished) ResultOverlay(state: s),
       ],
     );
   }
+
+  Widget _buildBubble(int seat, String text) {
+    final rel = (seat - me + 4) % 4;
+    Alignment align;
+    switch (rel) {
+      case 0:
+        align = const Alignment(-0.68, 0.62);
+        break;
+      case 1:
+        align = const Alignment(0.68, -0.12);
+        break;
+      case 2:
+        align = const Alignment(0.0, -0.55);
+        break;
+      default:
+        align = const Alignment(-0.68, -0.12);
+        break;
+    }
+    return Align(
+      alignment: align,
+      child: _Bubble(key: ValueKey('$seat-$text'), text: text),
+    );
+  }
 }
 
-// ───────────────────────── الشريط العلوي ─────────────────────────
+// ───────────────────────── زوايا الشريط العلوي (HUD) ─────────────────────────
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.state, required this.me});
+class _TopControlsPill extends StatelessWidget {
+  const _TopControlsPill({required this.state});
+
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xDC041B12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gold.withAlpha(100), width: 1),
+        boxShadow: const [
+          BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _HudIconBtn(
+            tooltip: 'خروج',
+            icon: Icons.close_rounded,
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 4),
+          ValueListenableBuilder<bool>(
+            valueListenable: SoundService.instance.enabled,
+            builder: (context, on, _) => _HudIconBtn(
+              tooltip: 'الصوت',
+              icon: on ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+              onPressed: () => SoundService.instance.setEnabled(!on),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 16,
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            color: Colors.white24,
+          ),
+          ElapsedClock(state: state),
+        ],
+      ),
+    );
+  }
+}
+
+class _HudIconBtn extends StatelessWidget {
+  const _HudIconBtn({required this.tooltip, required this.icon, required this.onPressed});
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onPressed,
+      child: Tooltip(
+        message: tooltip,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, size: 18, color: Colors.white.withAlpha(220)),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreAndContractHud extends StatelessWidget {
+  const _ScoreAndContractHud({required this.state, required this.me});
 
   final GameState state;
   final int me;
 
   @override
   Widget build(BuildContext context) {
-    final lt = Rules.teamOf(me);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              IconButton(
-                tooltip: 'خروج',
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () => Navigator.of(context).maybePop(),
-              ),
-              const Spacer(),
-              ElapsedClock(state: state),
-              ValueListenableBuilder<bool>(
-                valueListenable: SoundService.instance.enabled,
-                builder: (context, on, _) => IconButton(
-                  tooltip: 'الصوت',
-                  icon: Icon(on ? Icons.volume_up_rounded : Icons.volume_off_rounded),
-                  onPressed: () => SoundService.instance.setEnabled(!on),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              _ScorePill(label: 'فريقكم', value: state.scores[lt], color: AppColors.gold),
-              Expanded(child: _ContractChip(state: state, lt: lt)),
-              _ScorePill(label: 'الخصوم', value: state.scores[1 - lt], color: Colors.white),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScorePill extends StatelessWidget {
-  const _ScorePill({required this.label, required this.value, required this.color});
-
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 76,
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha(90),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(140)),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
-          AnimatedNumber(
-            value: value,
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ContractChip extends StatelessWidget {
-  const _ContractChip({required this.state, required this.lt});
-
-  final GameState state;
-  final int lt;
-
-  @override
-  Widget build(BuildContext context) {
     final s = state;
+    final lt = Rules.teamOf(me);
     final inContract = s.bidder != null &&
         (s.phase == GamePhase.chooseTrump ||
             s.phase == GamePhase.playing ||
             s.phase == GamePhase.roundOver ||
             s.phase == GamePhase.gameOver);
 
-    final spans = <InlineSpan>[];
-    String line2;
-    if (inContract) {
-      spans.add(TextSpan(text: 'مزايدة ${s.highestBid}  '));
-      if (s.trump != null) {
-        spans.add(TextSpan(
-          text: s.trump!.symbol,
-          style: TextStyle(
-            fontSize: 22,
-            color: s.trump!.isRed ? const Color(0xFFFF6B5E) : Colors.white,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // لوحة النتيجة (لنا / لهم)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xE0041B12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.gold.withAlpha(160), width: 1.2),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withAlpha(100), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
           ),
-        ));
-      }
-      line2 = 'اللمات ${s.tricksWon[lt]} - ${s.tricksWon[1 - lt]}';
-    } else {
-      spans.add(TextSpan(text: 'الجولة ${s.roundNumber}'));
-      line2 = 'الهدف ${s.targetScore} نقطة';
-    }
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 250),
-      child: Container(
-        key: ValueKey('${inContract}_${s.highestBid}_${s.trump}_${s.roundNumber}'),
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withAlpha(60),
-          borderRadius: BorderRadius.circular(14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _teamScore('لنا', s.scores[lt], AppColors.gold, AppColors.goldLight),
+              Container(
+                height: 20,
+                width: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: Colors.white24,
+              ),
+              _teamScore('لهم', s.scores[1 - lt], Colors.white, Colors.white70),
+            ],
+          ),
         ),
-        child: Column(
-          children: [
-            Text.rich(
-              TextSpan(children: spans),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        const SizedBox(height: 4),
+        // شارة الحكم والمزايدة
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: Container(
+            key: ValueKey('${inContract}_${s.highestBid}_${s.trump}_${s.roundNumber}'),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xC8000000),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.gold.withAlpha(90), width: 0.9),
             ),
-            Text(line2, style: const TextStyle(fontSize: 12, color: Colors.white70)),
-          ],
+            child: inContract
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'مزايدة ${s.highestBid}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10.5,
+                          color: AppColors.goldLight,
+                        ),
+                      ),
+                      if (s.trump != null) ...[
+                        const SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            s.trump!.symbol,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.05,
+                              color: s.trump!.isRed ? AppColors.cardRed : AppColors.cardBlack,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 6),
+                      Text(
+                        'لمات ${s.tricksWon[lt]}-${s.tricksWon[1 - lt]}',
+                        style: const TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  )
+                : Text(
+                    'جولة ${s.roundNumber} • الهدف ${s.targetScore}',
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.goldLight),
+                  ),
+          ),
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _teamScore(String label, int score, Color scoreColor, Color labelColor) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: labelColor, height: 1.0),
+        ),
+        AnimatedNumber(
+          value: score,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: scoreColor, height: 1.15),
+        ),
+      ],
     );
   }
 }
@@ -469,11 +721,12 @@ class _ElapsedClockState extends State<ElapsedClock> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.timer_outlined, size: 18, color: Colors.white70),
+        const Icon(Icons.timer_outlined, size: 15, color: AppColors.goldLight),
         const SizedBox(width: 4),
         Text(
           started == null ? '00:00' : formatDuration(widget.state.elapsed),
           style: const TextStyle(
+            fontSize: 11.5,
             fontWeight: FontWeight.bold,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
@@ -483,53 +736,30 @@ class _ElapsedClockState extends State<ElapsedClock> {
   }
 }
 
-// ───────────────────────── الطاولة ─────────────────────────
+// ───────────────────────── ساحة اللعب المركزية ─────────────────────────
 
-class TableView extends StatelessWidget {
-  const TableView({super.key, required this.state, required this.me, required this.bubbles});
+class TrickArena extends StatelessWidget {
+  const TrickArena({
+    super.key,
+    required this.state,
+    required this.me,
+  });
 
   final GameState state;
   final int me;
-  final ValueListenable<Map<int, String>> bubbles;
 
   int _rel(int seat) => (seat - me + 4) % 4;
-
-  static Alignment _seatAlignment(int rel) {
-    switch (rel) {
-      case 0:
-        return Alignment.bottomCenter;
-      case 1:
-        return Alignment.centerRight;
-      case 2:
-        return Alignment.topCenter;
-      default:
-        return Alignment.centerLeft;
-    }
-  }
 
   static Alignment _cardAlignment(int rel) {
     switch (rel) {
       case 0:
-        return const Alignment(0, 0.42);
+        return const Alignment(0.0, 0.56);  // أنت (South)
       case 1:
-        return const Alignment(0.42, 0);
+        return const Alignment(0.56, 0.0);  // الخصم الأيمن (East)
       case 2:
-        return const Alignment(0, -0.42);
+        return const Alignment(0.0, -0.56); // الشريك (North)
       default:
-        return const Alignment(-0.42, 0);
-    }
-  }
-
-  static Alignment _bubbleAlignment(int rel) {
-    switch (rel) {
-      case 0:
-        return const Alignment(0, 0.78);
-      case 1:
-        return const Alignment(0.72, -0.35);
-      case 2:
-        return const Alignment(0, -0.78);
-      default:
-        return const Alignment(-0.72, -0.35);
+        return const Alignment(-0.56, 0.0); // الخصم الأيسر (West)
     }
   }
 
@@ -540,64 +770,69 @@ class TableView extends StatelessWidget {
         ? Rules.trickWinner(s.trick, s.trump!)
         : null;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(44),
-          border: Border.all(color: AppColors.woodLight, width: 8),
-          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 6))],
-          gradient: const RadialGradient(
-            colors: [Color(0xFF1E8F5C), AppColors.felt],
-            radius: 0.9,
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(36),
-          child: Stack(
-            children: [
-              Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = min(constraints.maxHeight * 0.92, 220.0).clamp(150.0, 220.0);
+        final cardW = (side * 0.27).clamp(46.0, 58.0);
+
+        return Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 350),
+            width: side,
+            height: side,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0x1E000000),
+              border: Border.all(
+                color: winner != null
+                    ? AppColors.gold.withAlpha(110)
+                    : AppColors.gold.withAlpha(42),
+                width: winner != null ? 1.8 : 1.1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: winner != null
+                      ? AppColors.gold.withAlpha(30)
+                      : Colors.black.withAlpha(55),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // علامة مائية خفيفة للحكم في قلب الساحة
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
                   child: Text(
                     s.trump?.symbol ?? '♠',
                     key: ValueKey(s.trump),
-                    style: TextStyle(fontSize: 150, color: Colors.white.withAlpha(16)),
+                    style: TextStyle(
+                      fontSize: side * 0.38,
+                      color: Colors.white.withAlpha(15),
+                      height: 1,
+                    ),
                   ),
                 ),
-              ),
-              for (var rel = 0; rel < 4; rel++)
-                Align(
-                  alignment: _seatAlignment(rel),
-                  child: SeatView(state: s, seat: (me + rel) % 4, me: me),
-                ),
-              for (final p in s.trick.plays)
-                Align(
-                  alignment: _cardAlignment(_rel(p.player)),
-                  child: _PlayedCard(
-                    key: ValueKey(p.card),
-                    rel: _rel(p.player),
-                    card: p.card,
-                    isWinner: winner == p.player,
-                    sweepRel: winner == null ? null : _rel(winner),
+                // الكروت الملعوبة على الطاولة
+                for (final p in s.trick.plays)
+                  Align(
+                    alignment: _cardAlignment(_rel(p.player)),
+                    child: _PlayedCard(
+                      key: ValueKey('${p.card}-${p.player}'),
+                      rel: _rel(p.player),
+                      card: p.card,
+                      cardWidth: cardW,
+                      isWinner: winner == p.player,
+                      sweepRel: winner == null ? null : _rel(winner),
+                    ),
                   ),
-                ),
-              ValueListenableBuilder<Map<int, String>>(
-                valueListenable: bubbles,
-                builder: (context, map, _) => Stack(
-                  children: [
-                    for (final e in map.entries)
-                      Align(
-                        alignment: _bubbleAlignment(_rel(e.key)),
-                        child: _Bubble(key: ValueKey('${e.key}-${e.value}'), text: e.value),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -618,30 +853,32 @@ class _Bubble extends StatelessWidget {
         child: Opacity(opacity: t.clamp(0.0, 1.0).toDouble(), child: child),
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6)],
+          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8)],
         ),
-        child: Text(text, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        child: Text(text, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
       ),
     );
   }
 }
 
-/// ورقة على الطاولة: تدخل من مقعد اللاعب، وعند اكتمال اللمة تنزلق نحو الفائز.
+/// ورقة على الطاولة: تنطلق بقوس وزاوية واقعية من مقعد اللاعب، وعند الفوز تتجمع وتنسحب للفائز.
 class _PlayedCard extends StatefulWidget {
   const _PlayedCard({
     super.key,
     required this.rel,
     required this.card,
+    required this.cardWidth,
     required this.isWinner,
     required this.sweepRel,
   });
 
   final int rel;
   final PlayingCard card;
+  final double cardWidth;
   final bool isWinner;
   final int? sweepRel;
 
@@ -650,13 +887,18 @@ class _PlayedCard extends StatefulWidget {
 }
 
 class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin {
-  static const _from = [Offset(0, 170), Offset(170, 0), Offset(0, -170), Offset(-170, 0)];
-  static const _angle = [0.0, 0.18, -0.08, -0.18];
+  static const _from = [
+    Offset(0, 175),
+    Offset(260, 0),
+    Offset(0, -165),
+    Offset(-260, 0),
+  ];
+  static const _restAngle = [0.0, 0.10, -0.04, -0.10];
 
   late final AnimationController _enter =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 320))..forward();
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 340))..forward();
   late final AnimationController _sweep =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 380));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
   Timer? _sweepTimer;
 
   @override
@@ -673,7 +915,7 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
 
   void _scheduleSweep() {
     _sweepTimer?.cancel();
-    _sweepTimer = Timer(const Duration(milliseconds: 650), () {
+    _sweepTimer = Timer(const Duration(milliseconds: 680), () {
       if (mounted) _sweep.forward();
     });
   }
@@ -692,44 +934,258 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
       animation: Listenable.merge([_enter, _sweep]),
       builder: (context, child) {
         final t = Curves.easeOutCubic.transform(_enter.value);
-        final sw = Curves.easeIn.transform(_sweep.value);
+        final sw = Curves.easeInCubic.transform(_sweep.value);
         final o = _from[widget.rel];
+
+        // قوس رمية الورقة
         var dx = o.dx * (1 - t);
-        var dy = o.dy * (1 - t);
+        var dy = o.dy * (1 - t) - sin(t * pi) * 18;
+
+        // عند سحب اللمة للفائز
         final target = widget.sweepRel;
-        if (target != null) {
+        if (target != null && target >= 0 && target < _from.length) {
           dx += _from[target].dx * sw;
           dy += _from[target].dy * sw;
         }
+
+        // تأثير التقريب والرمي على الطاولة
+        final enterScale = 1.22 - 0.22 * t;
+        final winnerPop = widget.isWinner ? (1.0 + 0.08 * sin(_enter.value * pi)) : 1.0;
+        final sweepScale = 1.0 - 0.35 * sw;
+
         return Transform.translate(
           offset: Offset(dx, dy),
           child: Transform.scale(
-            scale: 1 - 0.3 * sw,
+            scale: enterScale * winnerPop * sweepScale,
             child: Transform.rotate(
-              angle: _angle[widget.rel] * t,
-              child: Opacity(opacity: (t * (1 - sw)).clamp(0.0, 1.0).toDouble(), child: child),
+              angle: _restAngle[widget.rel] * t + (1 - t) * 0.28,
+              child: Opacity(
+                opacity: (t * (1 - sw)).clamp(0.0, 1.0).toDouble(),
+                child: child,
+              ),
             ),
           ),
         );
       },
-      child: PlayingCardView(card: widget.card, width: 52, highlighted: widget.isWinner),
+      child: PlayingCardView(
+        card: widget.card,
+        width: widget.cardWidth,
+        highlighted: widget.isWinner,
+      ),
     );
   }
 }
 
-class SeatView extends StatelessWidget {
-  const SeatView({super.key, required this.state, required this.seat, required this.me});
+// ───────────────────────── محطات اللاعبين الأربعة ─────────────────────────
+
+class _PartnerStation extends StatelessWidget {
+  const _PartnerStation({required this.state, required this.seat});
 
   final GameState state;
   final int seat;
-  final int me;
 
   @override
   Widget build(BuildContext context) {
     final s = state;
     final bloc = context.read<GameBloc>();
     final isTurn = s.actor == seat;
-    final sameTeam = Rules.teamOf(seat) == Rules.teamOf(me);
+    final isDealer = s.dealer == seat;
+    final name = s.names[seat];
+    final count = s.hands[seat].length;
+
+    String? tag;
+    if (s.phase == GamePhase.bidding) {
+      final b = s.bids[seat];
+      if (b != null) tag = b == 0 ? S.pass : '$b';
+    } else if (s.bidder == seat && s.phase != GamePhase.idle) {
+      tag = S.bidder;
+    }
+
+    final avatar = _AvatarCircle(
+      name: name,
+      isTurn: isTurn,
+      sameTeam: true,
+      size: 32,
+      icon: '🤝',
+    );
+
+    final end = s.turnEndsAt;
+    final Widget head = (isTurn && end != null && bloc.turnSeconds > 0)
+        ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: false, size: 38, child: avatar)
+        : avatar;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xDC041B12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isTurn ? AppColors.gold : Colors.white24,
+          width: isTurn ? 1.5 : 0.8,
+        ),
+        boxShadow: [
+          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(120), blurRadius: 10),
+          const BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          head,
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  if (isDealer) ...[
+                    const SizedBox(width: 4),
+                    const _DealerChip(),
+                  ],
+                ],
+              ),
+              if (tag != null)
+                Text(
+                  tag,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.goldLight),
+                ),
+            ],
+          ),
+          if (count > 0) ...[
+            const SizedBox(width: 8),
+            _MiniCardFan(count: count),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SideStation extends StatelessWidget {
+  const _SideStation({
+    required this.state,
+    required this.seat,
+    required this.isRight,
+  });
+
+  final GameState state;
+  final int seat;
+  final bool isRight;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final bloc = context.read<GameBloc>();
+    final isTurn = s.actor == seat;
+    final isDealer = s.dealer == seat;
+    final name = s.names[seat];
+    final count = s.hands[seat].length;
+
+    String? tag;
+    if (s.phase == GamePhase.bidding) {
+      final b = s.bids[seat];
+      if (b != null) tag = b == 0 ? S.pass : '$b';
+    } else if (s.bidder == seat && s.phase != GamePhase.idle) {
+      tag = S.bidder;
+    }
+
+    final avatar = _AvatarCircle(
+      name: name,
+      isTurn: isTurn,
+      sameTeam: false,
+      size: 36,
+      icon: isRight ? '🦅' : '⚔️',
+    );
+
+    final end = s.turnEndsAt;
+    final Widget head = (isTurn && end != null && bloc.turnSeconds > 0)
+        ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: false, size: 42, child: avatar)
+        : avatar;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xDC041B12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isTurn ? AppColors.gold : Colors.white24,
+          width: isTurn ? 1.5 : 0.8,
+        ),
+        boxShadow: [
+          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(120), blurRadius: 10),
+          const BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          head,
+          const SizedBox(height: 3),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 70),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+                if (isDealer) ...[
+                  const SizedBox(width: 3),
+                  const _DealerChip(),
+                ],
+              ],
+            ),
+          ),
+          if (count > 0 || tag != null) const SizedBox(height: 3),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (count > 0) _MiniCardFan(count: count),
+              if (count > 0 && tag != null) const SizedBox(width: 4),
+              if (tag != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withAlpha(50),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    tag,
+                    style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.goldLight),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayerStation extends StatelessWidget {
+  const _PlayerStation({required this.state, required this.seat});
+
+  final GameState state;
+  final int seat;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state;
+    final bloc = context.read<GameBloc>();
+    final isTurn = s.actor == seat;
+    final isDealer = s.dealer == seat;
     final name = s.names[seat];
 
     String? tag;
@@ -740,67 +1196,233 @@ class SeatView extends StatelessWidget {
       tag = S.bidder;
     }
 
-    final avatar = AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      width: 46,
-      height: 46,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: sameTeam ? const Color(0xFF2E7D6B) : const Color(0xFF8D5A2B),
-        border: Border.all(color: isTurn ? AppColors.gold : Colors.white38, width: isTurn ? 3 : 1.5),
-        boxShadow: isTurn ? [BoxShadow(color: AppColors.gold.withAlpha(130), blurRadius: 14)] : null,
-      ),
-      child: Text(
-        name.isEmpty ? '?' : name.characters.first,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
+    final avatar = _AvatarCircle(
+      name: name,
+      isTurn: isTurn,
+      sameTeam: true,
+      size: 34,
+      icon: '👑',
     );
 
     final end = s.turnEndsAt;
     final Widget head = (isTurn && end != null && bloc.turnSeconds > 0)
-        ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: seat == me, child: avatar)
+        ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: true, size: 40, child: avatar)
         : avatar;
 
-    final count = s.hands[seat].length;
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Column(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xDC041B12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isTurn ? AppColors.gold : Colors.white24,
+          width: isTurn ? 1.6 : 0.8,
+        ),
+        boxShadow: [
+          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(140), blurRadius: 10),
+          const BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           head,
-          const SizedBox(height: 3),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 80),
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-            child: tag == null
-                ? const SizedBox(key: ValueKey('none'), height: 0)
-                : Container(
-                    key: ValueKey(tag),
-                    margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: AppColors.gold.withAlpha(50),
-                      borderRadius: BorderRadius.circular(10),
+          const SizedBox(width: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 68),
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
-                    child: Text(tag, style: const TextStyle(fontSize: 11, color: AppColors.gold)),
                   ),
+                  if (isDealer) ...[
+                    const SizedBox(width: 4),
+                    const _DealerChip(),
+                  ],
+                ],
+              ),
+              Text(
+                tag ?? 'أنت',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: tag != null ? FontWeight.w900 : FontWeight.w600,
+                  color: tag != null ? AppColors.goldLight : Colors.white60,
+                ),
+              ),
+            ],
           ),
-          if (seat != me && count > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: CardBackView(width: 24, label: '$count'),
-            ),
         ],
+      ),
+    );
+  }
+}
+
+class _DealerChip extends StatelessWidget {
+  const _DealerChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 15,
+      height: 15,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.gold,
+        border: Border.all(color: Colors.white, width: 0.8),
+      ),
+      child: const Text(
+        'D',
+        style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF1E1304), height: 1),
+      ),
+    );
+  }
+}
+
+/// مروحة مصغرة لأوراق المنافسين والشريك مع عداد الأوراق المتبقية.
+class _MiniCardFan extends StatelessWidget {
+  const _MiniCardFan({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = min(count, 3);
+    final w = 13.0 + (visible - 1) * 4.5;
+    return SizedBox(
+      width: w + 10,
+      height: 22,
+      child: Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          for (var i = 0; i < visible; i++)
+            Positioned(
+              left: i * 4.5,
+              child: Transform.rotate(
+                angle: (i - (visible - 1) / 2) * 0.12,
+                child: const CardBackView(width: 13),
+              ),
+            ),
+          Positioned(
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.gold.withAlpha(180), width: 0.8),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.goldLight,
+                  height: 1.05,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmoteButton extends StatelessWidget {
+  const _EmoteButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xDC041B12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.gold.withAlpha(140), width: 1.0),
+        boxShadow: const [
+          BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          SoundService.instance.play(Sfx.click);
+          onTap();
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.chat_bubble_outline_rounded, size: 15, color: AppColors.goldLight),
+              SizedBox(width: 5),
+              Text(
+                'دردشة',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.goldLight),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarCircle extends StatelessWidget {
+  const _AvatarCircle({
+    required this.name,
+    required this.isTurn,
+    required this.sameTeam,
+    required this.size,
+    this.icon,
+  });
+
+  final String name;
+  final bool isTurn;
+  final bool sameTeam;
+  final double size;
+  final String? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: sameTeam
+              ? const [Color(0xFF2EB886), Color(0xFF14583E)]
+              : const [Color(0xFFBF6B30), Color(0xFF5E2E0D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(
+          color: isTurn ? AppColors.goldLight : Colors.white60,
+          width: isTurn ? 2.2 : 1.2,
+        ),
+      ),
+      child: Text(
+        icon ?? (name.isEmpty ? '?' : name.characters.first),
+        style: TextStyle(
+          fontSize: icon != null ? size * 0.48 : size * 0.44,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          height: 1.0,
+        ),
       ),
     );
   }
@@ -813,12 +1435,14 @@ class TurnRing extends StatefulWidget {
     required this.endsAt,
     required this.total,
     required this.playTick,
+    this.size = 46,
     required this.child,
   });
 
   final DateTime endsAt;
   final int total;
   final bool playTick;
+  final double size;
   final Widget child;
 
   @override
@@ -859,11 +1483,11 @@ class _TurnRingState extends State<TurnRing> {
       alignment: Alignment.center,
       children: [
         SizedBox(
-          width: 58,
-          height: 58,
+          width: widget.size,
+          height: widget.size,
           child: CircularProgressIndicator(
             value: frac,
-            strokeWidth: 4,
+            strokeWidth: 2.8,
             color: frac < 0.25 ? AppColors.danger : AppColors.gold,
             backgroundColor: Colors.white24,
           ),
@@ -891,42 +1515,39 @@ class HandView extends StatelessWidget {
     final List<PlayingCard> legal = canPlay ? state.legalMoves(me) : const <PlayingCard>[];
 
     return SizedBox(
-      height: 132,
+      height: 102,
       child: LayoutBuilder(
         builder: (context, c) {
-          const cardW = 62.0;
+          final safeWidth = max(220.0, c.maxWidth - 230);
+          final cardW = (safeWidth / 9.2).clamp(48.0, 60.0);
           final n = hand.length;
-          final step = n <= 1 ? 0.0 : min(cardW + 6, (c.maxWidth - cardW - 16) / (n - 1));
+          final step = n <= 1 ? 0.0 : min(cardW + 5, (safeWidth - cardW) / (n - 1));
           final total = n == 0 ? 0.0 : cardW + step * (n - 1);
           final startX = (c.maxWidth - total) / 2;
           final mid = (n - 1) / 2;
+
           return Stack(
+            clipBehavior: Clip.none,
             children: [
               for (var i = 0; i < n; i++)
                 AnimatedPositioned(
                   key: ValueKey('${state.roundNumber}|${hand[i]}'),
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
                   left: startX + i * step,
-                  top: (legal.contains(hand[i]) ? 6.0 : 26.0) + (i - mid).abs() * 2.5,
+                  top: (legal.contains(hand[i]) ? 0.0 : 14.0) + pow((i - mid).abs(), 1.35) * 0.95,
                   child: _DealIn(
                     index: i,
-                    child: Transform.rotate(
-                      angle: (i - mid) * 0.04,
-                      child: GestureDetector(
-                        onTap: legal.contains(hand[i])
-                            ? () {
-                                SoundService.instance.impact();
-                                context.read<GameBloc>().add(CardPlayed(hand[i]));
-                              }
-                            : null,
-                        child: PlayingCardView(
-                          card: hand[i],
-                          width: cardW,
-                          dimmed: canPlay && !legal.contains(hand[i]),
-                          highlighted: legal.contains(hand[i]),
-                        ),
-                      ),
+                    child: _InteractiveHandCard(
+                      card: hand[i],
+                      width: cardW,
+                      angle: (i - mid) * 0.028,
+                      canPlay: canPlay,
+                      isLegal: legal.contains(hand[i]),
+                      onPlay: () {
+                        SoundService.instance.impact();
+                        context.read<GameBloc>().add(CardPlayed(hand[i]));
+                      },
                     ),
                   ),
                 ),
@@ -938,7 +1559,61 @@ class HandView extends StatelessWidget {
   }
 }
 
-/// دخول الورقة من منتصف الطاولة عند التوزيع (متدرج حسب ترتيبها).
+class _InteractiveHandCard extends StatefulWidget {
+  const _InteractiveHandCard({
+    required this.card,
+    required this.width,
+    required this.angle,
+    required this.canPlay,
+    required this.isLegal,
+    required this.onPlay,
+  });
+
+  final PlayingCard card;
+  final double width;
+  final double angle;
+  final bool canPlay;
+  final bool isLegal;
+  final VoidCallback onPlay;
+
+  @override
+  State<_InteractiveHandCard> createState() => _InteractiveHandCardState();
+}
+
+class _InteractiveHandCardState extends State<_InteractiveHandCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final playable = widget.canPlay && widget.isLegal;
+    return GestureDetector(
+      onTapDown: playable ? (_) => setState(() => _pressed = true) : null,
+      onTapCancel: playable ? () => setState(() => _pressed = false) : null,
+      onTapUp: playable
+          ? (_) {
+              setState(() => _pressed = false);
+              widget.onPlay();
+            }
+          : null,
+      child: AnimatedScale(
+        scale: _pressed ? 1.09 : 1.0,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        child: Transform.rotate(
+          angle: widget.angle,
+          child: PlayingCardView(
+            card: widget.card,
+            width: widget.width,
+            dimmed: widget.canPlay && !widget.isLegal,
+            highlighted: playable,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// دخول الورقة من منتصف الطاولة بتقوس وتكبير وتدوير احترافي عند التوزيع.
 class _DealIn extends StatelessWidget {
   const _DealIn({required this.index, required this.child});
 
@@ -947,14 +1622,20 @@ class _DealIn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ms = 380 + index * 70;
+    final ms = 360 + index * 55;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: Duration(milliseconds: ms),
-      curve: Interval(index * 70 / ms, 1, curve: Curves.easeOutCubic),
+      curve: Interval((index * 45 / ms).clamp(0.0, 0.85), 1, curve: Curves.easeOutCubic),
       builder: (context, t, c) => Transform.translate(
-        offset: Offset(0, -240 * (1 - t)),
-        child: Opacity(opacity: t.clamp(0.0, 1.0).toDouble(), child: c),
+        offset: Offset(0, -175 * (1 - t)),
+        child: Transform.scale(
+          scale: 0.48 + 0.52 * t,
+          child: Transform.rotate(
+            angle: 0.25 * (1 - t),
+            child: Opacity(opacity: t.clamp(0.0, 1.0).toDouble(), child: c),
+          ),
+        ),
       ),
       child: child,
     );

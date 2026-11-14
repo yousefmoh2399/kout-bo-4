@@ -36,7 +36,7 @@ class _AuthPageState extends State<AuthPage> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: BlocBuilder<AuthCubit, AppAuthState>(
@@ -44,16 +44,50 @@ class _AuthPageState extends State<AuthPage> {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('♠ ♥ ♦ ♣',
-                            style: TextStyle(fontSize: 22, color: AppColors.gold, letterSpacing: 6)),
-                        const SizedBox(height: 6),
-                        Text('كوت بو',
-                            style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                                  color: AppColors.gold,
-                                  fontWeight: FontWeight.w900,
-                                )),
-                        const Text('لعبة الورق الخليجية', style: TextStyle(color: Colors.white70)),
-                        const SizedBox(height: 28),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(60),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.gold.withAlpha(80), width: 1),
+                          ),
+                          child: const Text(
+                            '♠  ♥  ♦  ♣',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.goldLight,
+                              letterSpacing: 6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'كوت بو ٤',
+                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                                color: AppColors.goldLight,
+                                fontWeight: FontWeight.w900,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withAlpha(160),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                  Shadow(
+                                    color: AppColors.gold.withAlpha(120),
+                                    blurRadius: 24,
+                                  ),
+                                ],
+                              ),
+                        ),
+                        const Text(
+                          'لعبة الورق الخليجية الأصيلة',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
                         GlassCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,12 +122,17 @@ class _AuthPageState extends State<AuthPage> {
                                 ),
                               ],
                               if (s.error != null) ...[
-                                const SizedBox(height: 12),
-                                Text(s.error!,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(color: AppColors.danger)),
+                                const SizedBox(height: 14),
+                                Text(
+                                  s.error!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.danger,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 20),
                               if (!_emailMode)
                                 GoldButton(
                                   label: cubit.online ? 'ادخل كضيف' : 'ابدأ اللعب',
@@ -103,14 +142,14 @@ class _AuthPageState extends State<AuthPage> {
                                 )
                               else
                                 GoldButton(
-                                  label: _registerMode ? 'إنشاء حساب' : 'تسجيل الدخول',
+                                  label: _registerMode ? 'إنشاء حساب جديد' : 'تسجيل الدخول',
                                   busy: s.busy,
                                   onPressed: () => _registerMode
                                       ? cubit.signUp(_name.text, _email.text, _password.text)
                                       : cubit.signIn(_email.text, _password.text),
                                 ),
                               if (cubit.online) ...[
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 12),
                                 GoldButton(
                                   label: _emailMode ? 'العودة للدخول كضيف' : 'الدخول بالبريد الإلكتروني',
                                   outlined: true,
@@ -122,19 +161,33 @@ class _AuthPageState extends State<AuthPage> {
                                 if (_emailMode)
                                   TextButton(
                                     onPressed: () => setState(() => _registerMode = !_registerMode),
-                                    child: Text(_registerMode ? 'عندي حساب بالفعل' : 'ماعندي حساب؟ سجّل الآن'),
+                                    child: Text(
+                                      _registerMode ? 'عندي حساب بالفعل؟ سجّل دخول' : 'ليس لديك حساب؟ سجّل الآن',
+                                      style: const TextStyle(
+                                        color: AppColors.goldLight,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                               ],
                             ],
                           ),
                         ),
                         if (!cubit.online)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Text(
-                              'وضع غير متصل: اللعب ضد البوتات فقط.\nلتفعيل الغرف والدعوات اضبط مفاتيح Supabase (راجع README).',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white54, fontSize: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 18),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withAlpha(60),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: const Text(
+                                'وضع بدون اتصال: اللعب متاح ضد البوتات.\nلتفعيل الغرف واللعب أونلاين اضبط مفاتيح Supabase.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white60, fontSize: 12),
+                              ),
                             ),
                           ),
                       ],

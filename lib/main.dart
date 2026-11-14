@@ -23,14 +23,17 @@ Future<void> main() async {
       FlutterError.presentError(details);
       reportError(details.exception, details.stack, where: 'flutter');
     };
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
     SupabaseClient? client;
     if (AppConfig.isOnlineConfigured) {
       await Supabase.initialize(
         url: AppConfig.supabaseUrl,
-        anonKey: AppConfig.supabaseAnonKey,
+        publishableKey: AppConfig.supabaseAnonKey,
       );
       client = Supabase.instance.client;
     }

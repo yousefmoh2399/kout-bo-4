@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kout_bo4/bloc/game_bloc.dart';
-import 'package:kout_bo4/bloc/game_codec.dart';
-import 'package:kout_bo4/domain/card.dart';
-import 'package:kout_bo4/domain/deck.dart';
-import 'package:kout_bo4/domain/rules.dart';
+import 'package:test_build_game/bloc/game_bloc.dart';
+import 'package:test_build_game/bloc/game_codec.dart';
+import 'package:test_build_game/domain/card.dart';
+import 'package:test_build_game/domain/deck.dart';
+import 'package:test_build_game/domain/rules.dart';
 
 PlayedCard p(int player, PlayingCard card) =>
     PlayedCard(player: player, card: card);

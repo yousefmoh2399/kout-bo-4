@@ -1,7 +1,23 @@
+-- ==============================================================================
+-- سكيما قاعدة بيانات كوت بو ٤ (Supabase Database Schema)
 -- شغّل هذا الملف كاملاً في Supabase → SQL Editor (مرة واحدة).
--- ثم من Authentication → Providers: فعّل Email و "Allow anonymous sign-ins".
--- (للتجربة السريعة عطّل "Confirm email".)
+-- ==============================================================================
 
+-- 1. جدول الملف الشخصي للاعبين (Profiles)
+create table if not exists public.profiles (
+  id            uuid primary key references auth.users(id) on delete cascade,
+  name          text not null default 'لاعب',
+  is_guest      boolean not null default true,
+  games_played  int not null default 0,
+  wins          int not null default 0,
+  losses        int not null default 0,
+  total_points  int not null default 0,
+  highest_bid   int not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+-- 2. جدول الغرف (Rooms)
 create table if not exists public.rooms (
   code          text primary key,
   host_id       uuid not null references auth.users(id) on delete cascade,
@@ -13,35 +29,163 @@ create table if not exists public.rooms (
   created_at    timestamptz not null default now()
 );
 
+-- 3. جدول نتائج المباريات (Game Results)
 create table if not exists public.game_results (
   id               uuid primary key default gen_random_uuid(),
   user_id          uuid not null references auth.users(id) on delete cascade,
+  player_name      text not null default 'لاعب',
   room_code        text,
+  game_mode        text not null default 'solo' check (game_mode in ('solo', 'online')),
   won              boolean not null,
   score_us         int not null,
   score_them       int not null,
-  duration_seconds int not null,
-  rounds           int not null,
+  duration_seconds int not null default 0,
+  rounds           int not null default 1,
   created_at       timestamptz not null default now()
 );
 
+-- 4. جدول تفاصيل الجولات لكل مباراة (Game Round Logs)
+create table if not exists public.game_round_logs (
+  id             uuid primary key default gen_random_uuid(),
+  game_result_id uuid references public.game_results(id) on delete cascade,
+  user_id        uuid not null references auth.users(id) on delete cascade,
+  round_number   int not null default 1,
+  bid            int not null default 5,
+  trump          text,
+  bidder_team    int not null default 0,
+  scoring_team   int not null default 0,
+  points         int not null default 0,
+  success        boolean not null default true,
+  created_at     timestamptz not null default now()
+);
+
+-- ───────────────────────────── تفعيل الأمان (RLS) ─────────────────────────────
+alter table public.profiles enable row level security;
 alter table public.rooms enable row level security;
 alter table public.game_results enable row level security;
+alter table public.game_round_logs enable row level security;
 
+-- سياسات البروفايل (Profiles)
+drop policy if exists "profiles readable by all authenticated" on public.profiles;
+create policy "profiles readable by all authenticated" on public.profiles
+  for select to authenticated using (true);
+
+drop policy if exists "profiles insert own" on public.profiles;
+create policy "profiles insert own" on public.profiles
+  for insert to authenticated with check (id = auth.uid());
+
+drop policy if exists "profiles update own" on public.profiles;
+create policy "profiles update own" on public.profiles
+  for update to authenticated using (id = auth.uid());
+
+-- سياسات الغرف (Rooms)
 drop policy if exists "rooms readable" on public.rooms;
-create policy "rooms readable" on public.rooms for select to authenticated using (true);
+create policy "rooms readable" on public.rooms
+  for select to authenticated using (true);
 
-drop policy if exists "results select own" on public.game_results;
-create policy "results select own" on public.game_results for select to authenticated using (user_id = auth.uid());
+-- سياسات نتائج المباريات (Game Results)
+drop policy if exists "results select all authenticated" on public.game_results;
+create policy "results select all authenticated" on public.game_results
+  for select to authenticated using (true);
+
 drop policy if exists "results insert own" on public.game_results;
-create policy "results insert own" on public.game_results for insert to authenticated with check (user_id = auth.uid());
+create policy "results insert own" on public.game_results
+  for insert to authenticated with check (user_id = auth.uid());
 
--- Realtime لجدول الغرف
+-- سياسات الجولات (Round Logs)
+drop policy if exists "round logs select own" on public.game_round_logs;
+create policy "round logs select own" on public.game_round_logs
+  for select to authenticated using (user_id = auth.uid());
+
+drop policy if exists "round logs insert own" on public.game_round_logs;
+create policy "round logs insert own" on public.game_round_logs
+  for insert to authenticated with check (user_id = auth.uid());
+
+-- ───────────────────────────── Realtime ─────────────────────────────
 do $$ begin
   alter publication supabase_realtime add table public.rooms;
 exception when duplicate_object then null; end $$;
 
--- ───────────── دوال الغرف (الكتابة تتم فقط عبرها) ─────────────
+do $$ begin
+  alter publication supabase_realtime add table public.profiles;
+exception when duplicate_object then null; end $$;
+
+-- ───────────────────── فيو المتصدرين (Leaderboard View) ─────────────────────
+create or replace view public.leaderboard as
+select
+  id as user_id,
+  name,
+  is_guest,
+  games_played,
+  wins,
+  losses,
+  case when games_played > 0
+       then round((wins::numeric / games_played::numeric) * 100)
+       else 0
+  end as win_rate,
+  total_points,
+  created_at
+from public.profiles
+where games_played > 0
+order by wins desc, total_points desc
+limit 50;
+
+-- ───────────────────── دوال البروفايل والتحديث التلقائي ─────────────────────
+
+-- مزامنة أو إنشاء بروفايل اللاعب
+create or replace function public.sync_profile(p_name text, p_is_guest boolean default true)
+returns public.profiles
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_profile public.profiles;
+begin
+  if v_uid is null then raise exception 'not_authenticated'; end if;
+  p_name := left(btrim(coalesce(p_name, '')), 24);
+  if p_name = '' then p_name := 'لاعب'; end if;
+
+  insert into public.profiles (id, name, is_guest, updated_at)
+  values (v_uid, p_name, p_is_guest, now())
+  on conflict (id) do update
+    set name = p_name,
+        is_guest = p_is_guest,
+        updated_at = now()
+  returning * into v_profile;
+
+  return v_profile;
+end $$;
+
+-- تحديث البروفايل تلقائياً عند حفظ نتيجة أي مباراة في الداتا بيز
+create or replace function public._on_game_result_insert()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, name, is_guest, games_played, wins, losses, total_points, updated_at)
+  values (
+    new.user_id,
+    new.player_name,
+    true,
+    1,
+    case when new.won then 1 else 0 end,
+    case when new.won then 0 else 1 end,
+    new.score_us,
+    now()
+  )
+  on conflict (id) do update
+    set games_played = public.profiles.games_played + 1,
+        wins = public.profiles.wins + (case when new.won then 1 else 0 end),
+        losses = public.profiles.losses + (case when new.won then 0 else 1 end),
+        total_points = public.profiles.total_points + new.score_us,
+        updated_at = now();
+  return new;
+end $$;
+
+drop trigger if exists trg_game_result_insert on public.game_results;
+create trigger trg_game_result_insert
+  after insert on public.game_results
+  for each row execute function public._on_game_result_insert();
+
+-- ───────────── دوال الغرف (Rooms RPCs) ─────────────
 
 create or replace function public._gen_room_code() returns text
 language plpgsql as $$
@@ -70,7 +214,7 @@ begin
   if p_target not in (51, 101) or p_turn not in (0, 15, 20, 30) then raise exception 'bad_settings'; end if;
   p_name := left(btrim(coalesce(p_name, '')), 16);
   if p_name = '' then p_name := 'لاعب'; end if;
-  -- غرفة واحدة لكل مضيف (يمنع الإغراق)
+
   delete from public.rooms where host_id = v_uid;
   v_code := public._gen_room_code();
   insert into public.rooms (code, host_id, target_score, turn_seconds, seats)
@@ -78,6 +222,9 @@ begin
     v_code, v_uid, p_target, p_turn,
     jsonb_set('[null,null,null,null]'::jsonb, '{0}', jsonb_build_object('id', v_uid, 'name', p_name, 'bot', false))
   );
+
+  -- تأكيد وجود البروفايل
+  perform public.sync_profile(p_name);
   return v_code;
 end $$;
 
@@ -96,7 +243,7 @@ begin
   select * into r from public.rooms where code = upper(p_code) for update;
   if not found then raise exception 'room_not_found'; end if;
 
-  -- موجود بالفعل؟
+  -- موجود بالفعل في الغرفة؟
   for i in 0..3 loop
     if (r.seats -> i ->> 'id') = v_uid::text then
       return to_jsonb(r);
@@ -117,6 +264,8 @@ begin
      set seats = jsonb_set(seats, array[v_seat::text], jsonb_build_object('id', v_uid, 'name', p_name, 'bot', false))
    where code = r.code
    returning * into r;
+
+  perform public.sync_profile(p_name);
   return to_jsonb(r);
 end $$;
 
@@ -186,29 +335,25 @@ begin
   update public.rooms set status = 'finished' where code = upper(p_code) and host_id = auth.uid();
 end $$;
 
+-- ───────────── حذف الحساب ─────────────
+create or replace function public.delete_account() returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if auth.uid() is null then raise exception 'not_authenticated'; end if;
+  delete from auth.users where id = auth.uid();
+end $$;
+
+-- الصلاحيات
+grant execute on function public.sync_profile(text, boolean) to authenticated;
 grant execute on function public.create_room(text, int, int) to authenticated;
 grant execute on function public.join_room(text, text) to authenticated;
 grant execute on function public.leave_room(text) to authenticated;
 grant execute on function public.set_seat_bot(text, int, boolean) to authenticated;
 grant execute on function public.start_room(text) to authenticated;
 grant execute on function public.finish_room(text) to authenticated;
-
--- ───────────── حذف الحساب (مطلوب من متاجر التطبيقات) ─────────────
-create or replace function public.delete_account() returns void
-language plpgsql security definer set search_path = public, auth as $$
-begin
-  if auth.uid() is null then raise exception 'not_authenticated'; end if;
-  delete from auth.users where id = auth.uid();  -- يحذف غرفه ونتائجه تلقائياً (cascade)
-end $$;
 grant execute on function public.delete_account() to authenticated;
 
--- ───────────── تنظيف الغرف القديمة ─────────────
-create or replace function public.cleanup_old_rooms() returns void
-language sql security definer set search_path = public as $$
-  delete from public.rooms where created_at < now() - interval '1 day';
-$$;
--- جدولة يومية (فعّل امتداد pg_cron من Database → Extensions ثم أزل التعليق):
--- select cron.schedule('cleanup-rooms', '0 4 * * *', $$select public.cleanup_old_rooms()$$);
-
--- ───────────── اقتراح: فهرس لسرعة الإحصائيات ─────────────
+-- الفهارس لسرعة الاستعلامات
 create index if not exists game_results_user_idx on public.game_results (user_id, created_at desc);
+create index if not exists game_round_logs_game_idx on public.game_round_logs (game_result_id);
+create index if not exists profiles_wins_idx on public.profiles (wins desc, total_points desc);

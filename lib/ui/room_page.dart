@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../bloc/auth_cubit.dart';
 import '../bloc/lobby_cubit.dart';
 import '../core/config.dart';
+import '../core/sound.dart';
 import '../core/theme.dart';
 import '../data/online_game_session.dart';
 import '../data/room.dart';
@@ -145,100 +146,184 @@ class _RoomPageState extends State<RoomPage> {
     }
 
     final isHost = room.hostId == _userId;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              GlassCard(
-                child: Column(
+
+    final roomInfoCard = GlassCard(
+      child: Column(
+        children: [
+          const Text('كود دعوة الأصدقاء', style: TextStyle(color: Colors.white70, fontSize: 13)),
+          const SizedBox(height: 6),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              SoundService.instance.play(Sfx.click);
+              SoundService.instance.tap();
+              Clipboard.setData(ClipboardData(text: room.code));
+              showSnack(context, 'تم نسخ كود الغرفة');
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(80),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.gold.withAlpha(140), width: 1.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    room.code,
+                    style: const TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 8,
+                      color: AppColors.goldLight,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.copy_rounded, color: AppColors.gold, size: 18),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'الهدف ${room.targetScore} نقطة • ${room.turnSeconds == 0 ? 'بدون مؤقت' : '${room.turnSeconds} ثانية للدور'}',
+            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          GoldButton(
+            label: 'شارك كود الدعوة',
+            icon: Icons.share_rounded,
+            outlined: true,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            onPressed: () {
+              SoundService.instance.play(Sfx.click);
+              Share.share(
+                'تعال العب معي كوت بو ٤! ادخل التطبيق واختر "انضم بكود" واكتب: ${room.code}',
+              );
+            },
+          ),
+        ],
+      ),
+    );
+
+    final seatsGrid = GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.6,
+      children: [
+        for (final seat in const [0, 1, 2, 3])
+          _SeatTile(
+            seat: seat,
+            info: room.seats[seat],
+            isMe: room.seats[seat]?.userId == _userId,
+            canEdit: isHost && seat != 0,
+            onToggleBot: (bot) => _cubit.setBot(seat, bot),
+          ),
+      ],
+    );
+
+    final actionArea = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (s.error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(s.error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.danger)),
+          ),
+        if (isHost)
+          GoldButton(
+            label: 'ابدأ اللعبة',
+            icon: Icons.play_arrow_rounded,
+            onPressed: _cubit.start,
+          )
+        else
+          const Center(
+            child: Text('بانتظار المضيف ليبدأ اللعبة...',
+                style: TextStyle(color: Colors.white70)),
+          ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 580;
+
+        if (isWide) {
+          return Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 820),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('كود الدعوة', style: TextStyle(color: Colors.white70)),
-                    const SizedBox(height: 4),
-                    InkWell(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: room.code));
-                        showSnack(context, 'تم نسخ الكود');
-                      },
-                      child: Text(
-                        room.code,
-                        style: const TextStyle(
-                          fontSize: 44,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 10,
-                          color: AppColors.gold,
-                        ),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          roomInfoCard,
+                          const SizedBox(height: 12),
+                          actionArea,
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'الهدف ${room.targetScore} نقطة • ${room.turnSeconds == 0 ? 'بدون مؤقت' : '${room.turnSeconds} ثانية للدور'}',
-                      style: const TextStyle(color: Colors.white60, fontSize: 12),
-                    ),
-                    const SizedBox(height: 12),
-                    GoldButton(
-                      label: 'شارك الدعوة',
-                      icon: Icons.share_rounded,
-                      outlined: true,
-                      onPressed: () => Share.share(
-                        'تعال العب معي كوت بو! ادخل التطبيق واختر "انضم بكود" واكتب: ${room.code}',
+                    const SizedBox(width: 20),
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          seatsGrid,
+                          const SizedBox(height: 8),
+                          const Text(
+                            'المقاعد المتقابلة فريق واحد. المقاعد الشاغرة تمتلئ ببوتات ذكية.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white54, fontSize: 11),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.35,
+            ),
+          );
+        }
+
+        return Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final seat in const [0, 1, 2, 3])
-                    _SeatTile(
-                      seat: seat,
-                      info: room.seats[seat],
-                      isMe: room.seats[seat]?.userId == _userId,
-                      canEdit: isHost && seat != 0,
-                      onToggleBot: (bot) => _cubit.setBot(seat, bot),
-                    ),
+                  roomInfoCard,
+                  const SizedBox(height: 16),
+                  seatsGrid,
+                  const SizedBox(height: 6),
+                  const Text(
+                    'اللاعبان المتقابلان فريق واحد. المقاعد الفاضية تمتلئ بالبوتات عند البدء.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  actionArea,
                 ],
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'اللاعبان المتقابلان فريق واحد. المقاعد الفاضية تمتلئ بالبوتات عند البدء.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              if (s.error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(s.error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.danger)),
-                ),
-              const SizedBox(height: 16),
-              if (isHost)
-                GoldButton(
-                  label: 'ابدأ اللعبة',
-                  icon: Icons.play_arrow_rounded,
-                  onPressed: _cubit.start,
-                )
-              else
-                const Center(
-                  child: Text('بانتظار المضيف ليبدأ اللعبة...',
-                      style: TextStyle(color: Colors.white70)),
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -261,36 +346,89 @@ class _SeatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final team = seat % 2;
-    final color = team == 0 ? const Color(0xFF2E7D6B) : const Color(0xFF8D5A2B);
+    final isTeam1 = team == 0;
     final seatInfo = info;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withAlpha(110),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isMe ? AppColors.gold : Colors.white24, width: isMe ? 2 : 1),
+        gradient: LinearGradient(
+          colors: isTeam1
+              ? [const Color(0x991E7453), const Color(0x990F4430)]
+              : [const Color(0x997C421A), const Color(0x9948240D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isMe ? AppColors.gold : (seatInfo != null ? Colors.white30 : Colors.white12),
+          width: isMe ? 2.0 : 1.0,
+        ),
+        boxShadow: [
+          if (isMe)
+            BoxShadow(color: AppColors.gold.withAlpha(70), blurRadius: 10),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('الفريق ${team + 1}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isTeam1 ? const Color(0xFF48BB78) : const Color(0xFFED8936),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'الفريق ${team + 1}',
+                style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
           if (seatInfo == null) ...[
-            const Icon(Icons.person_add_alt_1_rounded, color: Colors.white38),
-            const Text('فاضي', style: TextStyle(color: Colors.white54)),
+            const Icon(Icons.person_add_alt_1_rounded, color: Colors.white30, size: 22),
+            const SizedBox(height: 2),
+            const Text('مقعد شاغر', style: TextStyle(color: Colors.white38, fontSize: 13)),
           ] else ...[
-            Icon(seatInfo.isBot ? Icons.smart_toy_rounded : Icons.person_rounded, color: Colors.white),
+            Icon(
+              seatInfo.isBot ? Icons.smart_toy_rounded : Icons.person_rounded,
+              color: isMe ? AppColors.goldLight : Colors.white,
+              size: 22,
+            ),
+            const SizedBox(height: 2),
             Text(
               seatInfo.isBot ? seatInfo.name : (isMe ? '${seatInfo.name} (أنت)' : seatInfo.name),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: isMe ? AppColors.goldLight : Colors.white,
+                fontSize: 14,
+              ),
             ),
           ],
           if (canEdit && (seatInfo == null || seatInfo.isBot))
-            TextButton(
-              onPressed: () => onToggleBot(seatInfo == null),
-              child: Text(seatInfo == null ? '+ أضف بوت' : 'إزالة البوت'),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: InkWell(
+                onTap: () {
+                  SoundService.instance.play(Sfx.click);
+                  onToggleBot(seatInfo == null);
+                },
+                child: Text(
+                  seatInfo == null ? '+ أضف بوت' : 'إزالة البوت',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: seatInfo == null ? AppColors.gold : Colors.white60,
+                  ),
+                ),
+              ),
             ),
         ],
       ),
