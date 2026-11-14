@@ -320,7 +320,7 @@ class _DealIn extends StatefulWidget {
 class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1450),
+    duration: const Duration(milliseconds: 1650),
   )..forward();
 
   @override
@@ -331,9 +331,9 @@ class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // يبدأ توزيع أوراق هذا اللاعب فقط عندما يصل دوره ضمن الـ 4 لاعبين
-    final dealStart = widget.playerOrder * 0.24 + widget.index * 0.017;
-    const dealSpan = 0.095;
+    // يبدأ توزيع أوراق هذا اللاعب بالتزامن مع موجته، وبمدة طيران كافية (16% = ~16 إطاراً) للسلاسة التامة
+    final dealStart = widget.playerOrder * 0.21 + widget.index * 0.015;
+    const dealSpan = 0.16;
 
     return AnimatedBuilder(
       animation: _c,
@@ -347,13 +347,12 @@ class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
         }
 
         final dealLocal = ((v - dealStart) / dealSpan).clamp(0.0, 1.0);
-        final flyT = Curves.easeOutCubic.transform(dealLocal);
-        final arcLift = sin(flyT * pi) * 20.0;
+        final flyT = Curves.easeOutQuart.transform(dealLocal);
+        final arcLift = sin(flyT * pi) * 18.0;
         final dx = widget.dxFromCenter * (1.0 - flyT);
         final dy = -155.0 * (1.0 - flyT) - arcLift;
-        final scale = 0.55 + 0.45 * flyT;
+        final scale = 0.58 + 0.42 * flyT;
         final rotZ = widget.angle * flyT;
-        final opacity = (flyT * 4.0).clamp(0.0, 1.0);
 
         return Transform.translate(
           offset: Offset(dx, dy),
@@ -361,9 +360,7 @@ class _DealInState extends State<_DealIn> with SingleTickerProviderStateMixin {
             scale: scale,
             child: Transform.rotate(
               angle: rotZ,
-              child: opacity < 0.99
-                  ? Opacity(opacity: opacity, child: c)
-                  : c,
+              child: c,
             ),
           ),
         );

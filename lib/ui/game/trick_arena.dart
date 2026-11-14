@@ -117,9 +117,10 @@ class TrickArena extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // الإطار الخشبي + الجوخ المقصوص بالزوايا الدائرية
+                // الإطار الخشبي + الجوخ المقصوص بالزوايا الدائرية (معزول بـ RepaintBoundary عن حركة الورق)
                 Positioned.fill(
-                  child: Container(
+                  child: RepaintBoundary(
+                    child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(outerRadius),
@@ -215,16 +216,18 @@ class TrickArena extends StatelessWidget {
                                   _rel(s.actor!),
                                   isLandscape: isLandscape,
                                 ),
-                                child: Container(
-                                  width: cardW * 1.85,
-                                  height: cardH * 1.35,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: RadialGradient(
-                                      colors: [
-                                        AppColors.gold.withAlpha(48),
-                                        Colors.transparent,
-                                      ],
+                                child: RepaintBoundary(
+                                  child: Container(
+                                    width: cardW * 1.85,
+                                    height: cardH * 1.35,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: RadialGradient(
+                                        colors: [
+                                          AppColors.gold.withAlpha(48),
+                                          Colors.transparent,
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -307,6 +310,7 @@ class TrickArena extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
                 ),
 
                 // طبقة حركة الورق فوق الطاولة بدون قصّ (Clip.none) حتى تظهر الورقة الرابعة أثناء دخولها وسحب الأكلة
@@ -394,20 +398,49 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
     with SingleTickerProviderStateMixin {
   late Widget _deckBack = _buildDeckBack();
   late Widget _flyingBack = _buildFlyingBack();
+  late Widget _edgeBase = _buildEdgeCard(shadow: true, light: true);
+  late Widget _edgeLight = _buildEdgeCard(shadow: false, light: true);
+  late Widget _edgeDark = _buildEdgeCard(shadow: false, light: false);
 
-  Widget _buildDeckBack() {
-    final deckW = (widget.cardWidth * 1.14).clamp(54.0, 76.0);
-    return CardBackView(width: deckW);
-  }
+  double get _deckW => (widget.cardWidth * 1.14).clamp(54.0, 76.0);
+  double get _deckH => _deckW * 1.44;
+
+  Widget _buildDeckBack() => CardBackView(width: _deckW);
 
   Widget _buildFlyingBack() {
     final flyW = (widget.cardWidth * 0.92).clamp(44.0, 62.0);
     return CardBackView(width: flyW);
   }
 
+  Widget _buildEdgeCard({required bool shadow, required bool light}) {
+    return RepaintBoundary(
+      child: Container(
+        width: _deckW,
+        height: _deckH,
+        decoration: BoxDecoration(
+          color: light ? const Color(0xFFF3ECE0) : const Color(0xFFDAD0BE),
+          borderRadius: BorderRadius.circular(_deckW * 0.13),
+          border: Border.all(
+            color: Colors.black.withAlpha(55),
+            width: 0.7,
+          ),
+          boxShadow: shadow
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(140),
+                    blurRadius: 12,
+                    offset: const Offset(2, 6),
+                  ),
+                ]
+              : null,
+        ),
+      ),
+    );
+  }
+
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1450),
+    duration: const Duration(milliseconds: 1650),
   );
   int _lastSoundStage = -1;
 
@@ -424,6 +457,9 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
     if ((old.cardWidth - widget.cardWidth).abs() > 0.5) {
       _deckBack = _buildDeckBack();
       _flyingBack = _buildFlyingBack();
+      _edgeBase = _buildEdgeCard(shadow: true, light: true);
+      _edgeLight = _buildEdgeCard(shadow: false, light: true);
+      _edgeDark = _buildEdgeCard(shadow: false, light: false);
     }
   }
 
@@ -504,36 +540,20 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
                     ),
                   ),
                 ),
-                // طبقات سمك الكوتشينة (الحافة الورقية السفلية) ثم الوجه العلوي الفاخر
+                // طبقات سمك الكوتشينة المخزّنة مسبقاً ثم الوجه العلوي الفاخر
                 for (var s = 0; s < deckRemaining - 1; s++)
                   Transform.translate(
                     offset: Offset(-s * 1.25, -s * 1.5),
-                    child: Transform.scale(
-                      scale: deckFadeScale,
-                      child: Container(
-                        width: deckW,
-                        height: deckH,
-                        decoration: BoxDecoration(
-                          color: s.isEven
-                              ? const Color(0xFFF3ECE0)
-                              : const Color(0xFFDAD0BE),
-                          borderRadius: BorderRadius.circular(deckW * 0.13),
-                          border: Border.all(
-                            color: Colors.black.withAlpha(55),
-                            width: 0.7,
-                          ),
-                          boxShadow: s == 0
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withAlpha(140),
-                                    blurRadius: 12,
-                                    offset: const Offset(2, 6),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                      ),
-                    ),
+                    child: deckFadeScale < 0.99
+                        ? Transform.scale(
+                            scale: deckFadeScale,
+                            child: s == 0
+                                ? _edgeBase
+                                : (s.isEven ? _edgeLight : _edgeDark),
+                          )
+                        : (s == 0
+                            ? _edgeBase
+                            : (s.isEven ? _edgeLight : _edgeDark)),
                   ),
                 if (deckRemaining > 0)
                   Transform.translate(
@@ -545,14 +565,14 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
                         ? Transform.scale(scale: deckFadeScale, child: _deckBack)
                         : _deckBack,
                   ),
-                // توزيع الأوراق لاعب تلو الآخر (لا يطير ورق للاعب الثاني قبل انتهاء الأول)
+                // توزيع الأوراق لاعب تلو الآخر مع زمن طيران أطول (~16 إطاراً لكل ورقة) لسلاسة حريرية
                 for (var order = 0; order < 4; order++)
                   if (_rel(seatsInOrder[order]) != 0)
                     for (var cardIdx = 0; cardIdx < 5; cardIdx++)
                       _flyingPlayerCard(
                         v: v,
-                        start: order * 0.24 + cardIdx * 0.032,
-                        span: 0.085,
+                        start: order * 0.21 + cardIdx * 0.030,
+                        span: 0.16,
                         target: _targetForRel(_rel(seatsInOrder[order])).$1,
                         spin: _targetForRel(_rel(seatsInOrder[order])).$2,
                       ),
@@ -573,11 +593,11 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
   }) {
     final local = ((v - start) / span).clamp(0.0, 1.0);
     if (local <= 0.0 || local >= 1.0) return const SizedBox.shrink();
-    final t = Curves.easeOutCubic.transform(local);
+    final t = Curves.easeOutQuart.transform(local);
     final arc = sin(local * pi) * 18.0;
     // استبدال Opacity بتلاشي الحجم في البداية والنهاية لتفادي saveLayer وضمان 60fps
     final popScale = local < 0.14
-        ? (0.55 + 0.45 * (local / 0.14))
+        ? (0.58 + 0.42 * (local / 0.14))
         : (local > 0.80 ? (1.0 - (local - 0.80) / 0.20 * 0.35) : 1.0);
     return Transform.translate(
       offset: Offset(target.dx * t, target.dy * t - arc),
@@ -743,22 +763,23 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
           dy += dest.dy * flyOutT - sin(flyOutT * pi) * 16;
         }
 
-        final enterScale = 1.20 - 0.20 * t;
+        final enterScale = 1.18 - 0.18 * t;
         final winnerPop = widget.isWinner ? (1.0 + 0.08 * sin(_enter.value * pi)) : 1.0;
-        final sweepScale = 1.0 - 0.54 * flyOutT;
-        final tiltX = (1 - t) * 0.40;
+        final sweepScale = flyOutT < 0.78
+            ? (1.0 - 0.50 * flyOutT)
+            : (0.61 - 0.46 * ((flyOutT - 0.78) / 0.22)).clamp(0.14, 1.0);
+        final tiltX = (1 - t) * 0.36;
         final gatherAngle = _restAngle[widget.rel] * (1 - gatherT) +
             (widget.rel - 1.5) * 0.05 * gatherT;
-        final sweepOpacity = flyOutT < 0.76
+        // بدون Opacity/saveLayer عند الدخول أو الطيران — تلاشي الحجم السلس يمنع أي تقطيع فريمات
+        final sweepOpacity = flyOutT < 0.82
             ? 1.0
-            : (1.0 - (flyOutT - 0.76) / 0.24).clamp(0.0, 1.0);
+            : (1.0 - (flyOutT - 0.82) / 0.18).clamp(0.0, 1.0);
 
-        final enterOp = (t * 5.0).clamp(0.0, 1.0);
-        final totalOpacity = (enterOp * sweepOpacity).clamp(0.0, 1.0).toDouble();
         final rotatedChild = Transform.rotate(
-          angle: gatherAngle * t + (1 - t) * 0.24 + 0.18 * flyOutT,
-          child: totalOpacity < 0.99
-              ? Opacity(opacity: totalOpacity, child: child)
+          angle: gatherAngle * t + (1 - t) * 0.22 + 0.18 * flyOutT,
+          child: sweepOpacity < 0.99
+              ? Opacity(opacity: sweepOpacity, child: child)
               : child,
         );
 

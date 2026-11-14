@@ -16,9 +16,12 @@ class SoundService {
 
   final List<AudioPlayer> _pool = [];
   final Map<Sfx, DateTime> _lastPlayed = {};
+  final Map<Sfx, AssetSource> _sources = {
+    for (final sfx in Sfx.values) sfx: AssetSource('sounds/${sfx.name}.wav'),
+  };
   int _nextIdx = 0;
   bool _initialized = false;
-  static const int _poolSize = 5;
+  static const int _poolSize = 6;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,7 +56,12 @@ class SoundService {
   Future<AudioPlayer> _createPlayer() async {
     final p = AudioPlayer();
     await p.setReleaseMode(ReleaseMode.stop);
-    await p.setPlayerMode(PlayerMode.mediaPlayer);
+    try {
+      // lowLatency (SoundPool على أندرويد) يمنع تقطيع الفريمات أثناء توزيع ولعب الورق
+      await p.setPlayerMode(PlayerMode.lowLatency);
+    } catch (_) {
+      await p.setPlayerMode(PlayerMode.mediaPlayer);
+    }
     return p;
   }
 
@@ -122,12 +130,9 @@ class SoundService {
       }
       _nextIdx = (idx + 1) % _pool.length;
 
-      final source = AssetSource('sounds/${sfx.name}.wav');
+      final source = _sources[sfx]!;
       final player = _pool[idx];
       try {
-        if (player.state == PlayerState.playing) {
-          await player.stop();
-        }
         await player.play(source, volume: volume.value);
       } catch (_) {
         // استبدال المشغل تلقائياً إذا تعطل لضمان عدم توقف الصوت أبداً.
