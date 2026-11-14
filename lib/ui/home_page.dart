@@ -61,28 +61,32 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _joinRoom() async {
     final controller = TextEditingController();
-    final code = await showDialog<String>(
+    final code = await showLuxuryDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.feltDark,
-        title: const Text('انضم لغرفة'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.characters,
-          textAlign: TextAlign.center,
-          maxLength: 5,
-          style: const TextStyle(fontSize: 28, letterSpacing: 8, fontWeight: FontWeight.bold),
-          decoration: const InputDecoration(hintText: 'XXXXX', counterText: ''),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim().toUpperCase()),
-            child: const Text('انضم'),
-          ),
-        ],
+      title: 'انضم لغرفة',
+      icon: Icons.vpn_key_rounded,
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.characters,
+        textAlign: TextAlign.center,
+        maxLength: 5,
+        style: const TextStyle(fontSize: 26, letterSpacing: 8, fontWeight: FontWeight.bold),
+        decoration: const InputDecoration(hintText: 'XXXXX', counterText: ''),
       ),
+      actions: [
+        GoldButton(
+          label: 'إلغاء',
+          outlined: true,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          onPressed: () => Navigator.pop(context),
+        ),
+        GoldButton(
+          label: 'انضم',
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          onPressed: () => Navigator.pop(context, controller.text.trim().toUpperCase()),
+        ),
+      ],
     );
     controller.dispose();
     if (code == null || code.length < 4 || !mounted) return;

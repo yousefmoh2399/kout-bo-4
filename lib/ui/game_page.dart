@@ -131,19 +131,30 @@ class _GamePageState extends State<GamePage> {
   }
 
   Future<bool> _confirmExit() async {
-    final ok = await showDialog<bool>(
+    final ok = await showLuxuryDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.feltDark,
-        title: const Text('الخروج من اللعبة؟'),
-        content: Text(widget.roomCode == null
-            ? 'سيتم إنهاء اللعبة الحالية.'
-            : 'سيلعب البوت مكانك لتكمل اللعبة بدونك.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('كمّل لعب')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('اخرج')),
-        ],
+      title: 'الخروج من اللعبة؟',
+      icon: Icons.exit_to_app_rounded,
+      content: Text(
+        widget.roomCode == null
+            ? 'سيتم إنهاء اللعبة الحالية والعودة للقائمة.'
+            : 'سيلعب البوت مكانك لتكمل اللعبة بدونك.',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.5),
       ),
+      actions: [
+        GoldButton(
+          label: 'كمّل لعب',
+          outlined: true,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        GoldButton(
+          label: 'اخرج',
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
     );
     return ok ?? false;
   }
@@ -753,13 +764,13 @@ class TrickArena extends StatelessWidget {
   static Alignment _cardAlignment(int rel) {
     switch (rel) {
       case 0:
-        return const Alignment(0.0, 0.56);  // أنت (South)
+        return const Alignment(0.0, 0.64);  // أنت (South)
       case 1:
-        return const Alignment(0.56, 0.0);  // الخصم الأيمن (East)
+        return const Alignment(0.64, 0.0);  // الخصم الأيمن (East)
       case 2:
-        return const Alignment(0.0, -0.56); // الشريك (North)
+        return const Alignment(0.0, -0.64); // الشريك (North)
       default:
-        return const Alignment(-0.56, 0.0); // الخصم الأيسر (West)
+        return const Alignment(-0.64, 0.0); // الخصم الأيسر (West)
     }
   }
 
@@ -772,29 +783,38 @@ class TrickArena extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final side = min(constraints.maxHeight * 0.92, 220.0).clamp(150.0, 220.0);
-        final cardW = (side * 0.27).clamp(46.0, 58.0);
+        final maxH = constraints.maxHeight;
+        final maxW = constraints.maxWidth;
+        final arenaH = min(maxH * 0.94, 230.0).clamp(150.0, 230.0);
+        final arenaW = min(maxW * 0.90, arenaH * 1.45);
+        final cardW = (arenaH * 0.27).clamp(46.0, 58.0);
+        final cardH = cardW * 1.44;
 
         return Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 350),
-            width: side,
-            height: side,
+            width: arenaW,
+            height: arenaH,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0x1E000000),
+              borderRadius: BorderRadius.circular(arenaH * 0.45),
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF0A432A).withAlpha(200),
+                  const Color(0xFF052416).withAlpha(220),
+                ],
+              ),
               border: Border.all(
                 color: winner != null
-                    ? AppColors.gold.withAlpha(110)
-                    : AppColors.gold.withAlpha(42),
-                width: winner != null ? 1.8 : 1.1,
+                    ? AppColors.gold.withAlpha(170)
+                    : AppColors.gold.withAlpha(65),
+                width: winner != null ? 2.0 : 1.3,
               ),
               boxShadow: [
                 BoxShadow(
                   color: winner != null
-                      ? AppColors.gold.withAlpha(30)
-                      : Colors.black.withAlpha(55),
-                  blurRadius: 20,
+                      ? AppColors.gold.withAlpha(45)
+                      : Colors.black.withAlpha(80),
+                  blurRadius: 22,
                   spreadRadius: 2,
                 ),
               ],
@@ -802,19 +822,80 @@ class TrickArena extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // علامة مائية خفيفة للحكم في قلب الساحة
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  child: Text(
-                    s.trump?.symbol ?? '♠',
-                    key: ValueKey(s.trump),
-                    style: TextStyle(
-                      fontSize: side * 0.38,
-                      color: Colors.white.withAlpha(15),
-                      height: 1,
-                    ),
+                // خط داخلي ذهبي مزدوج لساحة اللعب
+                Container(
+                  margin: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(arenaH * 0.42),
+                    border: Border.all(color: AppColors.gold.withAlpha(28), width: 0.8),
                   ),
                 ),
+
+                // خانات نزول الورق الأربع الخفيفة
+                for (var rel = 0; rel < 4; rel++)
+                  Align(
+                    alignment: _cardAlignment(rel),
+                    child: Container(
+                      width: cardW,
+                      height: cardH,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(cardW * 0.13),
+                        border: Border.all(
+                          color: Colors.white.withAlpha(18),
+                          width: 1.0,
+                        ),
+                        color: Colors.black.withAlpha(22),
+                      ),
+                    ),
+                  ),
+
+                // الختم المركزي للحكم (أو شعار الديوانية قبل اختيار الحكم)
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  child: s.trump != null
+                      ? Container(
+                          key: ValueKey('trump_${s.trump}'),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xCC041B12),
+                            border: Border.all(color: AppColors.gold.withAlpha(140), width: 1.2),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black38, blurRadius: 8),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            s.trump!.symbol,
+                            style: TextStyle(
+                              fontSize: 22,
+                              height: 1,
+                              color: s.trump!.isRed ? const Color(0xFFFF6B6B) : AppColors.goldLight,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          key: const ValueKey('no_trump'),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withAlpha(40),
+                            border: Border.all(color: AppColors.gold.withAlpha(45), width: 1.0),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '♠',
+                            style: TextStyle(
+                              fontSize: 22,
+                              color: AppColors.gold.withAlpha(60),
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                ),
+
                 // الكروت الملعوبة على الطاولة
                 for (final p in s.trick.plays)
                   Align(
@@ -1006,7 +1087,7 @@ class _PartnerStation extends StatelessWidget {
       isTurn: isTurn,
       sameTeam: true,
       size: 32,
-      icon: '🤝',
+      iconData: Icons.handshake_rounded,
     );
 
     final end = s.turnEndsAt;
@@ -1014,18 +1095,25 @@ class _PartnerStation extends StatelessWidget {
         ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: false, size: 38, child: avatar)
         : avatar;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xDC041B12),
+        gradient: LinearGradient(
+          colors: isTurn
+              ? const [Color(0xEE114730), Color(0xEE062317)]
+              : const [Color(0xDE072217), Color(0xDE03140D)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isTurn ? AppColors.gold : Colors.white24,
-          width: isTurn ? 1.5 : 0.8,
+          color: isTurn ? AppColors.goldLight : AppColors.gold.withAlpha(75),
+          width: isTurn ? 1.6 : 0.9,
         ),
         boxShadow: [
-          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(120), blurRadius: 10),
-          const BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(135), blurRadius: 12),
+          const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 3)),
         ],
       ),
       child: Row(
@@ -1100,7 +1188,7 @@ class _SideStation extends StatelessWidget {
       isTurn: isTurn,
       sameTeam: false,
       size: 36,
-      icon: isRight ? '🦅' : '⚔️',
+      iconData: isRight ? Icons.shield_rounded : Icons.flash_on_rounded,
     );
 
     final end = s.turnEndsAt;
@@ -1108,18 +1196,25 @@ class _SideStation extends StatelessWidget {
         ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: false, size: 42, child: avatar)
         : avatar;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xDC041B12),
+        gradient: LinearGradient(
+          colors: isTurn
+              ? const [Color(0xEE3F220E), Color(0xEE1A0D05)]
+              : const [Color(0xDE072217), Color(0xDE03140D)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isTurn ? AppColors.gold : Colors.white24,
-          width: isTurn ? 1.5 : 0.8,
+          color: isTurn ? AppColors.goldLight : Colors.white24,
+          width: isTurn ? 1.6 : 0.9,
         ),
         boxShadow: [
-          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(120), blurRadius: 10),
-          const BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(135), blurRadius: 12),
+          const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 3)),
         ],
       ),
       child: Column(
@@ -1201,7 +1296,7 @@ class _PlayerStation extends StatelessWidget {
       isTurn: isTurn,
       sameTeam: true,
       size: 34,
-      icon: '👑',
+      iconData: Icons.workspace_premium_rounded,
     );
 
     final end = s.turnEndsAt;
@@ -1209,18 +1304,25 @@ class _PlayerStation extends StatelessWidget {
         ? TurnRing(endsAt: end, total: bloc.turnSeconds, playTick: true, size: 40, child: avatar)
         : avatar;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xDC041B12),
+        gradient: LinearGradient(
+          colors: isTurn
+              ? const [Color(0xEE114730), Color(0xEE062317)]
+              : const [Color(0xDE072217), Color(0xDE03140D)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isTurn ? AppColors.gold : Colors.white24,
-          width: isTurn ? 1.6 : 0.8,
+          color: isTurn ? AppColors.goldLight : AppColors.gold.withAlpha(80),
+          width: isTurn ? 1.6 : 0.9,
         ),
         boxShadow: [
-          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(140), blurRadius: 10),
-          const BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+          if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(145), blurRadius: 12),
+          const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 3)),
         ],
       ),
       child: Row(
@@ -1385,14 +1487,14 @@ class _AvatarCircle extends StatelessWidget {
     required this.isTurn,
     required this.sameTeam,
     required this.size,
-    this.icon,
+    this.iconData,
   });
 
   final String name;
   final bool isTurn;
   final bool sameTeam;
   final double size;
-  final String? icon;
+  final IconData? iconData;
 
   @override
   Widget build(BuildContext context) {
@@ -1405,25 +1507,34 @@ class _AvatarCircle extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: LinearGradient(
           colors: sameTeam
-              ? const [Color(0xFF2EB886), Color(0xFF14583E)]
-              : const [Color(0xFFBF6B30), Color(0xFF5E2E0D)],
+              ? const [Color(0xFF34C992), Color(0xFF10543B)]
+              : const [Color(0xFFD97F3E), Color(0xFF662E0B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         border: Border.all(
-          color: isTurn ? AppColors.goldLight : Colors.white60,
+          color: isTurn ? AppColors.goldLight : AppColors.gold.withAlpha(140),
           width: isTurn ? 2.2 : 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(80),
+            blurRadius: 4,
+            offset: const Offset(0, 1.5),
+          ),
+        ],
       ),
-      child: Text(
-        icon ?? (name.isEmpty ? '?' : name.characters.first),
-        style: TextStyle(
-          fontSize: icon != null ? size * 0.48 : size * 0.44,
-          fontWeight: FontWeight.w900,
-          color: Colors.white,
-          height: 1.0,
-        ),
-      ),
+      child: iconData != null
+          ? Icon(iconData, size: size * 0.54, color: Colors.white)
+          : Text(
+              name.isEmpty ? '?' : name.characters.first,
+              style: TextStyle(
+                fontSize: size * 0.44,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                height: 1.0,
+              ),
+            ),
     );
   }
 }
@@ -1538,10 +1649,11 @@ class HandView extends StatelessWidget {
                   top: (legal.contains(hand[i]) ? 0.0 : 14.0) + pow((i - mid).abs(), 1.35) * 0.95,
                   child: _DealIn(
                     index: i,
+                    cardWidth: cardW,
+                    angle: (i - mid) * 0.028,
                     child: _InteractiveHandCard(
                       card: hand[i],
                       width: cardW,
-                      angle: (i - mid) * 0.028,
                       canPlay: canPlay,
                       isLegal: legal.contains(hand[i]),
                       onPlay: () {
@@ -1563,7 +1675,6 @@ class _InteractiveHandCard extends StatefulWidget {
   const _InteractiveHandCard({
     required this.card,
     required this.width,
-    required this.angle,
     required this.canPlay,
     required this.isLegal,
     required this.onPlay,
@@ -1571,7 +1682,6 @@ class _InteractiveHandCard extends StatefulWidget {
 
   final PlayingCard card;
   final double width;
-  final double angle;
   final bool canPlay;
   final bool isLegal;
   final VoidCallback onPlay;
@@ -1596,47 +1706,82 @@ class _InteractiveHandCardState extends State<_InteractiveHandCard> {
             }
           : null,
       child: AnimatedScale(
-        scale: _pressed ? 1.09 : 1.0,
+        scale: _pressed ? 1.10 : 1.0,
         duration: const Duration(milliseconds: 110),
         curve: Curves.easeOut,
-        child: Transform.rotate(
-          angle: widget.angle,
-          child: PlayingCardView(
-            card: widget.card,
-            width: widget.width,
-            dimmed: widget.canPlay && !widget.isLegal,
-            highlighted: playable,
-          ),
+        child: PlayingCardView(
+          card: widget.card,
+          width: widget.width,
+          dimmed: widget.canPlay && !widget.isLegal,
+          highlighted: playable,
         ),
       ),
     );
   }
 }
 
-/// دخول الورقة من منتصف الطاولة بتقوس وتكبير وتدوير احترافي عند التوزيع.
+/// توزيع احترافي: تطير الورقة مقلوبة من منتصف الطاولة ثم تنقلب ثلاثياً (3D Flip) لتكشف وجهها.
 class _DealIn extends StatelessWidget {
-  const _DealIn({required this.index, required this.child});
+  const _DealIn({
+    required this.index,
+    required this.cardWidth,
+    required this.angle,
+    required this.child,
+  });
 
   final int index;
+  final double cardWidth;
+  final double angle;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final ms = 360 + index * 55;
+    final totalMs = 740 + index * 70;
+    final startFrac = ((index * 62) / totalMs).clamp(0.0, 0.78);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: ms),
-      curve: Interval((index * 45 / ms).clamp(0.0, 0.85), 1, curve: Curves.easeOutCubic),
-      builder: (context, t, c) => Transform.translate(
-        offset: Offset(0, -175 * (1 - t)),
-        child: Transform.scale(
-          scale: 0.48 + 0.52 * t,
-          child: Transform.rotate(
-            angle: 0.25 * (1 - t),
-            child: Opacity(opacity: t.clamp(0.0, 1.0).toDouble(), child: c),
+      duration: Duration(milliseconds: totalMs),
+      curve: Interval(startFrac, 1.0, curve: Curves.linear),
+      builder: (context, t, c) {
+        if (t >= 0.999) {
+          return Transform.rotate(angle: angle, child: c);
+        }
+
+        // المرحلة 1: الطيران مقلوبة من منتصف الطاولة إلى مكانها في اليد
+        final flyT = Curves.easeOutCubic.transform((t / 0.54).clamp(0.0, 1.0));
+        // المرحلة 2: الانقلاب ثلاثي الأبعاد (180 درجة) للكشف عن الورقة
+        final flipT = Curves.easeInOutCubic.transform(((t - 0.54) / 0.46).clamp(0.0, 1.0));
+
+        final dy = -185.0 * (1.0 - flyT) - sin(flipT * pi) * 7.0;
+        final scale = 0.46 + 0.54 * flyT;
+        final rotZ = 0.30 * (1.0 - flyT) + angle * flyT;
+        final opacity = (flyT * 2.2).clamp(0.0, 1.0);
+
+        final showFront = flipT >= 0.5;
+        final flipAngle = showFront ? (1.0 - flipT) * pi : flipT * pi;
+
+        final matrix = Matrix4.identity()
+          ..setEntry(3, 2, 0.0018)
+          ..rotateY(flipAngle);
+
+        return Transform.translate(
+          offset: Offset(0, dy),
+          child: Transform.scale(
+            scale: scale,
+            child: Transform.rotate(
+              angle: rotZ,
+              child: Opacity(
+                opacity: opacity,
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: matrix,
+                  child: showFront ? c : CardBackView(width: cardWidth),
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
       child: child,
     );
   }

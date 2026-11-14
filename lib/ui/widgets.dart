@@ -274,3 +274,112 @@ void showSnack(BuildContext context, String message) {
       ),
     );
 }
+
+/// نافذة حوار فاخرة متوافقة مع الوضع الأفقي وتصميم الديوانية الملكي.
+Future<T?> showLuxuryDialog<T>({
+  required BuildContext context,
+  required String title,
+  required Widget content,
+  required List<Widget> actions,
+  IconData? icon,
+  Color accentColor = AppColors.gold,
+}) {
+  return showGeneralDialog<T>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.black.withAlpha(165),
+    transitionDuration: const Duration(milliseconds: 260),
+    pageBuilder: (ctx, _, _) => Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0A2A1C), Color(0xFF04150E)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: accentColor.withAlpha(185), width: 1.6),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(180),
+                  blurRadius: 28,
+                  offset: const Offset(0, 10),
+                ),
+                BoxShadow(
+                  color: accentColor.withAlpha(35),
+                  blurRadius: 18,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accentColor.withAlpha(28),
+                      border: Border.all(color: accentColor.withAlpha(150), width: 1.2),
+                    ),
+                    child: Icon(icon, color: accentColor, size: 22),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.goldLight,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 48,
+                  height: 2,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.transparent, accentColor.withAlpha(180), Colors.transparent],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                content,
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 10),
+                      Flexible(child: actions[i]),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+    transitionBuilder: (_, anim, _, child) {
+      final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
+      return FadeTransition(
+        opacity: anim,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.86, end: 1.0).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}

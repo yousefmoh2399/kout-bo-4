@@ -14,7 +14,9 @@ class SoundService {
   final ValueNotifier<double> volume = ValueNotifier<double>(0.85);
   final ValueNotifier<bool> turnAlert = ValueNotifier<bool>(true);
 
-  AudioPlayer? _player;
+  final List<AudioPlayer> _pool = [];
+  int _nextIdx = 0;
+  bool _initialized = false;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,8 +43,18 @@ class SoundService {
           ),
         ),
       );
-      _player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+      _ensurePool();
+      _initialized = true;
     } catch (_) {}
+  }
+
+  void _ensurePool() {
+    if (_pool.isNotEmpty) return;
+    for (var i = 0; i < 3; i++) {
+      final p = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+      p.setPlayerMode(PlayerMode.lowLatency);
+      _pool.add(p);
+    }
   }
 
   Future<void> setEnabled(bool value) async {
@@ -81,10 +93,12 @@ class SoundService {
     if (!enabled.value) return;
     if (sfx == Sfx.turn && !turnAlert.value) return;
     try {
-      _player ??= AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-      await _player?.stop();
-      await _player?.setVolume(volume.value);
-      await _player?.play(AssetSource('sounds/${sfx.name}.wav'));
+      if (!_initialized) _ensurePool();
+      if (_pool.isEmpty) return;
+      final player = _pool[_nextIdx % _pool.length];
+      _nextIdx = (_nextIdx + 1) % _pool.length;
+      await player.setVolume(volume.value);
+      await player.play(AssetSource('sounds/${sfx.name}.wav'));
     } catch (_) {}
   }
 }

@@ -55,26 +55,31 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _editName(BuildContext context, String current) async {
     final controller = TextEditingController(text: current);
-    final newName = await showDialog<String>(
+    final newName = await showLuxuryDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('تعديل اسم اللاعب'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'الاسم الجديد',
-            prefixIcon: Icon(Icons.badge_outlined),
-          ),
+      title: 'تعديل اسم اللاعب',
+      icon: Icons.badge_outlined,
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'الاسم الجديد',
+          prefixIcon: Icon(Icons.badge_outlined),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('حفظ'),
-          ),
-        ],
       ),
+      actions: [
+        GoldButton(
+          label: 'إلغاء',
+          outlined: true,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          onPressed: () => Navigator.pop(context),
+        ),
+        GoldButton(
+          label: 'حفظ',
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          onPressed: () => Navigator.pop(context, controller.text.trim()),
+        ),
+      ],
     );
     controller.dispose();
     if (newName != null && newName.isNotEmpty && context.mounted) {
@@ -86,21 +91,33 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final cubit = context.read<AuthCubit>();
-    final ok = await showDialog<bool>(
+    final ok = await showLuxuryDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.feltDark,
-        title: const Text('حذف الحساب نهائياً؟'),
-        content: const Text('سيتم حذف حسابك وكل بياناتك المسجلة ولا يمكن التراجع عن هذا الإجراء.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('نعم، احذف'),
-          ),
-        ],
+      title: 'حذف الحساب نهائياً؟',
+      icon: Icons.warning_amber_rounded,
+      accentColor: AppColors.danger,
+      content: const Text(
+        'سيتم حذف حسابك وكل بياناتك المسجلة ولا يمكن التراجع عن هذا الإجراء.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.5),
       ),
+      actions: [
+        GoldButton(
+          label: 'إلغاء',
+          outlined: true,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('نعم، احذف', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
     if (ok != true) return;
     final done = await cubit.deleteAccount();

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../domain/card.dart';
 
-/// بطاقة لعب فاخرة مصممة بمعايير الكازينوهات العالمية وألعاب الورق الخليجية.
+/// بطاقة لعب فاخرة بتصميم كلاسيكي أصيل (توزيع حقيقي للرموز، رسومات ملكية، ولمعة ورقية).
 class PlayingCardView extends StatelessWidget {
   const PlayingCardView({
     super.key,
@@ -19,7 +19,7 @@ class PlayingCardView extends StatelessWidget {
   final bool dimmed;
   final bool highlighted;
 
-  double get height => width * 1.42;
+  double get height => width * 1.44;
 
   @override
   Widget build(BuildContext context) {
@@ -33,59 +33,60 @@ class PlayingCardView extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFFFFFF), AppColors.cardCream],
+          colors: [Color(0xFFFFFFFF), Color(0xFFFDFBF4), Color(0xFFF4EFE1)],
+          stops: [0.0, 0.55, 1.0],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(width * 0.12),
+        borderRadius: BorderRadius.circular(width * 0.13),
         border: Border.all(
-          color: highlighted ? AppColors.gold : const Color(0xFFD8D0C1),
+          color: highlighted ? AppColors.gold : const Color(0xFFD2C9B6),
           width: highlighted ? 2.2 : 1.0,
         ),
         boxShadow: [
           if (highlighted)
             BoxShadow(
-              color: AppColors.gold.withAlpha(190),
-              blurRadius: 12,
-              spreadRadius: 1,
+              color: AppColors.gold.withAlpha(200),
+              blurRadius: 14,
+              spreadRadius: 1.5,
               offset: const Offset(0, -2),
             ),
           BoxShadow(
-            color: Colors.black.withAlpha(dimmed ? 45 : 95),
-            blurRadius: highlighted ? 8 : 5,
-            offset: Offset(0, highlighted ? 4 : 2),
+            color: Colors.black.withAlpha(dimmed ? 50 : 110),
+            blurRadius: highlighted ? 10 : 6,
+            offset: Offset(0, highlighted ? 5 : 2.5),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(width * 0.11),
+        borderRadius: BorderRadius.circular(width * 0.12),
         child: Stack(
           children: [
-            // إطار داخلي دقيق (Inner Hairline)
+            // إطار داخلي دقيق يحدد حافة الورقة
             Positioned.fill(
               child: Container(
                 margin: EdgeInsets.all(max(2.0, width * 0.045)),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(width * 0.08),
+                  borderRadius: BorderRadius.circular(width * 0.09),
                   border: Border.all(
                     color: highlighted
-                        ? AppColors.gold.withAlpha(100)
+                        ? AppColors.gold.withAlpha(110)
                         : (isRed
-                            ? AppColors.cardRed.withAlpha(24)
-                            : Colors.black.withAlpha(18)),
+                            ? AppColors.cardRed.withAlpha(26)
+                            : Colors.black.withAlpha(20)),
                     width: 0.7,
                   ),
                 ),
               ),
             ),
             // محتوى الورقة
-            if (card.isJoker) _buildJoker(color) else _buildSuited(color),
+            if (card.isJoker) _buildJoker() else _buildSuited(color),
             // طبقة التعتيم النظيفة للأوراق غير المتاحة حالياً
             if (dimmed)
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(90),
+                    color: Colors.black.withAlpha(95),
                   ),
                 ),
               ),
@@ -95,8 +96,9 @@ class PlayingCardView extends StatelessWidget {
     );
   }
 
-  Widget _buildJoker(Color color) {
+  Widget _buildJoker() {
     final isRed = card.isRedJoker;
+    final accent = isRed ? AppColors.cardRed : AppColors.cardBlack;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: width * 0.08, vertical: width * 0.06),
       child: Column(
@@ -107,7 +109,7 @@ class PlayingCardView extends StatelessWidget {
             children: [
               Icon(
                 Icons.auto_awesome,
-                size: width * 0.19,
+                size: width * 0.18,
                 color: isRed ? AppColors.goldDark : Colors.blueGrey.shade700,
               ),
               Text(
@@ -115,7 +117,7 @@ class PlayingCardView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: width * 0.115,
                   fontWeight: FontWeight.w900,
-                  color: isRed ? AppColors.cardRed : AppColors.cardBlack,
+                  color: accent,
                   letterSpacing: 0.4,
                   height: 1,
                 ),
@@ -129,40 +131,39 @@ class PlayingCardView extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: width * 0.50,
-                    height: width * 0.50,
+                    width: width * 0.54,
+                    height: width * 0.54,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: isRed
-                            ? const [Color(0xFFFFF2D6), Color(0xFFFFD691)]
-                            : const [Color(0xFFF1F5F8), Color(0xFFCFD8DC)],
+                            ? const [Color(0xFFFFF5DD), Color(0xFFFFD898)]
+                            : const [Color(0xFFF3F6F9), Color(0xFFD0D9DF)],
                       ),
                       border: Border.all(
-                        color: isRed ? AppColors.gold : Colors.blueGrey.shade400,
-                        width: 1.4,
+                        color: isRed ? AppColors.gold : Colors.blueGrey.shade500,
+                        width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: (isRed ? AppColors.gold : Colors.black).withAlpha(45),
-                          blurRadius: 4,
+                          color: (isRed ? AppColors.gold : Colors.black).withAlpha(55),
+                          blurRadius: 5,
                         ),
                       ],
                     ),
                     alignment: Alignment.center,
                     child: CustomPaint(
-                      size: Size(width * 0.28, width * 0.28),
-                      painter: _CrownPainter(
-                        color: isRed ? AppColors.cardRed : AppColors.cardBlack,
-                      ),
+                      size: Size(width * 0.30, width * 0.28),
+                      painter: _JesterCrownPainter(color: accent),
                     ),
                   ),
                   SizedBox(height: width * 0.04),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: width * 0.10, vertical: 1.5),
                     decoration: BoxDecoration(
-                      color: isRed ? AppColors.cardRed : AppColors.cardBlack,
+                      color: accent,
                       borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: AppColors.gold.withAlpha(150), width: 0.6),
                     ),
                     child: Text(
                       isRed ? 'الجيكر' : 'الميكر',
@@ -185,7 +186,7 @@ class PlayingCardView extends StatelessWidget {
               children: [
                 Icon(
                   Icons.auto_awesome,
-                  size: width * 0.19,
+                  size: width * 0.18,
                   color: isRed ? AppColors.goldDark : Colors.blueGrey.shade700,
                 ),
                 Text(
@@ -193,7 +194,7 @@ class PlayingCardView extends StatelessWidget {
                   style: TextStyle(
                     fontSize: width * 0.115,
                     fontWeight: FontWeight.w900,
-                    color: isRed ? AppColors.cardRed : AppColors.cardBlack,
+                    color: accent,
                     letterSpacing: 0.4,
                     height: 1,
                   ),
@@ -216,19 +217,29 @@ class PlayingCardView extends StatelessWidget {
         // المؤشر العلوي
         Positioned(
           top: width * 0.075,
-          left: width * 0.085,
+          left: width * 0.08,
           child: _CornerIndex(rank: rank.label, suit: suit.symbol, color: color, width: width),
         ),
 
-        // المركز
-        Center(
-          child: isFace ? _buildFaceCenter(rank, suit, color) : _buildNumberCenter(suit, color),
+        // المركز: صور ملكية / آص مزخرف / توزيع رموز حقيقي للأرقام
+        Positioned.fill(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: width * 0.21,
+              vertical: width * 0.17,
+            ),
+            child: isFace
+                ? _buildFaceCenter(rank, suit, color)
+                : (rank == Rank.ace
+                    ? _buildAceCenter(suit, color)
+                    : _buildPipGrid(rank, suit, color)),
+          ),
         ),
 
         // المؤشر السفلي المعكوس 180 درجة
         Positioned(
           bottom: width * 0.075,
-          right: width * 0.085,
+          right: width * 0.08,
           child: Transform.rotate(
             angle: pi,
             child: _CornerIndex(rank: rank.label, suit: suit.symbol, color: color, width: width),
@@ -238,66 +249,172 @@ class PlayingCardView extends StatelessWidget {
     );
   }
 
-  Widget _buildFaceCenter(Rank rank, Suit suit, Color color) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Container(
-        width: width * 0.48,
-        height: width * 0.60,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: AppColors.goldDark.withAlpha(110),
-            width: 1.0,
-          ),
-          gradient: LinearGradient(
-            colors: [
-              (suit.isRed ? AppColors.cardRed : AppColors.goldDark).withAlpha(24),
-              (suit.isRed ? AppColors.cardRed : AppColors.goldDark).withAlpha(8),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (rank == Rank.king)
-              CustomPaint(
-                size: Size(width * 0.24, width * 0.18),
-                painter: _CrownPainter(color: AppColors.goldDark),
-              )
-            else if (rank == Rank.queen)
-              Icon(Icons.diamond_outlined, size: width * 0.21, color: AppColors.goldDark)
-            else
-              Icon(Icons.shield_outlined, size: width * 0.21, color: AppColors.goldDark),
-            SizedBox(height: width * 0.02),
-            Text(
-              suit.symbol,
-              style: TextStyle(fontSize: width * 0.25, color: color, height: 1),
+  Widget _buildAceCenter(Suit suit, Color color) {
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Container(
+          width: width * 0.56,
+          height: width * 0.56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                AppColors.goldLight.withAlpha(60),
+                Colors.transparent,
+              ],
             ),
-          ],
+            border: Border.all(color: AppColors.gold.withAlpha(110), width: 1.0),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            suit.symbol,
+            style: TextStyle(
+              fontSize: width * 0.44,
+              color: color,
+              height: 1,
+              shadows: [
+                Shadow(color: Colors.black.withAlpha(28), blurRadius: 3, offset: const Offset(0, 1)),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildNumberCenter(Suit suit, Color color) {
-    return Text(
-      suit.symbol,
-      style: TextStyle(
-        fontSize: width * 0.50,
-        color: color,
-        height: 1,
-        shadows: [
-          Shadow(
-            color: Colors.black.withAlpha(22),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
+  Widget _buildFaceCenter(Rank rank, Suit suit, Color color) {
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Container(
+          width: width * 0.54,
+          height: width * 0.84,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: AppColors.goldDark.withAlpha(150), width: 1.1),
+            gradient: LinearGradient(
+              colors: [
+                (suit.isRed ? AppColors.cardRed : const Color(0xFF1E3A5F)).withAlpha(22),
+                AppColors.gold.withAlpha(24),
+                (suit.isRed ? AppColors.cardRed : const Color(0xFF1E3A5F)).withAlpha(18),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ],
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // خط داخلي ذهبي للصورة
+              Container(
+                margin: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: AppColors.gold.withAlpha(90), width: 0.6),
+                ),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (rank == Rank.king)
+                    CustomPaint(
+                      size: Size(width * 0.25, width * 0.18),
+                      painter: _CrownPainter(color: AppColors.goldDark),
+                    )
+                  else if (rank == Rank.queen)
+                    CustomPaint(
+                      size: Size(width * 0.25, width * 0.18),
+                      painter: _TiaraPainter(color: AppColors.goldDark),
+                    )
+                  else
+                    Icon(Icons.shield_rounded, size: width * 0.22, color: AppColors.goldDark),
+                  SizedBox(height: width * 0.03),
+                  Text(
+                    suit.symbol,
+                    style: TextStyle(fontSize: width * 0.27, color: color, height: 1),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  /// توزيع رموز الورقة الحقيقي (Pips) للأرقام 7, 8, 9, 10.
+  Widget _buildPipGrid(Rank rank, Suit suit, Color color) {
+    final pips = _pipPositions(rank);
+    final pipSize = width * 0.21;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final h = constraints.maxHeight;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (final p in pips)
+              Positioned(
+                left: (w * p.$1) - pipSize / 2,
+                top: (h * p.$2) - pipSize / 2,
+                width: pipSize,
+                height: pipSize,
+                child: Transform.rotate(
+                  angle: p.$3 ? pi : 0,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      suit.symbol,
+                      style: TextStyle(fontSize: pipSize, color: color, height: 1),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// إحداثيات (x, y, معكوس) لكل رتبة عددية (7..10).
+  List<(double, double, bool)> _pipPositions(Rank rank) {
+    switch (rank) {
+      case Rank.seven:
+        return const [
+          (0.22, 0.12, false), (0.78, 0.12, false),
+          (0.50, 0.30, false),
+          (0.22, 0.50, false), (0.78, 0.50, false),
+          (0.22, 0.88, true),  (0.78, 0.88, true),
+        ];
+      case Rank.eight:
+        return const [
+          (0.22, 0.12, false), (0.78, 0.12, false),
+          (0.50, 0.30, false),
+          (0.22, 0.50, false), (0.78, 0.50, false),
+          (0.50, 0.70, true),
+          (0.22, 0.88, true),  (0.78, 0.88, true),
+        ];
+      case Rank.nine:
+        return const [
+          (0.22, 0.10, false), (0.78, 0.10, false),
+          (0.22, 0.36, false), (0.78, 0.36, false),
+          (0.50, 0.50, false),
+          (0.22, 0.64, true),  (0.78, 0.64, true),
+          (0.22, 0.90, true),  (0.78, 0.90, true),
+        ];
+      case Rank.ten:
+        return const [
+          (0.22, 0.10, false), (0.78, 0.10, false),
+          (0.50, 0.23, false),
+          (0.22, 0.36, false), (0.78, 0.36, false),
+          (0.22, 0.64, true),  (0.78, 0.64, true),
+          (0.50, 0.77, true),
+          (0.22, 0.90, true),  (0.78, 0.90, true),
+        ];
+      default:
+        return const [(0.50, 0.50, false)];
+    }
   }
 }
 
@@ -311,23 +428,73 @@ class _CrownPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
     final path = Path()
-      ..moveTo(0, size.height * 0.85)
-      ..lineTo(0, size.height * 0.25)
-      ..lineTo(size.width * 0.28, size.height * 0.55)
-      ..lineTo(size.width * 0.50, size.height * 0.10)
-      ..lineTo(size.width * 0.72, size.height * 0.55)
-      ..lineTo(size.width, size.height * 0.25)
-      ..lineTo(size.width, size.height * 0.85)
+      ..moveTo(0, size.height * 0.82)
+      ..lineTo(0, size.height * 0.22)
+      ..lineTo(size.width * 0.28, size.height * 0.54)
+      ..lineTo(size.width * 0.50, size.height * 0.08)
+      ..lineTo(size.width * 0.72, size.height * 0.54)
+      ..lineTo(size.width, size.height * 0.22)
+      ..lineTo(size.width, size.height * 0.82)
       ..close();
     canvas.drawPath(path, paint);
     canvas.drawRect(
-      Rect.fromLTWH(0, size.height * 0.88, size.width, size.height * 0.12),
+      Rect.fromLTWH(0, size.height * 0.87, size.width, size.height * 0.13),
       paint,
     );
   }
 
   @override
   bool shouldRepaint(covariant _CrownPainter oldDelegate) => oldDelegate.color != color;
+}
+
+class _TiaraPainter extends CustomPainter {
+  const _TiaraPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final path = Path()
+      ..moveTo(0, size.height * 0.84)
+      ..quadraticBezierTo(size.width * 0.2, size.height * 0.35, size.width * 0.5, size.height * 0.10)
+      ..quadraticBezierTo(size.width * 0.8, size.height * 0.35, size.width, size.height * 0.84)
+      ..close();
+    canvas.drawPath(path, paint);
+    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.10), size.width * 0.07, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TiaraPainter oldDelegate) => oldDelegate.color != color;
+}
+
+class _JesterCrownPainter extends CustomPainter {
+  const _JesterCrownPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final path = Path()
+      ..moveTo(size.width * 0.12, size.height * 0.82)
+      ..quadraticBezierTo(0, size.height * 0.35, size.width * 0.18, size.height * 0.18)
+      ..lineTo(size.width * 0.38, size.height * 0.52)
+      ..lineTo(size.width * 0.50, size.height * 0.08)
+      ..lineTo(size.width * 0.62, size.height * 0.52)
+      ..lineTo(size.width * 0.82, size.height * 0.18)
+      ..quadraticBezierTo(size.width, size.height * 0.35, size.width * 0.88, size.height * 0.82)
+      ..close();
+    canvas.drawPath(path, paint);
+    canvas.drawCircle(Offset(size.width * 0.16, size.height * 0.16), size.width * 0.06, paint);
+    canvas.drawCircle(Offset(size.width * 0.50, size.height * 0.08), size.width * 0.07, paint);
+    canvas.drawCircle(Offset(size.width * 0.84, size.height * 0.16), size.width * 0.06, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _JesterCrownPainter oldDelegate) => oldDelegate.color != color;
 }
 
 class _CornerIndex extends StatelessWidget {
@@ -354,16 +521,16 @@ class _CornerIndex extends StatelessWidget {
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.w900,
-            fontSize: width * 0.23,
+            fontSize: width * 0.225,
             height: 0.95,
-            letterSpacing: -0.5,
+            letterSpacing: -0.6,
           ),
         ),
         Text(
           suit,
           style: TextStyle(
             color: color,
-            fontSize: width * 0.19,
+            fontSize: width * 0.185,
             height: 0.95,
           ),
         ),
@@ -372,14 +539,14 @@ class _CornerIndex extends StatelessWidget {
   }
 }
 
-/// ظهر الورقة الفاخر بنمط الزخرفة الملكية (Royal Guilloche Lattice).
+/// ظهر الورقة الفاخر بنمط الزخرفة الملكية (Royal Guilloche Mandala).
 class CardBackView extends StatelessWidget {
   const CardBackView({super.key, this.width = 32, this.label});
 
   final double width;
   final String? label;
 
-  double get height => width * 1.42;
+  double get height => width * 1.44;
 
   @override
   Widget build(BuildContext context) {
@@ -388,22 +555,22 @@ class CardBackView extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF8C1426), Color(0xFF5D0A16)],
+          colors: [Color(0xFF96152A), Color(0xFF5A0915)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(width * 0.12),
+        borderRadius: BorderRadius.circular(width * 0.13),
         border: Border.all(color: Colors.white, width: max(1.0, width * 0.055)),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black45,
+            color: Colors.black54,
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(width * 0.1),
+        borderRadius: BorderRadius.circular(width * 0.10),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -414,10 +581,10 @@ class CardBackView extends StatelessWidget {
             ),
             Positioned.fill(
               child: Container(
-                margin: EdgeInsets.all(max(1.5, width * 0.08)),
+                margin: EdgeInsets.all(max(1.5, width * 0.085)),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(width * 0.06),
-                  border: Border.all(color: AppColors.goldLight.withAlpha(160), width: 0.8),
+                  border: Border.all(color: AppColors.goldLight.withAlpha(185), width: 0.9),
                 ),
               ),
             ),
@@ -425,7 +592,7 @@ class CardBackView extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: width * 0.15, vertical: 1.5),
                 decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(175),
+                  color: Colors.black.withAlpha(180),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.gold, width: 1),
                 ),
@@ -441,12 +608,14 @@ class CardBackView extends StatelessWidget {
               )
             else
               Container(
-                width: width * 0.40,
-                height: width * 0.40,
+                width: width * 0.42,
+                height: width * 0.42,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF470610),
-                  border: Border.all(color: AppColors.gold, width: 0.9),
+                  gradient: const RadialGradient(
+                    colors: [Color(0xFF6B0B19), Color(0xFF3E040C)],
+                  ),
+                  border: Border.all(color: AppColors.gold, width: 1.0),
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -469,11 +638,11 @@ class _CardBackPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withAlpha(24)
+      ..color = AppColors.goldLight.withAlpha(32)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.7;
 
-    const step = 6.0;
+    const step = 6.5;
     for (double i = -size.height; i < size.width + size.height; i += step) {
       canvas.drawLine(Offset(i, 0), Offset(i + size.height, size.height), paint);
       canvas.drawLine(Offset(i, size.height), Offset(i + size.height, 0), paint);
