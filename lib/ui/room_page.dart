@@ -18,11 +18,12 @@ import 'widgets.dart';
 
 /// غرفة الانتظار: ينشئها المضيف أو ينضم لها اللاعب بكود.
 class RoomPage extends StatefulWidget {
-  const RoomPage({super.key, this.create, this.joinCode})
-      : assert(create != null || joinCode != null);
+  const RoomPage({super.key, this.create, this.joinCode, this.cubit})
+      : assert(create != null || joinCode != null || cubit != null);
 
   final GameSettings? create;
   final String? joinCode;
+  final LobbyCubit? cubit;
 
   @override
   State<RoomPage> createState() => _RoomPageState();
@@ -38,19 +39,25 @@ class _RoomPageState extends State<RoomPage> {
   void initState() {
     super.initState();
     final auth = context.read<AuthCubit>().state;
-    _userId = auth.userId!;
-    _repo = RoomRepository(Supabase.instance.client);
-    _cubit = LobbyCubit(_repo, userId: _userId, userName: auth.name);
-    if (widget.create != null) {
-      _cubit.create(widget.create!);
+    _userId = auth.userId ?? 'user-1';
+    if (widget.cubit != null) {
+      _cubit = widget.cubit!;
     } else {
-      _cubit.join(widget.joinCode!);
+      _repo = RoomRepository(Supabase.instance.client);
+      _cubit = LobbyCubit(_repo, userId: _userId, userName: auth.name);
+      if (widget.create != null) {
+        _cubit.create(widget.create!);
+      } else {
+        _cubit.join(widget.joinCode!);
+      }
     }
   }
 
   @override
   void dispose() {
-    _cubit.close();
+    if (widget.cubit == null) {
+      _cubit.close();
+    }
     super.dispose();
   }
 
@@ -77,8 +84,11 @@ class _RoomPageState extends State<RoomPage> {
         GamePage(
           bloc: session.bloc,
           roomCode: code,
+          roomStake: room.stakePoints,
+          isHost: session.isHost,
           emotes: session.emotes,
           onEmote: session.sendEmote,
+          onBackground: session.notifyAppBackground,
           hostLost: session.hostLost,
           onTakeOverHost: session.promoteSelfFromCrash,
           onResync: session.requestResync,
@@ -177,28 +187,75 @@ class _RoomPageState extends State<RoomPage> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.gold.withAlpha(140), width: 1.5),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    room.code,
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 8,
-                      color: AppColors.goldLight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      room.code,
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 8,
+                        color: AppColors.goldLight,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.copy_rounded, color: AppColors.gold, size: 18),
-                ],
+                    const SizedBox(width: 8),
+                    const Icon(Icons.copy_rounded, color: AppColors.gold, size: 18),
+                  ],
+                ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'الهدف ${room.targetScore} نقطة • ${room.turnSeconds == 0 ? 'بدون مؤقت' : '${room.turnSeconds} ثانية للدور'}',
-            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'الهدف ${room.targetScore} نقطة • ${room.turnSeconds == 0 ? 'بدون مؤقت' : '${room.turnSeconds} ثانية للدور'}',
+              style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: room.stakePoints > 0
+                  ? AppColors.gold.withAlpha(35)
+                  : Colors.white.withAlpha(15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: room.stakePoints > 0
+                    ? AppColors.gold.withAlpha(140)
+                    : Colors.white24,
+              ),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    room.stakePoints > 0
+                        ? Icons.monetization_on_rounded
+                        : Icons.celebration_rounded,
+                    size: 15,
+                    color: room.stakePoints > 0 ? AppColors.goldLight : Colors.white70,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    room.stakePoints > 0
+                        ? 'رسم الدخول: ${room.stakePoints} نقطة • جائزة الفوز: ${(room.stakePoints * 4 * 0.95).toInt()} 🏆'
+                        : 'غرفة ودية (بدون رهان نقاط)',
+                    style: TextStyle(
+                      color: room.stakePoints > 0 ? AppColors.goldLight : Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           GoldButton(
@@ -222,21 +279,23 @@ class _RoomPageState extends State<RoomPage> {
       ),
     );
 
+    final mySeat = room.seatOf(_userId);
     final seatsGrid = GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
-      childAspectRatio: 1.6,
+      childAspectRatio: 1.40,
       children: [
         for (final seat in const [0, 1, 2, 3])
           _SeatTile(
             seat: seat,
             info: room.seats[seat],
-            isMe: room.seats[seat]?.userId == _userId,
-            canEdit: isHost && seat != 0,
+            isMe: seat == mySeat,
+            canEdit: isHost && seat != mySeat,
             onToggleBot: (bot) => _cubit.setBot(seat, bot),
+            onTakeSeat: () => _cubit.switchSeat(seat),
           ),
       ],
     );
@@ -299,7 +358,7 @@ class _RoomPageState extends State<RoomPage> {
                           seatsGrid,
                           const SizedBox(height: 8),
                           const Text(
-                            'المقاعد المتقابلة فريق واحد. المقاعد الشاغرة تمتلئ ببوتات ذكية.',
+                            'المقاعد المتقابلة فريق واحد. اضغط على أي مقعد شاغر لتغيير مكانك وفريقك.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.white54, fontSize: 11),
                           ),
@@ -327,7 +386,7 @@ class _RoomPageState extends State<RoomPage> {
                   seatsGrid,
                   const SizedBox(height: 6),
                   const Text(
-                    'اللاعبان المتقابلان فريق واحد. المقاعد الفاضية تمتلئ بالبوتات عند البدء.',
+                    'اللاعبان المتقابلان فريق واحد. اضغط على أي مقعد شاغر لتغيير مكانك وفريقك.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white54, fontSize: 12),
                   ),
@@ -350,6 +409,7 @@ class _SeatTile extends StatelessWidget {
     required this.isMe,
     required this.canEdit,
     required this.onToggleBot,
+    required this.onTakeSeat,
   });
 
   final int seat;
@@ -357,14 +417,17 @@ class _SeatTile extends StatelessWidget {
   final bool isMe;
   final bool canEdit;
   final ValueChanged<bool> onToggleBot;
+  final VoidCallback onTakeSeat;
 
   @override
   Widget build(BuildContext context) {
     final team = seat % 2;
     final isTeam1 = team == 0;
     final seatInfo = info;
+    final canTake = !isMe && (seatInfo == null || seatInfo.isBot);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isTeam1
@@ -383,69 +446,134 @@ class _SeatTile extends StatelessWidget {
             BoxShadow(color: AppColors.gold.withAlpha(70), blurRadius: 10),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isTeam1 ? const Color(0xFF48BB78) : const Color(0xFFED8936),
-                ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'الفريق ${team + 1}',
-                style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          if (seatInfo == null) ...[
-            const Icon(Icons.person_add_alt_1_rounded, color: Colors.white30, size: 22),
-            const SizedBox(height: 2),
-            const Text('مقعد شاغر', style: TextStyle(color: Colors.white38, fontSize: 13)),
-          ] else ...[
-            Icon(
-              seatInfo.isBot ? Icons.smart_toy_rounded : Icons.person_rounded,
-              color: isMe ? AppColors.goldLight : Colors.white,
-              size: 22,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              seatInfo.isBot ? seatInfo.name : (isMe ? '${seatInfo.name} (أنت)' : seatInfo.name),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: isMe ? AppColors.goldLight : Colors.white,
-                fontSize: 14,
-              ),
-            ),
-          ],
-          if (canEdit && (seatInfo == null || seatInfo.isBot))
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: InkWell(
-                onTap: () {
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: canTake
+              ? () {
                   SoundService.instance.play(Sfx.click);
-                  onToggleBot(seatInfo == null);
-                },
-                child: Text(
-                  seatInfo == null ? '+ أضف بوت' : 'إزالة البوت',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: seatInfo == null ? AppColors.gold : Colors.white60,
-                  ),
+                  SoundService.instance.tap();
+                  onTakeSeat();
+                }
+              : null,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isTeam1 ? const Color(0xFF48BB78) : const Color(0xFFED8936),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'الفريق ${team + 1}',
+                      style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 3),
+                if (seatInfo == null) ...[
+                  const Icon(Icons.person_add_alt_1_rounded, color: Colors.white30, size: 20),
+                  const SizedBox(height: 1),
+                  const Text('مقعد شاغر', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                ] else ...[
+                  Icon(
+                    seatInfo.isBot ? Icons.smart_toy_rounded : Icons.person_rounded,
+                    color: isMe ? AppColors.goldLight : Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    seatInfo.isBot ? seatInfo.name : (isMe ? '${seatInfo.name} (أنت)' : seatInfo.name),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: isMe ? AppColors.goldLight : Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 3),
+                // أزرار التحكم: الانتقال للمقعد / إدارة البوت
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (canTake)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          SoundService.instance.play(Sfx.click);
+                          SoundService.instance.tap();
+                          onTakeSeat();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold.withAlpha(45),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.gold.withAlpha(150)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.swap_horiz_rounded, size: 12, color: AppColors.goldLight),
+                              SizedBox(width: 3),
+                              Text(
+                                'انتقل هنا',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.goldLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (canTake && canEdit && (seatInfo == null || seatInfo.isBot))
+                      const SizedBox(width: 4),
+                    if (canEdit && (seatInfo == null || seatInfo.isBot))
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          SoundService.instance.play(Sfx.click);
+                          onToggleBot(seatInfo == null);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(18),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Text(
+                            seatInfo == null ? '+ بوت' : 'حذف البوت',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: seatInfo == null ? Colors.white70 : Colors.white54,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

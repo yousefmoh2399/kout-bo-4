@@ -21,6 +21,7 @@ import 'room_page.dart';
 import 'rules_page.dart';
 import 'settings_page.dart';
 import 'settings_sheet.dart';
+import 'store_page.dart';
 import 'widgets.dart';
 
 class HomePage extends StatefulWidget {
@@ -38,6 +39,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AuthCubit>().refreshCoins();
+    });
   }
 
   void _refresh() {
@@ -71,14 +75,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _createRoom() async {
-    final settings =
-        await showGameSettingsSheet(context, confirmLabel: 'إنشاء الغرفة');
+    final userCoins = context.read<AuthCubit>().state.coins;
+    final settings = await showGameSettingsSheet(
+      context,
+      confirmLabel: 'إنشاء الغرفة',
+      isOnlineRoom: true,
+      userCoins: userCoins,
+    );
     if (settings == null || !mounted) return;
     await Navigator.push(
       context,
       appRoute<void>(RoomPage(create: settings)),
     );
-    if (mounted) setState(_refresh);
+    if (mounted) {
+      context.read<AuthCubit>().refreshCoins();
+      setState(_refresh);
+    }
   }
 
   Future<void> _joinRoom() async {
@@ -121,7 +133,10 @@ class _HomePageState extends State<HomePage> {
       context,
       appRoute<void>(RoomPage(joinCode: code)),
     );
-    if (mounted) setState(_refresh);
+    if (mounted) {
+      context.read<AuthCubit>().refreshCoins();
+      setState(_refresh);
+    }
   }
 
   Future<void> _rejoinRoom(Room room) async {
@@ -130,14 +145,19 @@ class _HomePageState extends State<HomePage> {
       context,
       appRoute<void>(RoomPage(joinCode: room.code)),
     );
-    if (mounted) setState(_refresh);
+    if (mounted) {
+      context.read<AuthCubit>().refreshCoins();
+      setState(_refresh);
+    }
   }
 
   void _openSettings() {
     SoundService.instance.play(Sfx.click);
     Navigator.push(context, appRoute<void>(const SettingsPage())).then((_) {
       if (mounted) {
-        setState(() => _stats = context.read<StatsRepository>().summary());
+        setState(() {
+          _stats = context.read<StatsRepository>().summary();
+        });
       }
     });
   }
@@ -160,13 +180,23 @@ class _HomePageState extends State<HomePage> {
                     final compact = topC.maxWidth < 560;
                     return Row(
                       children: [
-                        Flexible(
+                        Expanded(
                           child: _ProfilePill(
                             name: auth.name,
                             isGuest: auth.isGuest,
                             statsFuture: _stats,
                             onTap: _openSettings,
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        _CoinsPill(
+                          coins: auth.coins,
+                          onTap: () async {
+                            final authCubit = context.read<AuthCubit>();
+                            SoundService.instance.play(Sfx.click);
+                            await StorePage.show(context);
+                            if (mounted) authCubit.refreshCoins();
+                          },
                         ),
                         const SizedBox(width: 8),
                         if (!compact) ...[
@@ -188,16 +218,34 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           const SizedBox(width: 8),
-                        ] else ...[
                           _NavIconCircle(
-                            tooltip: 'سجل المباريات',
-                            icon: Icons.history_rounded,
+                            tooltip: 'قوانين كوت بو ٤',
+                            icon: Icons.menu_book_rounded,
                             onTap: () {
                               SoundService.instance.play(Sfx.click);
-                              showMatchHistorySheet(context);
+                              Navigator.push(
+                                context,
+                                appRoute<void>(const RulesPage()),
+                              );
                             },
                           ),
                           const SizedBox(width: 6),
+                          _NavIconCircle(
+                            tooltip: 'الإعدادات',
+                            icon: Icons.settings_rounded,
+                            onTap: _openSettings,
+                          ),
+                          const SizedBox(width: 6),
+                          _NavIconCircle(
+                            tooltip: 'تسجيل الخروج',
+                            icon: Icons.logout_rounded,
+                            color: Colors.white70,
+                            onTap: () {
+                              SoundService.instance.play(Sfx.click);
+                              context.read<AuthCubit>().signOut();
+                            },
+                          ),
+                        ] else ...[
                           _NavIconCircle(
                             tooltip: 'المتصدرون',
                             icon: Icons.emoji_events_rounded,
@@ -207,34 +255,12 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                           const SizedBox(width: 6),
+                          _NavIconCircle(
+                            tooltip: 'الإعدادات',
+                            icon: Icons.settings_rounded,
+                            onTap: _openSettings,
+                          ),
                         ],
-                        _NavIconCircle(
-                          tooltip: 'قوانين كوت بو ٤',
-                          icon: Icons.menu_book_rounded,
-                          onTap: () {
-                            SoundService.instance.play(Sfx.click);
-                            Navigator.push(
-                              context,
-                              appRoute<void>(const RulesPage()),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 6),
-                        _NavIconCircle(
-                          tooltip: 'الإعدادات',
-                          icon: Icons.settings_rounded,
-                          onTap: _openSettings,
-                        ),
-                        const SizedBox(width: 6),
-                        _NavIconCircle(
-                          tooltip: 'تسجيل الخروج',
-                          icon: Icons.logout_rounded,
-                          color: Colors.white70,
-                          onTap: () {
-                            SoundService.instance.play(Sfx.click);
-                            context.read<AuthCubit>().signOut();
-                          },
-                        ),
                       ],
                     );
                   },
@@ -474,7 +500,7 @@ class _ProfilePill extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 6, 7, 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xDD0D2922), Color(0xDD061512)],
@@ -496,8 +522,8 @@ class _ProfilePill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
@@ -517,12 +543,12 @@ class _ProfilePill extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF1E1304),
                     fontWeight: FontWeight.w900,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Flexible(
+              const SizedBox(width: 8),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -533,8 +559,8 @@ class _ProfilePill extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 13.5,
-                        height: 1.1,
+                        fontSize: 13,
+                        height: 1.15,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -550,13 +576,92 @@ class _ProfilePill extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: AppColors.goldLight,
-                            fontSize: 10.5,
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
                         );
                       },
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoinsPill extends StatelessWidget {
+  const _CoinsPill({
+    required this.coins,
+    required this.onTap,
+  });
+
+  final int coins;
+  final VoidCallback onTap;
+
+  String _format(int n) {
+    return n.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xEE1E1408), Color(0xEE332408)],
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppColors.gold, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.gold.withAlpha(50),
+                blurRadius: 6,
+                spreadRadius: 0.5,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.monetization_on_rounded,
+                size: 16,
+                color: AppColors.goldLight,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _format(coins),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.goldLight,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Container(
+                width: 15,
+                height: 15,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.gold,
+                ),
+                child: const Icon(
+                  Icons.add,
+                  size: 11,
+                  color: Colors.black,
                 ),
               ),
             ],
@@ -839,7 +944,7 @@ class _HeroShowcaseState extends State<_HeroShowcase>
             final wins = st?.wins ?? 0;
             final rate = games == 0 ? 0 : ((wins / games) * 100).round();
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xCC0D2620), Color(0xCC061411)],
@@ -847,15 +952,18 @@ class _HeroShowcaseState extends State<_HeroShowcase>
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.gold.withAlpha(90)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _miniStat('المباريات', '$games', Colors.white),
-                  _sep(),
-                  _miniStat('الانتصارات', '$wins', const Color(0xFF4BE0A8)),
-                  _sep(),
-                  _miniStat('نسبة الفوز', '$rate%', AppColors.goldLight),
-                ],
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _miniStat('المباريات', '$games', Colors.white),
+                    _sep(),
+                    _miniStat('الانتصارات', '$wins', const Color(0xFF4BE0A8)),
+                    _sep(),
+                    _miniStat('نسبة الفوز', '$rate%', AppColors.goldLight),
+                  ],
+                ),
               ),
             );
           },
@@ -889,7 +997,7 @@ class _HeroShowcaseState extends State<_HeroShowcase>
   Widget _sep() => Container(
         width: 1,
         height: 24,
-        margin: const EdgeInsets.symmetric(horizontal: 14),
+        margin: const EdgeInsets.symmetric(horizontal: 10),
         color: Colors.white12,
       );
 }

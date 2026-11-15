@@ -43,6 +43,8 @@ class LobbyCubit extends Cubit<LobbyState> {
       final code = await _repo.createRoom(name: userName, settings: settings);
       _listen(code);
     } catch (e) {
+      // ignore: avoid_print
+      print('Lobby create error: $e');
       emit(LobbyState(busy: false, error: _message(e)));
     }
   }
@@ -53,6 +55,8 @@ class LobbyCubit extends Cubit<LobbyState> {
       emit(LobbyState(busy: false, room: room));
       _listen(room.code);
     } catch (e) {
+      // ignore: avoid_print
+      print('Lobby join error: $e');
       emit(LobbyState(busy: false, error: _message(e)));
     }
   }
@@ -74,6 +78,18 @@ class LobbyCubit extends Cubit<LobbyState> {
     try {
       await _repo.setSeatBot(code, seat, bot);
     } catch (_) {}
+  }
+
+  Future<void> switchSeat(int targetSeat) async {
+    final code = state.room?.code;
+    if (code == null) return;
+    try {
+      await _repo.switchSeat(code, targetSeat);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Lobby switchSeat error: $e');
+      emit(LobbyState(busy: false, room: state.room, error: _message(e)));
+    }
   }
 
   Future<void> start() async {
@@ -98,12 +114,26 @@ class LobbyCubit extends Cubit<LobbyState> {
   }
 
   String _message(Object e) {
-    final text = e is PostgrestException ? e.message : e.toString();
+    final text = e is PostgrestException
+        ? (e.message.isNotEmpty ? e.message : (e.details?.toString() ?? e.toString()))
+        : e.toString();
+    if (text.contains('insufficient_coins')) {
+      return 'رصيدك من النقاط لا يكفي لدخول هذه الغرفة. اشحن رصيدك من المتجر!';
+    }
     if (text.contains('room_not_found')) return 'الغرفة غير موجودة';
     if (text.contains('room_full')) return 'الغرفة ممتلئة';
-    if (text.contains('room_started')) return 'اللعبة بدأت بالفعل';
+    if (text.contains('seat_occupied')) return 'هذا المقعد مشغول بالفعل من قِبل لاعب آخر';
+    if (text.contains('not_in_room')) return 'أنت لست منضماً لهذه الغرفة';
+    if (text.contains('room_started') || text.contains('room_not_waiting')) {
+      return 'اللعبة بدأت بالفعل';
+    }
     if (text.contains('not_authenticated')) return 'سجّل الدخول أولاً';
-    return 'حدث خطأ، حاول مرة أخرى';
+    if (text.contains('bad_settings')) return 'إعدادات الغرفة غير صالحة';
+    if (text.contains('bad_stake')) return 'قيمة الرهان المحددة غير صالحة';
+    if (text.contains('coin_transactions_room_code_fkey') || text.contains('23503')) {
+      return 'يجب تحديث سكيما قاعدة البيانات في Supabase لإصلاح قيد الغرف';
+    }
+    return 'حدث خطأ: $text';
   }
 
   @override

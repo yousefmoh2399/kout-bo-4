@@ -102,6 +102,17 @@ class OnlineGameSession {
                     payload: {'seat': e.seat, 'text': notice, 'system': true},
                   );
                 }
+                if (e is AutoPlayToggled) {
+                  final s = e.seat ?? 0;
+                  final notice = e.enabled
+                      ? 'قفل الشاشة / بالخلفية: ${room.names[s]} — البوت يلعب مكانه'
+                      : 'عائد للعب: ${room.names[s]} استعاد التحكم';
+                  _emotes.add(Emote(seat: s, text: notice));
+                  channel.sendBroadcastMessage(
+                    event: 'emote',
+                    payload: {'seat': s, 'text': notice, 'system': true},
+                  );
+                }
                 if (e != null && !bloc.isClosed) bloc.add(e);
               } catch (_) {}
             },
@@ -271,6 +282,19 @@ class OnlineGameSession {
     _channel?.sendBroadcastMessage(
       event: 'emote',
       payload: {'seat': mySeat, 'text': text},
+    );
+  }
+
+  /// إشعار الغرفة بانتقال هذا اللاعب للخلفية (قفل الشاشة) أو عودته
+  void notifyAppBackground(bool inBackground) {
+    if (_disposed) return;
+    final notice = inBackground
+        ? 'قفل الشاشة / بالخلفية: ${room.names[mySeat]} — البوت يلعب مكانه'
+        : 'عائد للعب: ${room.names[mySeat]} استعاد التحكم';
+    _emotes.add(Emote(seat: mySeat, text: notice));
+    _channel?.sendBroadcastMessage(
+      event: 'emote',
+      payload: {'seat': mySeat, 'text': notice, 'system': true},
     );
   }
 

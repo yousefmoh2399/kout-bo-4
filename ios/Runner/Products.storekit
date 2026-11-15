@@ -1,0 +1,117 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "ar",
+        "policyText" : ""
+      },
+      {
+        "locale" : "en_US",
+        "policyText" : ""
+      }
+    ]
+  },
+  "identifier" : "E2B7A8C1",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.500",
+      "familyShareable" : false,
+      "internalID" : "1001",
+      "localizations" : [
+        {
+          "description" : "1,000 نقطة للعب في غرف كوت بو 4",
+          "displayName" : "كيس النقاط (1,000)",
+          "locale" : "ar"
+        },
+        {
+          "description" : "1,000 points for rooms",
+          "displayName" : "Bag of Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.koutbo4.coins_1000",
+      "referenceName" : "1,000 Coins",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.750",
+      "familyShareable" : false,
+      "internalID" : "1002",
+      "localizations" : [
+        {
+          "description" : "5,000 نقطة + 500 هدية مجانية",
+          "displayName" : "صرة النقاط (5,500)",
+          "locale" : "ar"
+        },
+        {
+          "description" : "5,000 points + 500 bonus",
+          "displayName" : "Pouch of Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.koutbo4.coins_5000",
+      "referenceName" : "5,000 Coins",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.500",
+      "familyShareable" : false,
+      "internalID" : "1003",
+      "localizations" : [
+        {
+          "description" : "15,000 نقطة + 2,500 هدية مجانية",
+          "displayName" : "صندوق النقاط (17,500)",
+          "locale" : "ar"
+        },
+        {
+          "description" : "15,000 points + 2,500 bonus",
+          "displayName" : "Chest of Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.koutbo4.coins_15000",
+      "referenceName" : "15,000 Coins",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "12.000",
+      "familyShareable" : false,
+      "internalID" : "1004",
+      "localizations" : [
+        {
+          "description" : "50,000 نقطة + 15,000 هدية كبرى",
+          "displayName" : "خزانة النقاط الكبرى (65,000)",
+          "locale" : "ar"
+        },
+        {
+          "description" : "50,000 points + 15,000 bonus",
+          "displayName" : "Vault of Points",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.koutbo4.coins_50000",
+      "referenceName" : "50,000 Coins",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_billingIssuesEnabled" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "ar",
+    "_storefront" : "KWT",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

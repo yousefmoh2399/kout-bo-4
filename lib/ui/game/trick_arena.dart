@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../domain/card.dart';
 import '../../domain/rules.dart';
 import '../card_view.dart';
+import '../suit_icon.dart';
 import 'game_hud.dart';
 
 class TrickArena extends StatelessWidget {
@@ -292,15 +293,12 @@ class TrickArena extends StatelessWidget {
                                         ],
                                       ),
                                       alignment: Alignment.center,
-                                      child: Text(
-                                        s.trump!.symbol,
-                                        style: TextStyle(
-                                          fontSize: isLandscape ? 19 : 22,
-                                          height: 1,
-                                          color: s.trump!.isRed
-                                              ? const Color(0xFFFF6B6B)
-                                              : AppColors.goldLight,
-                                        ),
+                                      child: SuitIcon(
+                                        suit: s.trump!,
+                                        size: isLandscape ? 19 : 22,
+                                        color: s.trump!.isRed
+                                            ? const Color(0xFFFF6B6B)
+                                            : AppColors.goldLight,
                                       ),
                                     )
                                   : const SizedBox.shrink(),

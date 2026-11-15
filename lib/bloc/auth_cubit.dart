@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,6 +16,7 @@ class AppAuthState extends Equatable {
     this.isGuest = true,
     this.busy = false,
     this.error,
+    this.coins = 1000,
   });
 
   final AuthStatus status;
@@ -23,6 +25,7 @@ class AppAuthState extends Equatable {
   final bool isGuest;
   final bool busy;
   final String? error;
+  final int coins;
 
   AppAuthState copyWith({
     AuthStatus? status,
@@ -31,6 +34,7 @@ class AppAuthState extends Equatable {
     bool? isGuest,
     bool? busy,
     String? error,
+    int? coins,
   }) =>
       AppAuthState(
         status: status ?? this.status,
@@ -39,10 +43,11 @@ class AppAuthState extends Equatable {
         isGuest: isGuest ?? this.isGuest,
         busy: busy ?? this.busy,
         error: error, // يُمسح تلقائياً إن لم يُمرَّر
+        coins: coins ?? this.coins,
       );
 
   @override
-  List<Object?> get props => [status, name, userId, isGuest, busy, error];
+  List<Object?> get props => [status, name, userId, isGuest, busy, error, coins];
 }
 
 /// الدخول: بدون Supabase = اسم محلي فقط. معه = ضيف (anonymous) أو إيميل/باسورد.
@@ -88,7 +93,7 @@ class AuthCubit extends Cubit<AppAuthState> {
       isGuest: u.isAnonymous,
     ));
 
-    // مزامنة فورية للبروفايل مع قاعدة البيانات
+    // مزامنة فورية للبروفايل مع قاعدة البيانات وجلب الرصيد
     final c = _client;
     if (c != null) {
       c.from('profiles').upsert({
@@ -96,8 +101,26 @@ class AuthCubit extends Cubit<AppAuthState> {
         'name': name,
         'is_guest': u.isAnonymous,
         'updated_at': DateTime.now().toIso8601String(),
-      }).then((_) {}).catchError((_) {});
+      }).then((_) {
+        refreshCoins();
+      }).catchError((_) {
+        refreshCoins();
+      });
     }
+  }
+
+  /// تحديث رصيد النقاط من Supabase
+  Future<void> refreshCoins() async {
+    final c = _client;
+    final uid = state.userId;
+    if (c == null || uid == null || uid == 'local') return;
+    try {
+      final row = await c.from('profiles').select('coins').eq('id', uid).maybeSingle();
+      if (row != null && row['coins'] != null) {
+        final bal = (row['coins'] as num).toInt();
+        if (!isClosed) emit(state.copyWith(coins: bal));
+      }
+    } catch (_) {}
   }
 
   Future<void> _saveName(String name) async {
@@ -124,10 +147,13 @@ class AuthCubit extends Cubit<AppAuthState> {
   }
 
   Future<void> signInGuest(String name) async {
-    final clean = name.trim();
+    var clean = name.trim();
     if (clean.isEmpty) {
-      emit(state.copyWith(error: 'اكتب اسمك أولاً'));
-      return;
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('name');
+      clean = (saved != null && saved.trim().isNotEmpty)
+          ? saved.trim()
+          : 'لاعب_${Random().nextInt(9000) + 1000}';
     }
     await _saveName(clean);
     final c = _client;

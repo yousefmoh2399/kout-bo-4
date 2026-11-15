@@ -8,6 +8,7 @@ import '../domain/card.dart';
 import '../domain/rules.dart';
 import 'effects.dart';
 import 'strings.dart';
+import 'suit_icon.dart';
 import 'widgets.dart';
 
 String teamLabel(int team, int localTeam) => team == localTeam ? 'لنا' : 'لهم';
@@ -266,15 +267,12 @@ class _SuitOption extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                suit.symbol,
-                style: TextStyle(
-                  fontSize: 28,
-                  height: 1,
-                  color: suit.isRed ? AppColors.cardRed : AppColors.cardBlack,
-                ),
+              SuitIcon(
+                suit: suit,
+                size: 30,
+                color: suit.isRed ? AppColors.cardRed : AppColors.cardBlack,
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 5),
               Text(
                 label,
                 style: TextStyle(

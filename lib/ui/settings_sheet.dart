@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../core/config.dart';
 import '../core/theme.dart';
+import 'store_page.dart';
 import 'widgets.dart';
 
 /// يسأل عن هدف اللعبة ومهلة الدور. يرجع null عند الإلغاء.
 Future<GameSettings?> showGameSettingsSheet(
   BuildContext context, {
   required String confirmLabel,
+  bool isOnlineRoom = false,
+  int userCoins = 0,
 }) {
   return showModalBottomSheet<GameSettings>(
     context: context,
@@ -16,13 +19,24 @@ Future<GameSettings?> showGameSettingsSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (_) => _SettingsSheet(confirmLabel: confirmLabel),
+    builder: (_) => _SettingsSheet(
+      confirmLabel: confirmLabel,
+      isOnlineRoom: isOnlineRoom,
+      userCoins: userCoins,
+    ),
   );
 }
 
 class _SettingsSheet extends StatefulWidget {
-  const _SettingsSheet({required this.confirmLabel});
+  const _SettingsSheet({
+    required this.confirmLabel,
+    this.isOnlineRoom = false,
+    this.userCoins = 0,
+  });
+
   final String confirmLabel;
+  final bool isOnlineRoom;
+  final int userCoins;
 
   @override
   State<_SettingsSheet> createState() => _SettingsSheetState();
@@ -136,6 +150,78 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 ),
               ),
             ),
+            if (widget.isOnlineRoom) ...[
+              _chips<int>(
+                title: 'نقاط الدخول / الرهان',
+                values: const [0, 100, 250, 500, 1000, 2500, 5000],
+                current: _settings.stakePoints,
+                label: (v) => v == 0 ? 'ودية (مجانية)' : '$v نقطة',
+                onSelected: (v) =>
+                    setState(() => _settings = _settings.copyWith(stakePoints: v)),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'رصيدك الحالي: ${widget.userCoins} نقطة',
+                    style: TextStyle(
+                      color: widget.userCoins < _settings.stakePoints
+                          ? AppColors.danger
+                          : AppColors.goldLight,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (_settings.stakePoints > 0)
+                    Text(
+                      'جائزة الفوز: ${(_settings.stakePoints * 4 * 0.95).toInt()} نقطة 🏆',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+              if (widget.userCoins < _settings.stakePoints) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withAlpha(50),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.danger.withAlpha(120)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 18),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'رصيدك غير كافٍ لهذا الرهان. اشحن نقاطك الآن للمتابعة.',
+                          style: TextStyle(color: Colors.white, fontSize: 11.5),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          StorePage.show(context, requiredPoints: _settings.stakePoints);
+                        },
+                        child: const Text(
+                          'اشحن الآن',
+                          style: TextStyle(
+                            color: AppColors.goldLight,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+            ],
             _chips<int>(
               title: 'هدف اللعبة',
               values: const [51, 101],
@@ -221,9 +307,18 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             ),
             const SizedBox(height: 18),
             GoldButton(
-              label: widget.confirmLabel,
-              icon: Icons.play_arrow_rounded,
-              onPressed: () => Navigator.pop(context, _settings),
+              label: (widget.isOnlineRoom && widget.userCoins < _settings.stakePoints)
+                  ? 'رصيدك غير كافٍ — اشحن النقاط'
+                  : widget.confirmLabel,
+              icon: (widget.isOnlineRoom && widget.userCoins < _settings.stakePoints)
+                  ? Icons.monetization_on_rounded
+                  : Icons.play_arrow_rounded,
+              onPressed: (widget.isOnlineRoom && widget.userCoins < _settings.stakePoints)
+                  ? () {
+                      Navigator.pop(context);
+                      StorePage.show(context, requiredPoints: _settings.stakePoints);
+                    }
+                  : () => Navigator.pop(context, _settings),
             ),
           ],
         ),

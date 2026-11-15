@@ -14,12 +14,28 @@ class RoomRepository {
     required String name,
     required GameSettings settings,
   }) async {
-    final code = await _client.rpc('create_room', params: {
-      'p_name': name,
-      'p_target': settings.targetScore,
-      'p_turn': settings.turnSeconds,
-    });
-    return code as String;
+    try {
+      final code = await _client.rpc('create_room_with_stake', params: {
+        'p_name': name,
+        'p_target': settings.targetScore,
+        'p_turn': settings.turnSeconds,
+        'p_stake': settings.stakePoints,
+      });
+      return code as String;
+    } catch (e) {
+      // إذا كانت الغرفة بدون رهان وفشلت دالة الرهان، نجرب الدالة الكلاسيكية كاحتياط
+      if (settings.stakePoints == 0) {
+        try {
+          final code = await _client.rpc('create_room', params: {
+            'p_name': name,
+            'p_target': settings.targetScore,
+            'p_turn': settings.turnSeconds,
+          });
+          return code as String;
+        } catch (_) {}
+      }
+      rethrow;
+    }
   }
 
   Future<Room> joinRoom({required String code, required String name}) async {
@@ -38,7 +54,7 @@ class RoomRepository {
         }
       } catch (_) {}
     }
-    final json = await _client.rpc('join_room', params: {
+    final json = await _client.rpc('join_room_with_stake', params: {
       'p_code': cleanCode,
       'p_name': name,
     });
@@ -70,11 +86,30 @@ class RoomRepository {
         params: {'p_code': code, 'p_seat': seat, 'p_bot': bot},
       );
 
+  Future<void> switchSeat(String code, int targetSeat) =>
+      _client.rpc('switch_seat', params: {
+        'p_code': code.trim().toUpperCase(),
+        'p_target_seat': targetSeat,
+      });
+
   Future<void> startRoom(String code) =>
       _client.rpc('start_room', params: {'p_code': code});
 
   Future<void> finishRoom(String code) =>
       _client.rpc('finish_room', params: {'p_code': code});
+
+  /// توزيع جائزة الغرفة على الفريق الفائز (0 أو 1).
+  Future<void> awardRoomWinnings({
+    required String code,
+    required int winningTeam,
+  }) async {
+    try {
+      await _client.rpc('award_room_winnings', params: {
+        'p_code': code.toUpperCase(),
+        'p_winning_team': winningTeam,
+      });
+    } catch (_) {}
+  }
 
   /// يبث تحديثات الغرفة. null = الغرفة حُذفت (غادر المضيف).
   Stream<Room?> watch(String code) {

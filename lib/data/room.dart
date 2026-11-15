@@ -27,6 +27,7 @@ class Room extends Equatable {
     required this.targetScore,
     required this.turnSeconds,
     required this.seats,
+    this.stakePoints = 0,
   });
 
   final String code;
@@ -39,6 +40,9 @@ class Room extends Equatable {
 
   /// 4 مقاعد، null = فاضي.
   final List<RoomSeat?> seats;
+
+  /// رسم دخول الغرفة بالنقاط
+  final int stakePoints;
 
   factory Room.fromJson(Map<String, dynamic> j) {
     dynamic raw = j['seats'];
@@ -57,6 +61,7 @@ class Room extends Equatable {
       targetScore: j['target_score'] as int,
       turnSeconds: j['turn_seconds'] as int,
       seats: list,
+      stakePoints: (j['stake_points'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -82,5 +87,5 @@ class Room extends Equatable {
 
   @override
   List<Object?> get props =>
-      [code, hostId, status, targetScore, turnSeconds, seats];
+      [code, hostId, status, targetScore, turnSeconds, seats, stakePoints];
 }

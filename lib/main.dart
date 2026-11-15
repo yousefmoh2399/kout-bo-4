@@ -15,6 +15,7 @@ import 'data/stats_repository.dart';
 import 'ui/auth_page.dart';
 import 'ui/home_page.dart';
 import 'ui/strings.dart';
+import 'ui/suit_icon.dart';
 import 'ui/widgets.dart';
 
 Future<void> main() async {
@@ -33,28 +34,56 @@ Future<void> main() async {
 
     SupabaseClient? client;
     if (AppConfig.isOnlineConfigured) {
-      await Supabase.initialize(
-        url: AppConfig.supabaseUrl,
-        publishableKey: AppConfig.supabaseAnonKey,
-      );
-      client = Supabase.instance.client;
+      try {
+        await Supabase.initialize(
+          url: AppConfig.supabaseUrl,
+          publishableKey: AppConfig.supabaseAnonKey,
+        );
+      } catch (_) {
+        // تم التهيئة مسبقاً (في حالة Hot Restart)
+      }
+      try {
+        client = Supabase.instance.client;
+      } catch (_) {}
     }
     await SoundService.instance.init();
     runApp(KoutBoApp(client: client));
   }, (error, stack) => reportError(error, stack, where: 'zone'));
 }
 
-class KoutBoApp extends StatelessWidget {
+class KoutBoApp extends StatefulWidget {
   const KoutBoApp({super.key, this.client});
 
   final SupabaseClient? client;
 
   @override
+  State<KoutBoApp> createState() => _KoutBoAppState();
+}
+
+class _KoutBoAppState extends State<KoutBoApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    SoundService.instance.onAppLifecycleChanged(state);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return RepositoryProvider<StatsRepository>(
-      create: (_) => StatsRepository(client),
+      create: (_) => StatsRepository(widget.client),
       child: BlocProvider<AuthCubit>(
-        create: (_) => AuthCubit(client)..init(),
+        create: (_) => AuthCubit(widget.client)..init(),
         child: MaterialApp(
           title: S.appTitle,
           debugShowCheckedModeBanner: false,
@@ -125,13 +154,9 @@ class _LuxuryLoadingScreen extends StatelessWidget {
                   ],
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  '♠',
-                  style: TextStyle(
-                    fontSize: 42,
-                    color: AppColors.goldLight,
-                    height: 1.0,
-                  ),
+                child: const SuitIcon.spades(
+                  size: 42,
+                  color: AppColors.goldLight,
                 ),
               ),
               const SizedBox(height: 18),

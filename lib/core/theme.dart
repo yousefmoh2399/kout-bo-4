@@ -57,6 +57,7 @@ class AppTheme {
       textTheme: GoogleFonts.tajawalTextTheme(base.textTheme).apply(
         bodyColor: Colors.white,
         displayColor: AppColors.goldLight,
+        fontFamilyFallback: const ['Apple Symbols', 'Arial', 'sans-serif'],
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.feltDark,

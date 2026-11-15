@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../bloc/auth_cubit.dart';
 import '../bloc/game_bloc.dart';
 import '../core/sound.dart';
 import '../core/theme.dart';
 import '../data/emote.dart';
+import '../data/room_repository.dart';
 import '../data/stats_repository.dart';
 import '../domain/rules.dart';
 import 'game/game_hud.dart';
@@ -26,8 +29,11 @@ class GamePage extends StatefulWidget {
     required this.bloc,
     this.onClose,
     this.roomCode,
+    this.roomStake = 0,
+    this.isHost = false,
     this.emotes,
     this.onEmote,
+    this.onBackground,
     this.hostLost,
     this.onTakeOverHost,
     this.onResync,
@@ -36,8 +42,11 @@ class GamePage extends StatefulWidget {
   final GameBloc bloc;
   final VoidCallback? onClose;
   final String? roomCode;
+  final int roomStake;
+  final bool isHost;
   final Stream<Emote>? emotes;
   final ValueChanged<String>? onEmote;
+  final ValueChanged<bool>? onBackground;
   final ValueListenable<bool>? hostLost;
   final VoidCallback? onTakeOverHost;
   final VoidCallback? onResync;
@@ -46,7 +55,7 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   late final StreamSubscription<GameState> _sub;
   StreamSubscription<Emote>? _emoteSub;
   late GameState _prev;
@@ -59,6 +68,7 @@ class _GamePageState extends State<GamePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _prev = widget.bloc.state;
     _sub = widget.bloc.stream.listen(_onState);
     _emoteSub = widget.emotes?.listen(_onEmote);
@@ -66,6 +76,7 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sub.cancel();
     _emoteSub?.cancel();
     for (final t in _bubbleTimers.values) {
@@ -74,6 +85,33 @@ class _GamePageState extends State<GamePage> {
     widget.bloc.close();
     widget.onClose?.call();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 1. كتم الصوت فوراً ومنع أي مؤثرات صوتية أثناء قفل الشاشة أو الخلفية
+    SoundService.instance.onAppLifecycleChanged(state);
+
+    final inBackground = state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden;
+
+    if (inBackground) {
+      // 2. تفعيل البوت فوراً ليلعب بدلاً من اللاعب بدون إيقاف أو تأخير المباراة
+      final me = widget.bloc.localSeat;
+      if (!widget.bloc.state.autoSeats.contains(me)) {
+        widget.bloc.add(const AutoPlayToggled(enabled: true));
+      }
+      widget.onBackground?.call(true);
+    } else if (state == AppLifecycleState.resumed) {
+      // 3. عند فتح القفل والعودة للعبة: استعادة التحكم اليدوي وتحديث الحالة
+      final me = widget.bloc.localSeat;
+      if (widget.bloc.state.autoSeats.contains(me)) {
+        widget.bloc.add(const AutoPlayToggled(enabled: false));
+      }
+      widget.onBackground?.call(false);
+      widget.onResync?.call();
+    }
   }
 
   void _onEmote(Emote e) {
@@ -138,6 +176,20 @@ class _GamePageState extends State<GamePage> {
             rounds: s.roundNumber,
             playerName: s.names[me],
           );
+
+      // توزيع أرباح الغرفة بالنقاط للفريق الفائز عبر المضيف
+      if (widget.roomCode != null &&
+          widget.isHost &&
+          s.winnerTeam != null &&
+          widget.roomStake > 0) {
+        RoomRepository(Supabase.instance.client).awardRoomWinnings(
+          code: widget.roomCode!,
+          winningTeam: s.winnerTeam!,
+        );
+      }
+      try {
+        context.read<AuthCubit>().refreshCoins();
+      } catch (_) {}
     }
   }
 
@@ -149,7 +201,9 @@ class _GamePageState extends State<GamePage> {
       content: Text(
         widget.roomCode == null
             ? 'سيتم إنهاء اللعبة الحالية والعودة للقائمة.'
-            : 'سيلعب البوت مكانك لتكمل اللعبة بدونك.',
+            : (widget.roomStake > 0
+                ? 'تنبيه: الخروج أثناء المباراة يعني خسارة رسم الدخول (${widget.roomStake} نقطة) وسيكمل البوت مكانك.'
+                : 'سيلعب البوت مكانك لتكمل اللعبة بدونك.'),
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.5),
       ),
@@ -349,24 +403,18 @@ class _GameBody extends StatelessWidget {
                 child: MiniLastTrickBox(state: s, me: me),
               ),
 
-            // 2. أزرار التحكم العليا (يسار)
+            // 2. شريط التحكم والنقاط الموحد والمتجاوب (يمنع أي تداخل نهائياً)
             Positioned(
-              key: const ValueKey('top_controls'),
+              key: const ValueKey('game_top_bar'),
               top: 6,
-              left: 10,
-              child: TopControlsPill(
+              left: isPortrait ? 8 : 12,
+              right: isPortrait ? 8 : 12,
+              child: GameTopBar(
                 state: s,
                 me: me,
                 onResync: onResync,
+                isPortrait: isPortrait,
               ),
-            ),
-
-            // 3. لوحة النقاط واللزمة (يمين)
-            Positioned(
-              key: const ValueKey('score_hud'),
-              top: 6,
-              right: 10,
-              child: ScoreAndContractHud(state: s, me: me),
             ),
 
             // 4. محطة الشريك

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
 import '../domain/card.dart';
+import 'suit_icon.dart';
 
 /// بطاقة لعب فاخرة بتصميم كلاسيكي أصيل (توزيع حقيقي للرموز، رسومات ملكية، ولمعة ورقية).
 class PlayingCardView extends StatelessWidget {
@@ -104,26 +105,31 @@ class PlayingCardView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                size: width * 0.18,
-                color: isRed ? AppColors.goldDark : Colors.blueGrey.shade700,
+          if (width >= 20)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    size: width * 0.18,
+                    color: isRed ? AppColors.goldDark : Colors.blueGrey.shade700,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    'JOKER',
+                    style: TextStyle(
+                      fontSize: width * 0.115,
+                      fontWeight: FontWeight.w900,
+                      color: accent,
+                      letterSpacing: 0.4,
+                      height: 1,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'JOKER',
-                style: TextStyle(
-                  fontSize: width * 0.115,
-                  fontWeight: FontWeight.w900,
-                  color: accent,
-                  letterSpacing: 0.4,
-                  height: 1,
-                ),
-              ),
-            ],
-          ),
+            ),
           Expanded(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -179,29 +185,34 @@ class PlayingCardView extends StatelessWidget {
               ),
             ),
           ),
-          Transform.rotate(
-            angle: pi,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(
-                  Icons.auto_awesome,
-                  size: width * 0.18,
-                  color: isRed ? AppColors.goldDark : Colors.blueGrey.shade700,
+          if (width >= 20)
+            Transform.rotate(
+              angle: pi,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: width * 0.18,
+                      color: isRed ? AppColors.goldDark : Colors.blueGrey.shade700,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      'JOKER',
+                      style: TextStyle(
+                        fontSize: width * 0.115,
+                        fontWeight: FontWeight.w900,
+                        color: accent,
+                        letterSpacing: 0.4,
+                        height: 1,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'JOKER',
-                  style: TextStyle(
-                    fontSize: width * 0.115,
-                    fontWeight: FontWeight.w900,
-                    color: accent,
-                    letterSpacing: 0.4,
-                    height: 1,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -218,7 +229,7 @@ class PlayingCardView extends StatelessWidget {
         Positioned(
           top: width * 0.075,
           left: width * 0.08,
-          child: _CornerIndex(rank: rank.label, suit: suit.symbol, color: color, width: width),
+          child: _CornerIndex(rank: rank.label, suit: suit, color: color, width: width),
         ),
 
         // المركز: صور ملكية / آص مزخرف / توزيع رموز حقيقي للأرقام
@@ -242,7 +253,7 @@ class PlayingCardView extends StatelessWidget {
           right: width * 0.08,
           child: Transform.rotate(
             angle: pi,
-            child: _CornerIndex(rank: rank.label, suit: suit.symbol, color: color, width: width),
+            child: _CornerIndex(rank: rank.label, suit: suit, color: color, width: width),
           ),
         ),
       ],
@@ -267,16 +278,13 @@ class PlayingCardView extends StatelessWidget {
             border: Border.all(color: AppColors.gold.withAlpha(110), width: 1.0),
           ),
           alignment: Alignment.center,
-          child: Text(
-            suit.symbol,
-            style: TextStyle(
-              fontSize: width * 0.44,
-              color: color,
-              height: 1,
-              shadows: [
-                Shadow(color: Colors.black.withAlpha(28), blurRadius: 3, offset: const Offset(0, 1)),
-              ],
-            ),
+          child: SuitIcon(
+            suit: suit,
+            size: width * 0.44,
+            color: color,
+            shadows: [
+              Shadow(color: Colors.black.withAlpha(28), blurRadius: 3, offset: const Offset(0, 1)),
+            ],
           ),
         ),
       ),
@@ -330,9 +338,10 @@ class PlayingCardView extends StatelessWidget {
                   else
                     Icon(Icons.shield_rounded, size: width * 0.22, color: AppColors.goldDark),
                   SizedBox(height: width * 0.03),
-                  Text(
-                    suit.symbol,
-                    style: TextStyle(fontSize: width * 0.27, color: color, height: 1),
+                  SuitIcon(
+                    suit: suit,
+                    size: width * 0.27,
+                    color: color,
                   ),
                 ],
               ),
@@ -364,9 +373,10 @@ class PlayingCardView extends StatelessWidget {
                   angle: p.$3 ? pi : 0,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      suit.symbol,
-                      style: TextStyle(fontSize: pipSize, color: color, height: 1),
+                    child: SuitIcon(
+                      suit: suit,
+                      size: pipSize,
+                      color: color,
                     ),
                   ),
                 ),
@@ -506,7 +516,7 @@ class _CornerIndex extends StatelessWidget {
   });
 
   final String rank;
-  final String suit;
+  final Suit suit;
   final Color color;
   final double width;
 
@@ -526,13 +536,11 @@ class _CornerIndex extends StatelessWidget {
             letterSpacing: -0.6,
           ),
         ),
-        Text(
-          suit,
-          style: TextStyle(
-            color: color,
-            fontSize: width * 0.185,
-            height: 0.95,
-          ),
+        SizedBox(height: width * 0.02),
+        SuitIcon(
+          suit: suit,
+          size: width * 0.185,
+          color: color,
         ),
       ],
     );

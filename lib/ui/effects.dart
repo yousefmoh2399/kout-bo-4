@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
+import '../domain/card.dart';
+import 'suit_icon.dart';
 
 /// انتقال شاشات ناعم (تلاشي + انزلاق خفيف).
 Route<T> appRoute<T>(Widget page) {
@@ -56,11 +58,11 @@ class _FloatingSuitsState extends State<FloatingSuits> with SingleTickerProvider
 
   List<_Glyph> _makeGlyphs() {
     final r = Random(11);
-    const symbols = ['♠', '♥', '♦', '♣'];
+    const suits = Suit.values;
     return List.generate(
       16,
       (i) => _Glyph(
-        symbol: symbols[i % 4],
+        suit: suits[i % suits.length],
         x: r.nextDouble(),
         phase: r.nextDouble(),
         size: 28 + r.nextDouble() * 46,
@@ -91,13 +93,13 @@ class _FloatingSuitsState extends State<FloatingSuits> with SingleTickerProvider
 
 class _Glyph {
   const _Glyph({
-    required this.symbol,
+    required this.suit,
     required this.x,
     required this.phase,
     required this.size,
     required this.speed,
   });
-  final String symbol;
+  final Suit suit;
   final double x;
   final double phase;
   final double size;
@@ -112,21 +114,20 @@ class _SuitsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withAlpha(14)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
     for (final g in glyphs) {
       final progress = (t * g.speed + g.phase) % 1.0;
       final y = size.height * (1.1 - progress * 1.3);
       final x = size.width * g.x + sin((progress + g.phase) * 2 * pi) * 14;
-      final tp = TextPainter(
-        text: TextSpan(
-          text: g.symbol,
-          style: TextStyle(fontSize: g.size, color: Colors.white.withAlpha(14)),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
+      final path = SuitPath.getPath(g.suit, Size(g.size, g.size));
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(sin(progress * 2 * pi) * 0.3);
-      tp.paint(canvas, Offset.zero);
+      canvas.drawPath(path, paint);
       canvas.restore();
     }
   }

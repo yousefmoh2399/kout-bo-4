@@ -10,6 +10,7 @@ import '../../domain/rules.dart';
 import '../card_view.dart';
 import '../effects.dart';
 import '../panels.dart';
+import '../suit_icon.dart';
 import '../widgets.dart';
 
 Future<void> showLastTrickDialog(BuildContext context, GameState state) async {
@@ -84,11 +85,13 @@ class TopControlsPill extends StatelessWidget {
     required this.state,
     required this.me,
     this.onResync,
+    this.isPortrait = false,
   });
 
   final GameState state;
   final int me;
   final VoidCallback? onResync;
+  final bool isPortrait;
 
   Future<void> _showLastTrick(BuildContext context) =>
       showLastTrickDialog(context, state);
@@ -123,28 +126,93 @@ class TopControlsPill extends StatelessWidget {
     }
   }
 
+  Future<void> _showMoreMenu(BuildContext context, {required bool canRestart}) async {
+    SoundService.instance.play(Sfx.click);
+    await showLuxuryDialog<void>(
+      context: context,
+      title: 'خيارات المباراة',
+      icon: Icons.tune_rounded,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (canRestart) ...[
+            _MoreMenuTile(
+              icon: Icons.replay_rounded,
+              title: 'إعادة المباراة',
+              subtitle: 'تصفير النقاط وبدء مباراة جديدة',
+              color: const Color(0xFFE67E22),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmRestart(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (onResync != null) ...[
+            _MoreMenuTile(
+              icon: Icons.sync_rounded,
+              title: 'مزامنة الاتصال',
+              subtitle: 'إعادة تحديث بيانات الطاولة فوراً',
+              color: const Color(0xFF1ABC9C),
+              onTap: () {
+                Navigator.pop(context);
+                SoundService.instance.tap();
+                onResync!();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (state.lastTrick.isNotEmpty) ...[
+            _MoreMenuTile(
+              icon: Icons.history_rounded,
+              title: 'آخر أكلة',
+              subtitle: 'عرض الأوراق التي لُعبت في الأكلة السابقة',
+              color: const Color(0xFF9B59B6),
+              onTap: () {
+                Navigator.pop(context);
+                _showLastTrick(context);
+              },
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        GoldButton(
+          label: 'إغلاق',
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<GameBloc>();
     final isAuto = state.autoSeats.contains(me);
     final canRestart = !bloc.remote && state.phase != GamePhase.idle;
+    final btnSize = isPortrait ? 32.0 : 34.0;
+    final spacing = isPortrait ? 5.0 : 6.0;
+    final hasSecondary = canRestart || onResync != null || state.lastTrick.isNotEmpty;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. زر الخروج الاحترافي ثلاثي الأبعاد
+        // 1. زر الخروج الاحترافي (لون ياقوتي فاخر بارز وواضح لا يختفي)
         _Studio3DButton(
           tooltip: 'خروج من الطاولة',
           icon: Icons.exit_to_app_rounded,
-          topColor: const Color(0xFF3498DB),
-          bottomColor: const Color(0xFF1F618D),
-          lipColor: const Color(0xFF154360),
+          size: btnSize,
+          topColor: const Color(0xFFE74C3C),
+          bottomColor: const Color(0xFFC0392B),
+          lipColor: const Color(0xFF922B21),
+          glowColor: const Color(0xFFE74C3C),
           onPressed: () {
             SoundService.instance.play(Sfx.click);
             Navigator.of(context).maybePop();
           },
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: spacing),
 
         // 2. زر الصوت والمؤثرات ثلاثي الأبعاد
         ValueListenableBuilder<bool>(
@@ -152,6 +220,7 @@ class TopControlsPill extends StatelessWidget {
           builder: (context, on, _) => _Studio3DButton(
             tooltip: on ? 'كتم الصوت' : 'تشغيل الصوت',
             icon: on ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+            size: btnSize,
             topColor: on ? const Color(0xFF2ECC71) : const Color(0xFF566573),
             bottomColor: on ? const Color(0xFF1E8449) : const Color(0xFF2C3E50),
             lipColor: on ? const Color(0xFF145A32) : const Color(0xFF1B2631),
@@ -161,12 +230,13 @@ class TopControlsPill extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: spacing),
 
         // 3. زر البوت (اللعب التلقائي)
         _Studio3DButton(
           tooltip: isAuto ? 'إيقاف اللعب التلقائي' : 'تشغيل اللعب التلقائي',
           icon: Icons.smart_toy_rounded,
+          size: btnSize,
           topColor: isAuto ? const Color(0xFFF39C12) : const Color(0xFF2E4053),
           bottomColor:
               isAuto ? const Color(0xFFD68910) : const Color(0xFF1C2833),
@@ -178,52 +248,75 @@ class TopControlsPill extends StatelessWidget {
           },
         ),
 
-        // 4. زر آخر أكلة
-        if (state.lastTrick.isNotEmpty) ...[
-          const SizedBox(width: 6),
+        // في الوضع الرأسي: تجميع الخيارات الثانوية في زر خيارات أنيق لتوفير المساحة
+        if (isPortrait && hasSecondary) ...[
+          SizedBox(width: spacing),
           _Studio3DButton(
-            tooltip: 'آخر أكلة',
-            icon: Icons.history_rounded,
-            topColor: const Color(0xFF8E44AD),
-            bottomColor: const Color(0xFF6C3483),
-            lipColor: const Color(0xFF4A235A),
-            onPressed: () => _showLastTrick(context),
+            tooltip: 'خيارات إضافية',
+            icon: Icons.more_horiz_rounded,
+            size: btnSize,
+            topColor: const Color(0xFF4A5568),
+            bottomColor: const Color(0xFF2D3748),
+            lipColor: const Color(0xFF1A202C),
+            onPressed: () => _showMoreMenu(context, canRestart: canRestart),
           ),
         ],
 
-        // 5. زر مزامنة الاتصال (للأونلاين)
-        if (onResync != null) ...[
-          const SizedBox(width: 6),
-          _Studio3DButton(
-            tooltip: 'مزامنة الاتصال',
-            icon: Icons.sync_rounded,
-            topColor: const Color(0xFF1ABC9C),
-            bottomColor: const Color(0xFF117864),
-            lipColor: const Color(0xFF0B5345),
-            onPressed: () {
-              SoundService.instance.tap();
-              onResync!();
-            },
-          ),
+        // في الوضع الأفقي: عرض الأزرار الثانوية مباشرة لتوفر المساحة الكافية
+        if (!isPortrait) ...[
+          // 4. زر آخر أكلة
+          if (state.lastTrick.isNotEmpty) ...[
+            SizedBox(width: spacing),
+            _Studio3DButton(
+              tooltip: 'آخر أكلة',
+              icon: Icons.history_rounded,
+              size: btnSize,
+              topColor: const Color(0xFF8E44AD),
+              bottomColor: const Color(0xFF6C3483),
+              lipColor: const Color(0xFF4A235A),
+              onPressed: () => _showLastTrick(context),
+            ),
+          ],
+
+          // 5. زر مزامنة الاتصال (للأونلاين)
+          if (onResync != null) ...[
+            SizedBox(width: spacing),
+            _Studio3DButton(
+              tooltip: 'مزامنة الاتصال',
+              icon: Icons.sync_rounded,
+              size: btnSize,
+              topColor: const Color(0xFF1ABC9C),
+              bottomColor: const Color(0xFF117864),
+              lipColor: const Color(0xFF0B5345),
+              onPressed: () {
+                SoundService.instance.tap();
+                onResync!();
+              },
+            ),
+          ],
+
+          // 6. زر إعادة المباراة (للعب الفردي/المضيف)
+          if (canRestart) ...[
+            SizedBox(width: spacing),
+            _Studio3DButton(
+              tooltip: 'إعادة المباراة',
+              icon: Icons.replay_rounded,
+              size: btnSize,
+              topColor: const Color(0xFF34495E),
+              bottomColor: const Color(0xFF212F3D),
+              lipColor: const Color(0xFF151E27),
+              onPressed: () => _confirmRestart(context),
+            ),
+          ],
         ],
 
-        // 6. زر إعادة المباراة (للعب الفردي/المضيف)
-        if (canRestart) ...[
-          const SizedBox(width: 6),
-          _Studio3DButton(
-            tooltip: 'إعادة المباراة',
-            icon: Icons.replay_rounded,
-            topColor: const Color(0xFF34495E),
-            bottomColor: const Color(0xFF212F3D),
-            lipColor: const Color(0xFF151E27),
-            onPressed: () => _confirmRestart(context),
-          ),
-        ],
-
-        const SizedBox(width: 6),
+        SizedBox(width: spacing),
         // كبسولة المؤقت الاحترافية
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          padding: EdgeInsets.symmetric(
+            horizontal: isPortrait ? 7 : 9,
+            vertical: isPortrait ? 5 : 6,
+          ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xDD1A2634), Color(0xDD0D151F)],
@@ -243,9 +336,88 @@ class TopControlsPill extends StatelessWidget {
               ),
             ],
           ),
-          child: ElapsedClock(state: state),
+          child: ElapsedClock(state: state, compact: isPortrait),
         ),
       ],
+    );
+  }
+}
+
+class _MoreMenuTile extends StatelessWidget {
+  const _MoreMenuTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withAlpha(25)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withAlpha(120)),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(160),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: Colors.white.withAlpha(120),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -260,6 +432,7 @@ class _Studio3DButton extends StatefulWidget {
     required this.lipColor,
     required this.onPressed,
     this.glowColor,
+    this.size = 34.0,
   });
 
   final String tooltip;
@@ -269,6 +442,7 @@ class _Studio3DButton extends StatefulWidget {
   final Color lipColor;
   final VoidCallback onPressed;
   final Color? glowColor;
+  final double size;
 
   @override
   State<_Studio3DButton> createState() => _Studio3DButtonState();
@@ -279,6 +453,9 @@ class _Studio3DButtonState extends State<_Studio3DButton> {
 
   @override
   Widget build(BuildContext context) {
+    final sz = widget.size;
+    final isz = sz * 0.51;
+
     return Tooltip(
       message: widget.tooltip,
       child: GestureDetector(
@@ -290,8 +467,8 @@ class _Studio3DButtonState extends State<_Studio3DButton> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 70),
-          width: 34,
-          height: 34,
+          width: sz,
+          height: sz,
           padding: EdgeInsets.only(top: _pressed ? 2.5 : 0.0),
           child: Stack(
             children: [
@@ -341,7 +518,7 @@ class _Studio3DButtonState extends State<_Studio3DButton> {
                         top: 1.5,
                         left: 3,
                         right: 3,
-                        height: 10,
+                        height: sz * 0.28,
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(6),
@@ -358,7 +535,7 @@ class _Studio3DButtonState extends State<_Studio3DButton> {
                       ),
                       Icon(
                         widget.icon,
-                        size: 17.5,
+                        size: isz,
                         color: Colors.white,
                         shadows: const [
                           Shadow(
@@ -382,10 +559,16 @@ class _Studio3DButtonState extends State<_Studio3DButton> {
 
 /// لوحة النتائج واللزمة الاحترافية (على طراز الاستوديوهات العالمية).
 class ScoreAndContractHud extends StatelessWidget {
-  const ScoreAndContractHud({super.key, required this.state, required this.me});
+  const ScoreAndContractHud({
+    super.key,
+    required this.state,
+    required this.me,
+    this.compact = false,
+  });
 
   final GameState state;
   final int me;
+  final bool compact;
 
   Future<void> _showRoundHistory(BuildContext context) async {
     SoundService.instance.play(Sfx.click);
@@ -448,7 +631,10 @@ class ScoreAndContractHud extends StatelessWidget {
         children: [
           // الشريط الرئيسي للنقاط (فريقنا مقابل الخصم)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 5 : 6,
+              vertical: compact ? 3 : 4,
+            ),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xEE182432), Color(0xEE0C131C)],
@@ -478,8 +664,9 @@ class ScoreAndContractHud extends StatelessWidget {
                   bgColor: const Color(0xFF11382B),
                   borderColor: const Color(0xFF2ECC71),
                   textColor: const Color(0xFF58F29A),
+                  compact: compact,
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: compact ? 4 : 6),
                 _teamCapsule(
                   label: 'لهم',
                   score: s.scores[1 - lt],
@@ -487,6 +674,7 @@ class ScoreAndContractHud extends StatelessWidget {
                   bgColor: const Color(0xFF3B161A),
                   borderColor: const Color(0xFFE74C3C),
                   textColor: const Color(0xFFFF8A7A),
+                  compact: compact,
                 ),
               ],
             ),
@@ -496,7 +684,10 @@ class ScoreAndContractHud extends StatelessWidget {
           Transform.translate(
             offset: const Offset(0, -2),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 7 : 10,
+                vertical: compact ? 1.5 : 2,
+              ),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF2C2008), Color(0xFF1A1204)],
@@ -515,40 +706,37 @@ class ScoreAndContractHud extends StatelessWidget {
                       children: [
                         Text(
                           'طلب ${s.highestBid}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w900,
-                            fontSize: 10,
+                            fontSize: compact ? 9 : 10,
                             color: AppColors.goldLight,
                           ),
                         ),
                         if (s.trump != null) ...[
-                          const SizedBox(width: 5),
+                          SizedBox(width: compact ? 3 : 5),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 4,
-                              vertical: 0.5,
+                              vertical: 2,
                             ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(
-                              s.trump!.symbol,
-                              style: TextStyle(
-                                fontSize: 11,
-                                height: 1.05,
-                                color: s.trump!.isRed
-                                    ? AppColors.cardRed
-                                    : AppColors.cardBlack,
-                              ),
+                            child: SuitIcon(
+                              suit: s.trump!,
+                              size: compact ? 9.5 : 11,
+                              color: s.trump!.isRed
+                                  ? AppColors.cardRed
+                                  : AppColors.cardBlack,
                             ),
                           ),
                         ],
-                        const SizedBox(width: 5),
+                        SizedBox(width: compact ? 3 : 5),
                         Text(
                           '• ج ${s.roundNumber}',
-                          style: const TextStyle(
-                            fontSize: 9.5,
+                          style: TextStyle(
+                            fontSize: compact ? 8.5 : 9.5,
                             color: Colors.white70,
                             fontWeight: FontWeight.w700,
                           ),
@@ -557,8 +745,8 @@ class ScoreAndContractHud extends StatelessWidget {
                     )
                   : Text(
                       'الهدف ${s.targetScore} • جولة ${s.roundNumber}',
-                      style: const TextStyle(
-                        fontSize: 10,
+                      style: TextStyle(
+                        fontSize: compact ? 9 : 10,
                         fontWeight: FontWeight.w800,
                         color: AppColors.goldLight,
                       ),
@@ -577,9 +765,13 @@ class ScoreAndContractHud extends StatelessWidget {
     required Color bgColor,
     required Color borderColor,
     required Color textColor,
+    bool compact = false,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 6.5 : 9,
+        vertical: compact ? 2.5 : 3,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(13),
@@ -590,41 +782,101 @@ class ScoreAndContractHud extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10.5,
+            style: TextStyle(
+              fontSize: compact ? 9.5 : 10.5,
               fontWeight: FontWeight.w800,
               color: Colors.white70,
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: compact ? 4 : 6),
           AnimatedNumber(
             value: score,
             style: TextStyle(
-              fontSize: 14.5,
+              fontSize: compact ? 13 : 14.5,
               fontWeight: FontWeight.w900,
               color: textColor,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           if (tricks != null) ...[
-            const SizedBox(width: 5),
+            SizedBox(width: compact ? 3.5 : 5),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 0.5),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 3.5 : 4.5,
+                vertical: 0.5,
+              ),
               decoration: BoxDecoration(
                 color: Colors.black.withAlpha(110),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 '$tricks',
-                style: const TextStyle(
-                  fontSize: 9.5,
+                style: TextStyle(
+                  fontSize: compact ? 8.5 : 9.5,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// شريط أعلى الطاولة الموحد والمتجاوب (GameTopBar).
+/// يجمع أزرار التحكم ولوحة النقاط في صف أفقي واحد متناسق
+/// لمنع أي تداخل أو حجب لزر الخروج أو النقاط على جميع أحجام الشاشات.
+class GameTopBar extends StatelessWidget {
+  const GameTopBar({
+    super.key,
+    required this.state,
+    required this.me,
+    this.onResync,
+    required this.isPortrait,
+  });
+
+  final GameState state;
+  final int me;
+  final VoidCallback? onResync;
+  final bool isPortrait;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. أزرار التحكم على اليسار (زر الخروج مثبت دوماً في أقصى اليسار)
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: TopControlsPill(
+                  state: state,
+                  me: me,
+                  onResync: onResync,
+                  isPortrait: isPortrait,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // 2. لوحة النقاط والعقد على اليمين (باتجاه RTL العربي الطبيعي)
+          Directionality(
+            textDirection: TextDirection.rtl,
+            child: ScoreAndContractHud(
+              state: state,
+              me: me,
+              compact: isPortrait,
+            ),
+          ),
         ],
       ),
     );
@@ -828,45 +1080,48 @@ class AutoPlayBanner extends StatelessWidget {
                         ),
                       ],
                     )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.smart_toy_rounded,
-                          size: 14,
-                          color: AppColors.goldLight,
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'البوت يلعب عنك',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.smart_toy_rounded,
+                            size: 14,
+                            color: AppColors.goldLight,
                           ),
-                        ),
-                        const SizedBox(width: 7),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.goldLight, AppColors.gold],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Text(
-                            'إيقاف واللعب بنفسي',
+                          const SizedBox(width: 6),
+                          const Text(
+                            'البوت يلعب عنك',
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF1E1304),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 7),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.goldLight, AppColors.gold],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Text(
+                              'إيقاف واللعب بنفسي',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF1E1304),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
             ),
           ),
@@ -941,9 +1196,14 @@ class ChatBubble extends StatelessWidget {
 
 /// ساعة مدة اللعبة (تتجمد عند نهايتها).
 class ElapsedClock extends StatefulWidget {
-  const ElapsedClock({super.key, required this.state});
+  const ElapsedClock({
+    super.key,
+    required this.state,
+    this.compact = false,
+  });
 
   final GameState state;
+  final bool compact;
 
   @override
   State<ElapsedClock> createState() => _ElapsedClockState();
@@ -990,14 +1250,14 @@ class _ElapsedClockState extends State<ElapsedClock> {
           remaining != null
               ? Icons.hourglass_bottom_rounded
               : Icons.timer_outlined,
-          size: 14,
+          size: widget.compact ? 12 : 14,
           color: color,
         ),
         const SizedBox(width: 4),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: widget.compact ? 10.5 : 11.5,
             fontWeight: FontWeight.w900,
             color: urgent ? AppColors.danger : Colors.white,
             fontFeatures: const [FontFeature.tabularFigures()],

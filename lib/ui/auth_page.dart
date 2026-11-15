@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/auth_cubit.dart';
 import '../core/theme.dart';
+import 'suit_icon.dart';
 import 'widgets.dart';
 
 class AuthPage extends StatefulWidget {
@@ -51,13 +52,17 @@ class _AuthPageState extends State<AuthPage> {
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: AppColors.gold.withAlpha(80), width: 1),
                           ),
-                          child: const Text(
-                            '♠  ♥  ♦  ♣',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.goldLight,
-                              letterSpacing: 6,
-                            ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SuitIcon.spades(size: 15, color: AppColors.goldLight),
+                              SizedBox(width: 12),
+                              SuitIcon.hearts(size: 15, color: AppColors.goldLight),
+                              SizedBox(width: 12),
+                              SuitIcon.diamonds(size: 15, color: AppColors.goldLight),
+                              SizedBox(width: 12),
+                              SuitIcon.clubs(size: 15, color: AppColors.goldLight),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 12),

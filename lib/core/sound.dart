@@ -1,6 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum Sfx { card, deal, bid, turn, tick, win, lose, trick, click }
@@ -21,7 +21,27 @@ class SoundService {
   };
   int _nextIdx = 0;
   bool _initialized = false;
+  bool _inBackground = false;
   static const int _poolSize = 6;
+
+  /// يُستدعى عند تغير حالة التطبيق (مثل قفل الشاشة أو الخروج للخلفية).
+  void onAppLifecycleChanged(AppLifecycleState state) {
+    _inBackground = state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden;
+    if (_inBackground) {
+      stopAll();
+    }
+  }
+
+  /// إيقاف فوري لكل الأصوات التي تعمل حالياً.
+  Future<void> stopAll() async {
+    for (final p in _pool) {
+      try {
+        await p.stop();
+      } catch (_) {}
+    }
+  }
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -97,15 +117,17 @@ class SoundService {
   }
 
   void tap() {
+    if (_inBackground) return;
     if (haptics.value) HapticFeedback.selectionClick();
   }
 
   void impact() {
+    if (_inBackground) return;
     if (haptics.value) HapticFeedback.mediumImpact();
   }
 
   Future<void> play(Sfx sfx) async {
-    if (!enabled.value) return;
+    if (_inBackground || !enabled.value) return;
     if (sfx == Sfx.turn && !turnAlert.value) return;
 
     final now = DateTime.now();

@@ -4,13 +4,44 @@
 class AppConfig {
   AppConfig._();
 
-  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://xuptmbpeumjcksiehkcl.supabase.co',
+  );
+  static const supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1cHRtYnBldW1qY2tzaWVoa2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2MTA4MDksImV4cCI6MjExMDE4NjgwOX0.H3torKKPVNgBwPevGfROXYR2-OH-CNHdR3STb8CT8Ik',
+  );
 
   /// رابط سياسة الخصوصية (مطلوب لمتاجر التطبيقات).
-  static const privacyUrl = String.fromEnvironment('PRIVACY_URL');
+  static const privacyUrl = String.fromEnvironment(
+    'PRIVACY_URL',
+    defaultValue: 'https://example.com/privacy',
+  );
 
-  static const version = String.fromEnvironment('APP_VERSION', defaultValue: '1.2.0');
+  /// ───────────────────────────── بوابة ماي فاتورة (MyFatoorah) ─────────────────────────────
+  /// مفتاح الربط (API Token): الصق المفتاح هنا أو مرره عبر --dart-define=MYFATOORAH_TOKEN=...
+  static const myFatoorahToken = String.fromEnvironment(
+    'MYFATOORAH_TOKEN',
+    defaultValue: 'YOUR_MYFATOORAH_API_TOKEN_HERE',
+  );
+
+  /// البيئة: false = تجريبي (Demo) | true = حقيقي (Live/Production)
+  static const myFatoorahIsLive = bool.fromEnvironment(
+    'MYFATOORAH_IS_LIVE',
+    defaultValue: false,
+  );
+
+  /// العملة الرسمية للدفع في ماي فاتورة
+  static const paymentCurrency = 'KWD';
+
+  static bool get isMyFatoorahConfigured =>
+      myFatoorahToken.isNotEmpty &&
+      myFatoorahToken != 'YOUR_MYFATOORAH_API_TOKEN_HERE';
+
+  static const version =
+      String.fromEnvironment('APP_VERSION', defaultValue: '1.2.0');
 
   static bool get isOnlineConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
@@ -24,6 +55,7 @@ class GameSettings {
     this.turnSeconds = 20,
     this.matchMinutes = 0,
     this.botDifficulty = BotDifficulty.normal,
+    this.stakePoints = 0,
   });
 
   /// الهدف: 51 أو 101 نقطة.
@@ -38,16 +70,21 @@ class GameSettings {
   /// مستوى ذكاء البوتات.
   final BotDifficulty botDifficulty;
 
+  /// رسم دخول الغرفة بالنقاط (0 = ودية مجانية).
+  final int stakePoints;
+
   GameSettings copyWith({
     int? targetScore,
     int? turnSeconds,
     int? matchMinutes,
     BotDifficulty? botDifficulty,
+    int? stakePoints,
   }) =>
       GameSettings(
         targetScore: targetScore ?? this.targetScore,
         turnSeconds: turnSeconds ?? this.turnSeconds,
         matchMinutes: matchMinutes ?? this.matchMinutes,
         botDifficulty: botDifficulty ?? this.botDifficulty,
+        stakePoints: stakePoints ?? this.stakePoints,
       );
 }
