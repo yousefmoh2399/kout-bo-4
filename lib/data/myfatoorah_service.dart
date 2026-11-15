@@ -56,12 +56,17 @@ class MyFatoorahService {
       };
 
   /// إنشاء رابط دفع لفاتورة جديدة بالدينار الكويتي
+  /// [paymentMethodId]:
+  ///  - 1 = كي نت (KNET) المباشر
+  ///  - 2 = فيزا / ماستركارد المباشر
+  ///  - 0 = صفحة ماي فاتورة الشاملة التي تضم جميع خيارات الدفع
   Future<MyFatoorahInvoiceResult> createPaymentInvoice({
     required double kwdAmount,
     required String customerName,
     required String userId,
     required String packageId,
     String? customerEmail,
+    int paymentMethodId = 1,
   }) async {
     if (!AppConfig.isMyFatoorahConfigured) {
       return const MyFatoorahInvoiceResult(
@@ -70,9 +75,59 @@ class MyFatoorahService {
       );
     }
 
+    // إذا كان المطلوب عرض جميع طرق الدفع في صفحة الفاتورة، نستخدم SendPayment
+    if (paymentMethodId == 0) {
+      final url = Uri.parse('$_baseUrl/v2/SendPayment');
+      final payload = <String, dynamic>{
+        'CustomerName': customerName.trim().isEmpty ? 'لاعب كوت بو ٤' : customerName.trim(),
+        'NotificationOption': 'LNK',
+        'InvoiceValue': kwdAmount,
+        'DisplayCurrencyIso': AppConfig.paymentCurrency,
+        'CallBackUrl': 'https://koutbo4.app/payment/success',
+        'ErrorUrl': 'https://koutbo4.app/payment/error',
+        'CustomerReference': userId,
+        'UserDefinedField': packageId,
+        'Language': 'ar',
+      };
+
+      final email = customerEmail?.trim();
+      if (email != null && email.isNotEmpty && email.contains('@') && email.contains('.')) {
+        payload['CustomerEmail'] = email;
+      }
+
+      try {
+        final res = await _http.post(url, headers: _headers, body: jsonEncode(payload));
+        final json = jsonDecode(res.body) as Map<String, dynamic>;
+        final isSuccess = json['IsSuccess'] == true;
+        if (isSuccess && json['Data'] != null) {
+          final data = json['Data'] as Map<String, dynamic>;
+          final invoiceId = data['InvoiceId']?.toString();
+          final paymentUrl = (data['InvoiceURL'] ?? data['PaymentURL']) as String?;
+          return MyFatoorahInvoiceResult(
+            isSuccess: true,
+            invoiceId: invoiceId,
+            paymentUrl: paymentUrl,
+          );
+        } else {
+          final msg = json['Message']?.toString() ?? 'فشل إنشاء الفاتورة من بوابة الدفع';
+          final valErrors = json['ValidationErrors'];
+          final details = valErrors is List && valErrors.isNotEmpty
+              ? valErrors.map((e) => e['Error'].toString()).join(' - ')
+              : msg;
+          return MyFatoorahInvoiceResult(isSuccess: false, errorMessage: details);
+        }
+      } catch (e) {
+        return MyFatoorahInvoiceResult(
+          isSuccess: false,
+          errorMessage: 'تعذر الاتصال ببوابة ماي فاتورة: $e',
+        );
+      }
+    }
+
+    // الدفع المباشر عبر بوابة محددة (مثل كي نت = 1 أو فيزا = 2) عبر ExecutePayment
     final url = Uri.parse('$_baseUrl/v2/ExecutePayment');
     final payload = <String, dynamic>{
-      'PaymentMethodId': 0, // 0 = تتيح لصفحة الدفع عرض جميع خيارات الدفع (KNET, Visa, Master, Apple Pay)
+      'PaymentMethodId': paymentMethodId,
       'CustomerName': customerName.trim().isEmpty ? 'لاعب كوت بو ٤' : customerName.trim(),
       'DisplayCurrencyIso': AppConfig.paymentCurrency, // KWD
       'InvoiceValue': kwdAmount,

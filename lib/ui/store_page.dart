@@ -254,18 +254,31 @@ class _StorePageState extends State<StorePage> {
       setState(() => _purchasingId = null);
       await showLuxuryDialog<void>(
         context: context,
-        title: 'باقة Apple غير متوفرة',
+        title: 'باقة Apple قيد المزامنة',
         icon: Icons.apple_rounded,
         accentColor: AppColors.gold,
         content: Text(
-          'تعذر بدء عملية الشراء عبر أبل.\nالباقة (${package.title}) غير معتمدة أو لم تصل استجابة من سيرفرات أبل StoreKit.',
+          'تعذر جلب الباقة (${package.title}) من أبل StoreKit حالياً.\n\nقد يستغرق تفعيل الباقات الجديدة على سيرفرات أبل من ساعة إلى ساعتين، وتأكد من اكتمال اتفاقية (Paid Applications) في App Store Connect.\n\nهل ترغب بالدفع فوراً عبر كي نت (KNET) بدلاً من ذلك؟',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
         ),
         actions: [
           GoldButton(
-            label: 'إغلاق',
+            label: 'إلغاء',
+            outlined: true,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             onPressed: () => Navigator.pop(context),
+          ),
+          GoldButton(
+            label: 'ادفع عبر كي نت',
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            onPressed: () {
+              Navigator.pop(context);
+              final auth = context.read<AuthCubit>().state;
+              if (auth.userId != null) {
+                _purchaseWithMyFatoorah(package, auth.userId!, auth.name);
+              }
+            },
           ),
         ],
       );

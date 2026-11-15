@@ -125,9 +125,14 @@ class AppleIapService {
 
   /// تنفيذ عملية شراء باقة مستهلكة (Consumable)
   Future<bool> buyProduct(String productId) async {
-    final product = _products[productId];
+    var product = _products[productId];
     if (product == null) {
-      debugPrint('[AppleIapService] المنتج غير موجود في قائمة StoreKit: $productId');
+      debugPrint('[AppleIapService] المنتج غير موجود في الكاش، محاولة إعادة الاستعلام من StoreKit: $productId');
+      await refreshProducts();
+      product = _products[productId];
+    }
+    if (product == null) {
+      debugPrint('[AppleIapService] المنتج غير موجود في قائمة StoreKit بعد التحديث: $productId');
       return false;
     }
 
