@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/sound.dart';
 import '../core/theme.dart';
@@ -257,20 +258,54 @@ class GoldBadge extends StatelessWidget {
   }
 }
 
-void showSnack(BuildContext context, String message) {
+void showSnack(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+  bool isSuccess = false,
+  Duration duration = const Duration(seconds: 4),
+}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppColors.feltDark,
+        duration: duration,
         behavior: SnackBarBehavior.floating,
+        elevation: 8,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        backgroundColor: const Color(0xFF0F261C),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: AppColors.gold.withAlpha(140)),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isError
+                ? const Color(0xFFEF5350)
+                : (isSuccess ? AppColors.gold : AppColors.gold.withAlpha(220)),
+            width: 1.6,
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.info_outline_rounded
+                  : (isSuccess ? Icons.check_circle_outline_rounded : Icons.notifications_active_outlined),
+              color: isError ? const Color(0xFFFF8A80) : AppColors.goldLight,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.tajawal(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -338,10 +373,11 @@ Future<T?> showLuxuryDialog<T>({
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: GoogleFonts.tajawal(
+                    fontSize: 19,
                     fontWeight: FontWeight.w900,
                     color: AppColors.goldLight,
+                    height: 1.25,
                   ),
                 ),
                 const SizedBox(height: 6),

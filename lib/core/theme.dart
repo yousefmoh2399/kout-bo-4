@@ -66,6 +66,20 @@ class AppTheme {
           side: BorderSide(color: AppColors.gold.withAlpha(90), width: 1.5),
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF0F261C),
+        contentTextStyle: GoogleFonts.tajawal(
+          fontSize: 15.5,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          height: 1.35,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.gold, width: 1.5),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.black.withAlpha(90),

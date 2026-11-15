@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -512,22 +513,34 @@ class _StorePageState extends State<StorePage> {
         backgroundColor: const Color(0xFF0F261B),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.gold, width: 1.2),
+          side: const BorderSide(color: AppColors.gold, width: 1.4),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 22,
               height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.goldLight),
+              child: CircularProgressIndicator(strokeWidth: 2.4, color: AppColors.goldLight),
             ),
-            SizedBox(width: 12),
-            Text('التحقق من الدفع', style: TextStyle(color: AppColors.goldLight, fontSize: 16)),
+            const SizedBox(width: 12),
+            Text(
+              'التحقق من الدفع',
+              style: GoogleFonts.tajawal(
+                color: AppColors.goldLight,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'جارٍ التأكد من إتمام العملية من بوابة ماي فاتورة...',
-          style: TextStyle(color: Colors.white70, fontSize: 13),
+          style: GoogleFonts.tajawal(
+            color: Colors.white,
+            fontSize: 14.5,
+            fontWeight: FontWeight.w600,
+            height: 1.4,
+          ),
         ),
       ),
     );
@@ -543,7 +556,50 @@ class _StorePageState extends State<StorePage> {
       await _creditAccount(package, invoiceId, status.paymentGateway);
     } else {
       setState(() => _purchasingId = null);
-      showSnack(context, 'لم يتم استكمال عملية الدفع أو تم إلغاؤها.');
+      showSnack(
+        context,
+        'لم يتم استكمال عملية الدفع أو تم إلغاؤها.',
+        isError: true,
+      );
+      await showLuxuryDialog<void>(
+        context: context,
+        title: 'حالة الدفع',
+        icon: Icons.info_outline_rounded,
+        accentColor: const Color(0xFFF59E0B),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'لم يتم استكمال عملية الدفع أو تم إلغاؤها.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.tajawal(
+                color: Colors.white,
+                fontSize: 16.5,
+                fontWeight: FontWeight.w800,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'لم يتم خصم أي مبالغ من حسابك. يمكنك إعادة المحاولة في أي وقت.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.tajawal(
+                color: Colors.white70,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          GoldButton(
+            label: 'حسناً',
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      );
     }
   }
 
