@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../core/connectivity_service.dart';
+
 enum AuthStatus { loading, signedOut, signedIn }
 
 class AppAuthState extends Equatable {
@@ -157,15 +159,50 @@ class AuthCubit extends Cubit<AppAuthState> {
     }
     await _saveName(clean);
     final c = _client;
-    if (c == null) {
+    // إذا لم يكن هناك إنترنت أو Supabase غير مفعل، الدخول فوري في وضع الأوفلاين المحلي
+    if (c == null || !ConnectivityService.instance.isOnline) {
       emit(AppAuthState(
         status: AuthStatus.signedIn,
         name: clean,
         userId: 'local',
+        isGuest: true,
       ));
       return;
     }
-    await _run(() => c.auth.signInAnonymously(data: {'display_name': clean}));
+    try {
+      emit(state.copyWith(busy: true));
+      await c.auth
+          .signInAnonymously(data: {'display_name': clean})
+          .timeout(const Duration(seconds: 4));
+      emit(state.copyWith(busy: false));
+    } catch (_) {
+      // في حالة فشل الاتصال بالشبكة، يتم التحويل تلقائياً لوضع الأوفلاين للعب دون توقف
+      emit(AppAuthState(
+        status: AuthStatus.signedIn,
+        name: clean,
+        userId: 'local',
+        isGuest: true,
+      ));
+    }
+  }
+
+  /// الدخول المباشر في وضع الأوفلاين (بدون إنترنت)
+  Future<void> signInOffline({String? name}) async {
+    var clean = (name ?? '').trim();
+    if (clean.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('name');
+      clean = (saved != null && saved.trim().isNotEmpty)
+          ? saved.trim()
+          : 'لاعب_${Random().nextInt(9000) + 1000}';
+    }
+    await _saveName(clean);
+    emit(AppAuthState(
+      status: AuthStatus.signedIn,
+      name: clean,
+      userId: 'local',
+      isGuest: true,
+    ));
   }
 
   Future<void> signUp(String name, String email, String password) async {

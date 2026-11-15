@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../bloc/auth_cubit.dart';
 import '../bloc/game_bloc.dart';
+import '../core/connectivity_service.dart';
 import '../core/sound.dart';
 import '../core/theme.dart';
 import '../data/emote.dart';
@@ -336,6 +337,61 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
                         );
                       },
                     ),
+                    if (widget.roomCode != null)
+                      ValueListenableBuilder<bool>(
+                        valueListenable: ConnectivityService.instance.isOnlineNotifier,
+                        builder: (context, isOnline, _) {
+                          if (isOnline) return const SizedBox.shrink();
+                          return Positioned(
+                            top: 50,
+                            left: 20,
+                            right: 20,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xEE92400E),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: const Color(0xFFFBBF24),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black54,
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.wifi_off_rounded,
+                                      color: Color(0xFFFDE68A),
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        'انقطع الاتصال بالإنترنت... البوت يلعب بدلاً منك لحين عودة الاتصال',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),

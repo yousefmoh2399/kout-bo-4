@@ -43,7 +43,7 @@ class CoinPackage {
 
 const List<CoinPackage> kCoinPackages = [
   CoinPackage(
-    id: 'com.koutbo4.coins_1000',
+    id: 'com.faisal.koutbo4.coins_1000',
     title: 'كيس النقاط',
     coins: 1000,
     bonus: 0,
@@ -52,7 +52,7 @@ const List<CoinPackage> kCoinPackages = [
     icon: Icons.monetization_on_outlined,
   ),
   CoinPackage(
-    id: 'com.koutbo4.coins_5000',
+    id: 'com.faisal.koutbo4.coins_5000',
     title: 'صرة النقاط',
     coins: 5000,
     bonus: 500,
@@ -63,7 +63,7 @@ const List<CoinPackage> kCoinPackages = [
     isPopular: true,
   ),
   CoinPackage(
-    id: 'com.koutbo4.coins_15000',
+    id: 'com.faisal.koutbo4.coins_15000',
     title: 'صندوق النقاط',
     coins: 15000,
     bonus: 2500,
@@ -73,7 +73,7 @@ const List<CoinPackage> kCoinPackages = [
     badge: '+17% بونص',
   ),
   CoinPackage(
-    id: 'com.koutbo4.coins_50000',
+    id: 'com.faisal.koutbo4.coins_50000',
     title: 'خزانة النقاط الكبرى',
     coins: 50000,
     bonus: 15000,
@@ -203,8 +203,34 @@ class _StorePageState extends State<StorePage> {
     SoundService.instance.play(Sfx.click);
     final auth = context.read<AuthCubit>().state;
     final uid = auth.userId;
-    if (uid == null || uid == 'local') {
-      showSnack(context, 'سجّل الدخول أولاً لتتمكن من الشحن');
+
+    // التحقق الصارم: إذا كان اللاعب داخلاً كـ Guest أو غير مسجل
+    if (auth.isGuest || uid == null || uid == 'local') {
+      await showLuxuryDialog<void>(
+        context: context,
+        title: 'تسجيل الدخول مطلوب',
+        icon: Icons.account_circle_outlined,
+        accentColor: AppColors.gold,
+        content: const Text(
+          'أنت مسجل حالياً كـ (زائر / Guest).\nيرجى تسجيل الدخول بحسابك أولاً لحفظ رصيد نقاطك ومشترياتك بأمان.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          GoldButton(
+            label: 'تسجيل الدخول الآن',
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthCubit>().signOut();
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
+      );
       return;
     }
 
@@ -226,7 +252,23 @@ class _StorePageState extends State<StorePage> {
     final started = await _iap.buyProduct(package.id);
     if (!started && mounted) {
       setState(() => _purchasingId = null);
-      showSnack(context, 'تعذر بدء عملية الشراء عبر أبل.');
+      await showLuxuryDialog<void>(
+        context: context,
+        title: 'باقة Apple غير متوفرة',
+        icon: Icons.apple_rounded,
+        accentColor: AppColors.gold,
+        content: Text(
+          'تعذر بدء عملية الشراء عبر أبل.\nالباقة (${package.title}) غير معتمدة أو لم تصل استجابة من سيرفرات أبل StoreKit.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          GoldButton(
+            label: 'إغلاق',
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      );
     }
   }
 
@@ -389,12 +431,19 @@ class _StorePageState extends State<StorePage> {
 
     try {
       if (AppConfig.isMyFatoorahConfigured) {
+        // جلب البريد المسجل للمستخدم إن وجد
+        String? email;
+        try {
+          email = Supabase.instance.client.auth.currentUser?.email;
+        } catch (_) {}
+
         // 1. إنشاء رابط فاتورة الدفع من ماي فاتورة
         final invRes = await MyFatoorahService.instance.createPaymentInvoice(
           kwdAmount: package.kwdAmount,
           customerName: customerName,
           userId: uid,
           packageId: package.id,
+          customerEmail: email,
         );
 
         if (!invRes.isSuccess || invRes.paymentUrl == null) {
@@ -589,6 +638,12 @@ class _StorePageState extends State<StorePage> {
               _buildBalanceHeader(),
               const SizedBox(height: 12),
 
+              // تنبيه الدخول كضيف
+              if (context.watch<AuthCubit>().state.isGuest) ...[
+                _buildGuestWarningBanner(),
+                const SizedBox(height: 12),
+              ],
+
               // بطاقة بوابة الدفع المعتمدة (MyFatoorah / KNET)
               _buildPaymentGatewayBanner(),
               const SizedBox(height: 14),
@@ -702,21 +757,24 @@ class _StorePageState extends State<StorePage> {
   }
 
   Widget _buildPaymentGatewayBanner() {
-    final configured = AppConfig.isMyFatoorahConfigured;
+    final hasMf = AppConfig.isMyFatoorahConfigured;
+    final hasApple = _iap.isAvailable;
+    final isSecured = hasMf || hasApple;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: configured ? const Color(0x33008444) : Colors.amber.withAlpha(25),
+        color: isSecured ? const Color(0x33008444) : Colors.amber.withAlpha(25),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: configured ? const Color(0xFF00A859).withAlpha(140) : Colors.amber.withAlpha(120),
+          color: isSecured ? const Color(0xFF00A859).withAlpha(140) : Colors.amber.withAlpha(120),
         ),
       ),
       child: Row(
         children: [
           Icon(
-            configured ? Icons.verified_user_rounded : Icons.info_outline_rounded,
-            color: configured ? const Color(0xFF4BE0A8) : Colors.amber,
+            isSecured ? Icons.verified_user_rounded : Icons.info_outline_rounded,
+            color: isSecured ? const Color(0xFF4BE0A8) : Colors.amber,
             size: 22,
           ),
           const SizedBox(width: 10),
@@ -724,11 +782,9 @@ class _StorePageState extends State<StorePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  configured
-                      ? 'بوابة الدفع معتمدة: كي نت (KNET) • فيزا • ماستركارد'
-                      : 'بوابة ماي فاتورة (KNET • فيزا • أبل باي)',
-                  style: const TextStyle(
+                const Text(
+                  'طرق الدفع الرسمية المعتمدة',
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -736,12 +792,62 @@ class _StorePageState extends State<StorePage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  configured
-                      ? 'الدفع بالدينار الكويتي (KWD) ومحمي بتشفير البنوك.'
-                      : 'وضع التجربة والمحاكاة مفعّل. لإجراء دفع حقيقي، الصق API Token في config.dart.',
+                  hasApple
+                      ? 'مدعوم رسميًا: متجر أبل (StoreKit) • كي نت (KNET) عبر ماي فاتورة.'
+                      : (hasMf
+                          ? 'بوابة ماي فاتورة: كي نت (KNET) • فيزا • ماستركارد (بالدينار الكويتي).'
+                          : 'وضع التجربة والمحاكاة مفعّل. عند التشغيل على أجهزة أبل أو وضع Token ستعمل البوابات مباشرة.'),
                   style: const TextStyle(color: Colors.white70, fontSize: 10.5, height: 1.3),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuestWarningBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0x33E67E22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE67E22).withAlpha(160)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.account_circle_outlined, color: Color(0xFFF39C12), size: 22),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'أنت مسجل حالياً كـ (زائر / Guest)',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'سجّل الدخول بحسابك لتتمكن من الشحن وحفظ النقاط في حسابك.',
+                  style: TextStyle(color: Colors.white70, fontSize: 10.5, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => context.read<AuthCubit>().signOut(),
+            child: const Text(
+              'دخول',
+              style: TextStyle(
+                color: AppColors.goldLight,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -961,7 +1067,7 @@ class _StorePageState extends State<StorePage> {
               Icon(Icons.lock_rounded, size: 14, color: Colors.white54),
               SizedBox(width: 6),
               Text(
-                'دفع آمن 100% عبر ماي فاتورة (MyFatoorah)',
+                'دفع آمن ومعتمد عبر Apple StoreKit وماي فاتورة (KNET)',
                 style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ],
@@ -969,7 +1075,7 @@ class _StorePageState extends State<StorePage> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'متوافق مع شبكة المدفوعات الكويتية كي نت (KNET) والبطاقات المصرفية.',
+          'متوافق مع Apple In-App Purchase وشبكة المدفوعات الكويتية كي نت (KNET).',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white38, fontSize: 10.5),
         ),

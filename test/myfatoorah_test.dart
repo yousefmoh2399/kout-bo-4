@@ -39,8 +39,9 @@ void main() {
         packageId: 'com.koutbo4.coins_5000',
       );
 
-      // When token is default/unconfigured it flags configuration
-      expect(res.errorMessage, isNotNull);
+      expect(res.isSuccess, isTrue);
+      expect(res.invoiceId, '987654');
+      expect(res.paymentUrl, contains('invoiceKey=test123'));
     });
 
     test('checkPaymentStatus returns paid status', () async {
@@ -69,8 +70,9 @@ void main() {
 
       final service = MyFatoorahService(client: mockClient);
       final status = await service.checkPaymentStatus('987654');
-      // When token is default it flags configuration
-      expect(status.errorMessage, isNotNull);
+      expect(status.isPaid, isTrue);
+      expect(status.invoiceStatus, 'Paid');
+      expect(status.paymentGateway, 'KNET');
     });
   });
 

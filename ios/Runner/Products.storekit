@@ -33,7 +33,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.koutbo4.coins_1000",
+      "productID" : "com.faisal.koutbo4.coins_1000",
       "referenceName" : "1,000 Coins",
       "type" : "Consumable"
     },
@@ -53,7 +53,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.koutbo4.coins_5000",
+      "productID" : "com.faisal.koutbo4.coins_5000",
       "referenceName" : "5,000 Coins",
       "type" : "Consumable"
     },
@@ -73,7 +73,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.koutbo4.coins_15000",
+      "productID" : "com.faisal.koutbo4.coins_15000",
       "referenceName" : "15,000 Coins",
       "type" : "Consumable"
     },
@@ -93,7 +93,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.koutbo4.coins_50000",
+      "productID" : "com.faisal.koutbo4.coins_50000",
       "referenceName" : "50,000 Coins",
       "type" : "Consumable"
     }

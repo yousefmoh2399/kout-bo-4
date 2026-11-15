@@ -5,32 +5,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// معرفات باقات الشراء داخل التطبيق لمتجر أبل (StoreKit)
 class AppleIapProducts {
-  static const String coins1000 = 'com.koutbo4.coins_1000';
-  static const String coins5000 = 'com.koutbo4.coins_5000';
-  static const String coins15000 = 'com.koutbo4.coins_15000';
-  static const String coins50000 = 'com.koutbo4.coins_50000';
+  static const String coins1000 = 'com.faisal.koutbo4.coins_1000';
+  static const String coins5000 = 'com.faisal.koutbo4.coins_5000';
+  static const String coins15000 = 'com.faisal.koutbo4.coins_15000';
+  static const String coins50000 = 'com.faisal.koutbo4.coins_50000';
 
   static const Set<String> allIds = {
     coins1000,
     coins5000,
     coins15000,
     coins50000,
+    'com.koutbo4.coins_1000',
+    'com.koutbo4.coins_5000',
+    'com.koutbo4.coins_15000',
+    'com.koutbo4.coins_50000',
   };
 
   /// خريطة تحويل معرف المنتج إلى عدد النقاط الإجمالي (شاملاً البونص)
   static int coinsForProduct(String productId) {
-    switch (productId) {
-      case coins1000:
-        return 1000;
-      case coins5000:
-        return 5500; // 5000 + 500
-      case coins15000:
-        return 17500; // 15000 + 2500
-      case coins50000:
-        return 65000; // 50000 + 15000
-      default:
-        return 0;
-    }
+    if (productId.endsWith('coins_1000')) return 1000;
+    if (productId.endsWith('coins_5000')) return 5500; // 5000 + 500
+    if (productId.endsWith('coins_15000')) return 17500; // 15000 + 2500
+    if (productId.endsWith('coins_50000')) return 65000; // 50000 + 15000
+    return 0;
   }
 }
 
@@ -53,9 +50,9 @@ class ApplePurchaseResult {
 
 /// خدمة Apple In-App Purchase الرسمية (StoreKit)
 class AppleIapService {
-  AppleIapService({InAppPurchase? iap, SupabaseClient? supabase})
+  AppleIapService({InAppPurchase? iap, SupabaseClient? supabaseClient})
       : _iap = iap ?? InAppPurchase.instance,
-        _supabase = supabase;
+        _supabase = supabaseClient;
 
   static AppleIapService instance = AppleIapService();
 

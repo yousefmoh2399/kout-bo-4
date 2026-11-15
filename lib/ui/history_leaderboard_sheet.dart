@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../core/connectivity_service.dart';
 import '../core/theme.dart';
 import '../data/stats_repository.dart';
 import 'widgets.dart';
@@ -88,6 +89,38 @@ class _MatchHistorySheetState extends State<_MatchHistorySheet> {
             ],
           ),
           const SizedBox(height: 16),
+          if (!ConnectivityService.instance.isOnline)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0x33F59E0B),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFF59E0B).withAlpha(140),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFFFBBF24),
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'أنت في وضع الأوفلاين • سجل المباريات السحابي غير متصل، ومبارياتك الفردية تُحفظ محلياً.',
+                      style: TextStyle(
+                        color: Color(0xFFFDE68A),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: FutureBuilder<List<MatchHistoryItem>>(
               future: _future,
@@ -305,6 +338,38 @@ class _LeaderboardSheetState extends State<_LeaderboardSheet> {
             ],
           ),
           const SizedBox(height: 16),
+          if (!ConnectivityService.instance.isOnline)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0x33F59E0B),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFF59E0B).withAlpha(140),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFFFBBF24),
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'أنت في وضع الأوفلاين • لوحة المتصدرين الحية تتطلب اتصالاً بالإنترنت.',
+                      style: TextStyle(
+                        color: Color(0xFFFDE68A),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: FutureBuilder<List<LeaderboardItem>>(
               future: _future,

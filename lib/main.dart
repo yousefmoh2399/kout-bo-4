@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'bloc/auth_cubit.dart';
 import 'core/config.dart';
+import 'core/connectivity_service.dart';
 import 'core/crash.dart';
 import 'core/sound.dart';
 import 'core/theme.dart';
@@ -47,6 +48,7 @@ Future<void> main() async {
       } catch (_) {}
     }
     await SoundService.instance.init();
+    await ConnectivityService.instance.init();
     runApp(KoutBoApp(client: client));
   }, (error, stack) => reportError(error, stack, where: 'zone'));
 }
@@ -61,14 +63,76 @@ class KoutBoApp extends StatefulWidget {
 }
 
 class _KoutBoAppState extends State<KoutBoApp> with WidgetsBindingObserver {
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+  StreamSubscription<bool>? _connSub;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _connSub = ConnectivityService.instance.onConnectivityChanged.listen((isOnline) {
+      if (!mounted) return;
+      _messengerKey.currentState?.removeCurrentSnackBar();
+      if (!isOnline) {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF92400E),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            duration: const Duration(seconds: 4),
+            content: const Row(
+              children: [
+                Icon(Icons.wifi_off_rounded, color: Color(0xFFFDE68A), size: 22),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'لا يوجد اتصال بالإنترنت • تم تفعيل وضع الأوفلاين (اللعب الفردي ضد البوتات متاح)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF065F46),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            duration: const Duration(seconds: 3),
+            content: const Row(
+              children: [
+                Icon(Icons.wifi_rounded, color: Color(0xFF6EE7B7), size: 22),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'تمت استعادة الاتصال بالإنترنت • وضع الأونلاين متاح الآن',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    _connSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -76,6 +140,9 @@ class _KoutBoAppState extends State<KoutBoApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     SoundService.instance.onAppLifecycleChanged(state);
+    if (state == AppLifecycleState.resumed) {
+      ConnectivityService.instance.checkInternet();
+    }
   }
 
   @override
@@ -85,6 +152,7 @@ class _KoutBoAppState extends State<KoutBoApp> with WidgetsBindingObserver {
       child: BlocProvider<AuthCubit>(
         create: (_) => AuthCubit(widget.client)..init(),
         child: MaterialApp(
+          scaffoldMessengerKey: _messengerKey,
           title: S.appTitle,
           debugShowCheckedModeBanner: false,
           locale: const Locale('ar'),

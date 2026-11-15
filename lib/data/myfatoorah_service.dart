@@ -71,7 +71,7 @@ class MyFatoorahService {
     }
 
     final url = Uri.parse('$_baseUrl/v2/ExecutePayment');
-    final payload = {
+    final payload = <String, dynamic>{
       'PaymentMethodId': 0, // 0 = تتيح لصفحة الدفع عرض جميع خيارات الدفع (KNET, Visa, Master, Apple Pay)
       'CustomerName': customerName.trim().isEmpty ? 'لاعب كوت بو ٤' : customerName.trim(),
       'DisplayCurrencyIso': AppConfig.paymentCurrency, // KWD
@@ -80,9 +80,14 @@ class MyFatoorahService {
       'ErrorUrl': 'https://koutbo4.app/payment/error',
       'CustomerReference': userId,
       'UserDefinedField': packageId,
-      'CustomerEmail': customerEmail ?? '',
       'Language': 'ar',
     };
+
+    // لا نرسل CustomerEmail إلا إذا كان إيميل صالح لتجنب رفض ماي فاتورة
+    final email = customerEmail?.trim();
+    if (email != null && email.isNotEmpty && email.contains('@') && email.contains('.')) {
+      payload['CustomerEmail'] = email;
+    }
 
     try {
       final res = await _http.post(url, headers: _headers, body: jsonEncode(payload));

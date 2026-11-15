@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../bloc/auth_cubit.dart';
 import '../bloc/game_bloc.dart';
 import '../core/config.dart';
+import '../core/connectivity_service.dart';
 import '../core/sound.dart';
 import '../core/theme.dart';
 import '../data/room.dart';
@@ -74,7 +75,52 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(_refresh);
   }
 
+  void _showOfflineActionDialog({required String actionName}) {
+    SoundService.instance.play(Sfx.click);
+    showLuxuryDialog<void>(
+      context: context,
+      title: 'لا يوجد اتصال بالإنترنت',
+      icon: Icons.wifi_off_rounded,
+      accentColor: const Color(0xFFF59E0B),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$actionName غير متاح لعدم توفر اتصال بالإنترنت.\n\nوضع الأوفلاين مفعّل حالياً — يمكنك الاستمتاع بلعب كوت بو ٤ الفردي ضد البوتات الذكية بدون نت!',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        GoldButton(
+          label: 'إلغاء',
+          outlined: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          onPressed: () => Navigator.pop(context),
+        ),
+        GoldButton(
+          label: 'ابدأ اللعب الفردي',
+          icon: Icons.play_arrow_rounded,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          onPressed: () {
+            Navigator.pop(context);
+            _playSolo();
+          },
+        ),
+      ],
+    );
+  }
+
   Future<void> _createRoom() async {
+    if (!ConnectivityService.instance.isOnline) {
+      _showOfflineActionDialog(actionName: 'إنشاء ديوانية أونلاين');
+      return;
+    }
     final userCoins = context.read<AuthCubit>().state.coins;
     final settings = await showGameSettingsSheet(
       context,
@@ -94,6 +140,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _joinRoom() async {
+    if (!ConnectivityService.instance.isOnline) {
+      _showOfflineActionDialog(actionName: 'الانضمام لديوانية أونلاين');
+      return;
+    }
     final controller = TextEditingController();
     final code = await showLuxuryDialog<String>(
       context: context,
@@ -192,6 +242,31 @@ class _HomePageState extends State<HomePage> {
                         _CoinsPill(
                           coins: auth.coins,
                           onTap: () async {
+                            if (!ConnectivityService.instance.isOnline) {
+                              SoundService.instance.play(Sfx.click);
+                              showLuxuryDialog<void>(
+                                context: context,
+                                title: 'المتجر غير متاح بدون إنترنت',
+                                icon: Icons.wifi_off_rounded,
+                                accentColor: const Color(0xFFF59E0B),
+                                content: const Text(
+                                  'متجر النقاط وعمليات الشراء تتطلب اتصالاً فعّالاً بالإنترنت.\nيرجى الاتصال بالإنترنت والعودة للمتجر.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    height: 1.45,
+                                  ),
+                                ),
+                                actions: [
+                                  GoldButton(
+                                    label: 'حسناً',
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ],
+                              );
+                              return;
+                            }
                             final authCubit = context.read<AuthCubit>();
                             SoundService.instance.play(Sfx.click);
                             await StorePage.show(context);
@@ -267,6 +342,70 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
+              // شريط حالة عدم الاتصال بالإنترنت والتحويل لوضع الأوفلاين
+              ValueListenableBuilder<bool>(
+                valueListenable: ConnectivityService.instance.isOnlineNotifier,
+                builder: (context, isOnline, _) {
+                  if (isOnline) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xEE452605), Color(0xEE2A1702)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF59E0B), width: 1.3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B).withAlpha(45),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.wifi_off_rounded,
+                            color: Color(0xFFFBBF24),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'لا يوجد اتصال بالإنترنت • وضع الأوفلاين مفعّل',
+                                  style: TextStyle(
+                                    color: Color(0xFFFDE68A),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'طاولة اللعب الفردي ضد البوتات متاحة وتعمل بدون نت.',
+                                  style: TextStyle(color: Colors.white70, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GoldButton(
+                            label: 'العب فردي',
+                            icon: Icons.play_arrow_rounded,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            onPressed: _playSolo,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+
               // شريط العودة السريعة للغرفة النشطة
               if (_activeRoom != null)
                 FutureBuilder<Room?>(
@@ -335,59 +474,66 @@ class _HomePageState extends State<HomePage> {
 
               // 2. محتوى الصفحة المتجاوب مع الطولي والعرضي
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth >= 580;
-                    if (isWide) {
-                      return Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 8,
-                          ),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 920),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  flex: 5,
-                                  child: _HeroShowcase(
-                                    statsFuture: _stats,
-                                    compact: true,
-                                  ),
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: ConnectivityService.instance.isOnlineNotifier,
+                  builder: (context, isOnline, _) {
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 580;
+                        if (isWide) {
+                          return Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 8,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 920),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: _HeroShowcase(
+                                        statsFuture: _stats,
+                                        compact: true,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 26),
+                                    Expanded(
+                                      flex: 6,
+                                      child: _PlayModesSection(
+                                        online: online && isOnline,
+                                        isDeviceOnline: isOnline,
+                                        onPlaySolo: _playSolo,
+                                        onCreateRoom: _createRoom,
+                                        onJoinRoom: _joinRoom,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 26),
-                                Expanded(
-                                  flex: 6,
-                                  child: _PlayModesSection(
-                                    online: online,
-                                    onPlaySolo: _playSolo,
-                                    onCreateRoom: _createRoom,
-                                    onJoinRoom: _joinRoom,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    }
+                          );
+                        }
 
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
-                      child: Column(
-                        children: [
-                          _HeroShowcase(statsFuture: _stats, compact: false),
-                          const SizedBox(height: 20),
-                          _PlayModesSection(
-                            online: online,
-                            onPlaySolo: _playSolo,
-                            onCreateRoom: _createRoom,
-                            onJoinRoom: _joinRoom,
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+                          child: Column(
+                            children: [
+                              _HeroShowcase(statsFuture: _stats, compact: false),
+                              const SizedBox(height: 20),
+                              _PlayModesSection(
+                                online: online && isOnline,
+                                isDeviceOnline: isOnline,
+                                onPlaySolo: _playSolo,
+                                onCreateRoom: _createRoom,
+                                onJoinRoom: _joinRoom,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -1006,12 +1152,14 @@ class _HeroShowcaseState extends State<_HeroShowcase>
 class _PlayModesSection extends StatelessWidget {
   const _PlayModesSection({
     required this.online,
+    this.isDeviceOnline = true,
     required this.onPlaySolo,
     required this.onCreateRoom,
     required this.onJoinRoom,
   });
 
   final bool online;
+  final bool isDeviceOnline;
   final VoidCallback onPlaySolo;
   final VoidCallback onCreateRoom;
   final VoidCallback onJoinRoom;
@@ -1056,6 +1204,7 @@ class _PlayModesSection extends StatelessWidget {
                   Color(0xEE09211B),
                 ],
                 enabled: online,
+                badge: !isDeviceOnline ? 'أوفلاين' : null,
                 onTap: () {
                   SoundService.instance.play(Sfx.click);
                   onCreateRoom();
@@ -1074,6 +1223,7 @@ class _PlayModesSection extends StatelessWidget {
                   Color(0xEE1E0E13),
                 ],
                 enabled: online,
+                badge: !isDeviceOnline ? 'أوفلاين' : null,
                 onTap: () {
                   SoundService.instance.play(Sfx.click);
                   onJoinRoom();
@@ -1090,17 +1240,37 @@ class _PlayModesSection extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.black.withAlpha(75),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(
+                color: !isDeviceOnline
+                    ? const Color(0xFFF59E0B).withAlpha(120)
+                    : Colors.white12,
+              ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.info_outline, size: 14, color: Colors.white54),
-                SizedBox(width: 6),
+                Icon(
+                  !isDeviceOnline ? Icons.wifi_off_rounded : Icons.info_outline,
+                  size: 14,
+                  color: !isDeviceOnline
+                      ? const Color(0xFFFBBF24)
+                      : Colors.white54,
+                ),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    'اللعب أونلاين غير مفعّل: اضبط مفاتيح Supabase.',
-                    style: TextStyle(color: Colors.white54, fontSize: 10.5),
+                    !isDeviceOnline
+                        ? 'لا يوجد اتصال بالإنترنت: وضع الأوفلاين مفعّل (طاولة اللعب الفردي ضد البوتات متاحة).'
+                        : 'اللعب أونلاين غير مفعّل: اضبط مفاتيح Supabase.',
+                    style: TextStyle(
+                      color: !isDeviceOnline
+                          ? const Color(0xFFFDE68A)
+                          : Colors.white54,
+                      fontSize: 10.5,
+                      fontWeight: !isDeviceOnline
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                   ),
                 ),
               ],
@@ -1252,6 +1422,7 @@ class _LuxurySubModeCard extends StatelessWidget {
     required this.accentColor,
     required this.gradientColors,
     required this.enabled,
+    this.badge,
     required this.onTap,
   });
 
@@ -1261,17 +1432,18 @@ class _LuxurySubModeCard extends StatelessWidget {
   final Color accentColor;
   final List<Color> gradientColors;
   final bool enabled;
+  final String? badge;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Opacity(
-      opacity: enabled ? 1.0 : 0.5,
+      opacity: enabled ? 1.0 : 0.6,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: enabled ? onTap : null,
+          onTap: onTap,
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
             decoration: BoxDecoration(
@@ -1308,11 +1480,35 @@ class _LuxurySubModeCard extends StatelessWidget {
                       ),
                       child: Icon(icon, color: accentColor, size: 22),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: accentColor.withAlpha(180),
-                      size: 14,
-                    ),
+                    if (badge != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x33F59E0B),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B).withAlpha(150),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          badge!,
+                          style: const TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: accentColor.withAlpha(180),
+                        size: 14,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),

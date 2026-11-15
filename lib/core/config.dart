@@ -24,13 +24,13 @@ class AppConfig {
   /// مفتاح الربط (API Token): الصق المفتاح هنا أو مرره عبر --dart-define=MYFATOORAH_TOKEN=...
   static const myFatoorahToken = String.fromEnvironment(
     'MYFATOORAH_TOKEN',
-    defaultValue: 'YOUR_MYFATOORAH_API_TOKEN_HERE',
+    defaultValue: 'SK_KWT_NOSdOwOWhjRTTarvwG4ADkW7BqAGRw0j8BUiliADzdDVVAUFJZR7HH4nlKbQ3anl',
   );
 
   /// البيئة: false = تجريبي (Demo) | true = حقيقي (Live/Production)
   static const myFatoorahIsLive = bool.fromEnvironment(
     'MYFATOORAH_IS_LIVE',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   /// العملة الرسمية للدفع في ماي فاتورة
