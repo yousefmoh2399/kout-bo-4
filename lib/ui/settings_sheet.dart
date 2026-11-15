@@ -43,9 +43,56 @@ class _SettingsSheet extends StatefulWidget {
 }
 
 class _SettingsSheetState extends State<_SettingsSheet> {
-  var _settings = const GameSettings();
+  late GameSettings _settings;
   bool _customTurn = false;
   bool _customMatch = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isOnlineRoom) {
+      _settings = const GameSettings(
+        matchMinutes: 60,
+        stakePoints: 1000,
+        targetScore: 101,
+        turnSeconds: 20,
+        botDifficulty: BotDifficulty.normal,
+      );
+    } else {
+      _settings = const GameSettings(
+        matchMinutes: 60,
+        stakePoints: 0,
+        targetScore: 101,
+        turnSeconds: 20,
+        botDifficulty: BotDifficulty.normal,
+      );
+    }
+  }
+
+  /// حساب نقاط الدخول بناءً على المدة:
+  /// الساعة (60 د) = 1,000 نقطة، وكل نصف ساعة إضافية (+30 د) = +500 نقطة.
+  int _pointsForDuration(int minutes) {
+    if (minutes <= 0) return 0;
+    if (minutes < 60) return 1000;
+    final halfHours = (minutes / 30).round();
+    return halfHours * 500;
+  }
+
+  String _formatHoursLabel(int minutes) {
+    if (minutes <= 0) return 'مفتوح (بدون وقت)';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (m == 0) {
+      if (h == 1) return 'ساعة واحدة';
+      if (h == 2) return 'ساعتان';
+      if (h >= 3 && h <= 10) return '$h ساعات';
+      return '$h ساعة';
+    } else {
+      if (h == 1) return 'ساعة ونصف';
+      if (h == 2) return 'ساعتان ونصف';
+      return '$h ساعات ونصف';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -191,37 +238,164 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // أ. نقاط الرهان (للغرف الأونلاين فقط)
+                    // أ. مدة الغرفة ونقاط الدخول (للغرف الأونلاين)
                     if (widget.isOnlineRoom) ...[
                       _sectionCard(
-                        icon: Icons.monetization_on_rounded,
-                        title: 'نقاط الدخول والرهان',
+                        icon: Icons.hourglass_bottom_rounded,
+                        title: 'مدة الغرفة ونقاط الدخول',
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold.withAlpha(25),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.gold.withAlpha(90),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.stars_rounded,
+                                    color: AppColors.goldLight,
+                                    size: 15,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'الساعة بـ ١,٠٠٠ نقطة • كل نصف ساعة إضافية = +٥٠٠ نقطة',
+                                    style: TextStyle(
+                                      color: AppColors.goldLight,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                for (final v in const [
-                                  0,
-                                  100,
-                                  250,
-                                  500,
-                                  1000,
-                                  2500,
-                                  5000
-                                ])
-                                  _luxuryChip(
-                                    label: v == 0 ? 'ودية (مجانية)' : '$v نقطة',
-                                    selected: _settings.stakePoints == v,
-                                    onTap: () => setState(
-                                      () => _settings =
-                                          _settings.copyWith(stakePoints: v),
-                                    ),
-                                  ),
+                                _luxuryChip(
+                                  label: 'ساعة (١,٠٠٠ نقطة) 👑',
+                                  selected: !_customMatch &&
+                                      _settings.matchMinutes == 60 &&
+                                      _settings.stakePoints == 1000,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      matchMinutes: 60,
+                                      stakePoints: 1000,
+                                    );
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: 'ساعة ونصف (١,٥٠٠ نقطة)',
+                                  selected: !_customMatch &&
+                                      _settings.matchMinutes == 90 &&
+                                      _settings.stakePoints == 1500,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      matchMinutes: 90,
+                                      stakePoints: 1500,
+                                    );
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: 'ساعتان (٢,٠٠٠ نقطة)',
+                                  selected: !_customMatch &&
+                                      _settings.matchMinutes == 120 &&
+                                      _settings.stakePoints == 2000,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      matchMinutes: 120,
+                                      stakePoints: 2000,
+                                    );
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: 'ساعتان ونصف (٢,٥٠٠ نقطة)',
+                                  selected: !_customMatch &&
+                                      _settings.matchMinutes == 150 &&
+                                      _settings.stakePoints == 2500,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      matchMinutes: 150,
+                                      stakePoints: 2500,
+                                    );
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: '٣ ساعات (٣,٠٠٠ نقطة)',
+                                  selected: !_customMatch &&
+                                      _settings.matchMinutes == 180 &&
+                                      _settings.stakePoints == 3000,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      matchMinutes: 180,
+                                      stakePoints: 3000,
+                                    );
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: 'مخصص...',
+                                  selected: _customMatch,
+                                  onTap: () => setState(() {
+                                    _customMatch = true;
+                                    if (_settings.matchMinutes < 60) {
+                                      _settings = _settings.copyWith(
+                                        matchMinutes: 60,
+                                        stakePoints: 1000,
+                                      );
+                                    }
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: 'ودية مجانية (بدون رهان)',
+                                  selected: !_customMatch &&
+                                      _settings.stakePoints == 0,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      stakePoints: 0,
+                                      matchMinutes: 60,
+                                    );
+                                  }),
+                                ),
                               ],
                             ),
+                            if (_customMatch) ...[
+                              const SizedBox(height: 10),
+                              _stepper(
+                                value: _settings.matchMinutes < 60
+                                    ? 60
+                                    : _settings.matchMinutes,
+                                minVal: 60,
+                                maxVal: 360,
+                                step: 30,
+                                unit: 'دقيقة',
+                                customLabel:
+                                    '${_formatHoursLabel(_settings.matchMinutes)} (${_settings.matchMinutes} دقيقة)\n➔ ${_pointsForDuration(_settings.matchMinutes)} نقطة',
+                                onChanged: (v) => setState(() {
+                                  final p = _pointsForDuration(v);
+                                  _settings = _settings.copyWith(
+                                    matchMinutes: v,
+                                    stakePoints: p,
+                                  );
+                                }),
+                              ),
+                            ],
                             const SizedBox(height: 10),
                             // شريط تفاصيل الرصيد والجائزة
                             Container(
@@ -303,10 +477,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                       size: 16,
                                     ),
                                     const SizedBox(width: 6),
-                                    const Expanded(
+                                    Expanded(
                                       child: Text(
-                                        'رصيدك غير كافٍ لهذا الرهان.',
-                                        style: TextStyle(
+                                        'تحتاج ${_settings.stakePoints} نقطة لدخول الغرفة (رصيدك: ${widget.userCoins}).',
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11,
                                         ),
@@ -336,6 +510,67 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      // مدة المباراة الفردية ضد البوتات
+                      _sectionCard(
+                        icon: Icons.hourglass_bottom_rounded,
+                        title: 'مدة المباراة الإجمالية',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final v in const [60, 90, 120, 0, -1])
+                                  _luxuryChip(
+                                    label: v == -1
+                                        ? 'مخصص...'
+                                        : (v == 0
+                                            ? 'مفتوح (بدون حد)'
+                                            : _formatHoursLabel(v)),
+                                    selected: _customMatch
+                                        ? v == -1
+                                        : _settings.matchMinutes == v,
+                                    onTap: () => setState(() {
+                                      if (v == -1) {
+                                        _customMatch = true;
+                                        if (_settings.matchMinutes == 0) {
+                                          _settings = _settings.copyWith(
+                                            matchMinutes: 60,
+                                          );
+                                        }
+                                      } else {
+                                        _customMatch = false;
+                                        _settings = _settings.copyWith(
+                                          matchMinutes: v,
+                                        );
+                                      }
+                                    }),
+                                  ),
+                              ],
+                            ),
+                            if (_customMatch) ...[
+                              const SizedBox(height: 8),
+                              _stepper(
+                                value: _settings.matchMinutes == 0
+                                    ? 60
+                                    : _settings.matchMinutes,
+                                minVal: 15,
+                                maxVal: 240,
+                                step: 15,
+                                unit: 'دقيقة',
+                                customLabel:
+                                    '${_formatHoursLabel(_settings.matchMinutes)} (${_settings.matchMinutes} دقيقة)',
+                                onChanged: (v) => setState(
+                                  () => _settings =
+                                      _settings.copyWith(matchMinutes: v),
                                 ),
                               ),
                             ],
@@ -436,66 +671,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       ),
                     ),
 
-                    // د. مدة المباراة الإجمالية
-                    _sectionCard(
-                      icon: Icons.hourglass_bottom_rounded,
-                      title: 'مدة المباراة الإجمالية',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final v in const [0, 5, 10, 15, -1])
-                                _luxuryChip(
-                                  label: v == -1
-                                      ? 'مخصص...'
-                                      : (v == 0
-                                          ? 'مفتوح (بدون حد)'
-                                          : (v <= 10
-                                              ? '$v دقائق'
-                                              : '$v دقيقة')),
-                                  selected: _customMatch
-                                      ? v == -1
-                                      : _settings.matchMinutes == v,
-                                  onTap: () => setState(() {
-                                    if (v == -1) {
-                                      _customMatch = true;
-                                      if (_settings.matchMinutes == 0) {
-                                        _settings = _settings.copyWith(
-                                          matchMinutes: 7,
-                                        );
-                                      }
-                                    } else {
-                                      _customMatch = false;
-                                      _settings = _settings.copyWith(
-                                        matchMinutes: v,
-                                      );
-                                    }
-                                  }),
-                                ),
-                            ],
-                          ),
-                          if (_customMatch) ...[
-                            const SizedBox(height: 8),
-                            _stepper(
-                              value: _settings.matchMinutes == 0
-                                  ? 7
-                                  : _settings.matchMinutes,
-                              minVal: 1,
-                              maxVal: 120,
-                              step: 1,
-                              unit: 'دقيقة',
-                              onChanged: (v) => setState(
-                                () => _settings =
-                                    _settings.copyWith(matchMinutes: v),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
 
                     // هـ. مستوى ذكاء البوتات
                     _sectionCard(
@@ -877,6 +1052,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     required int maxVal,
     required int step,
     required String unit,
+    String? customLabel,
     required ValueChanged<int> onChanged,
   }) {
     return Container(
@@ -900,12 +1076,15 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               size: 20,
             ),
           ),
-          Text(
-            '$value $unit',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              color: AppColors.goldLight,
+          Flexible(
+            child: Text(
+              customLabel ?? '$value $unit',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: AppColors.goldLight,
+              ),
             ),
           ),
           IconButton(

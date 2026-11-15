@@ -44,43 +44,43 @@ class CoinPackage {
 const List<CoinPackage> kCoinPackages = [
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_1000',
-    title: 'كيس النقاط',
+    title: 'كيس النقاط (ساعة لعب)',
     coins: 1000,
     bonus: 0,
-    kwdAmount: 0.500,
-    priceString: '0.500 د.ك',
+    kwdAmount: 1.000,
+    priceString: '1.000 د.ك',
     icon: Icons.monetization_on_outlined,
   ),
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_5000',
-    title: 'صرة النقاط',
+    title: 'صرة النقاط (5 ساعات)',
     coins: 5000,
     bonus: 500,
-    kwdAmount: 1.750,
-    priceString: '1.750 د.ك',
+    kwdAmount: 5.000,
+    priceString: '5.000 د.ك',
     icon: Icons.savings_outlined,
-    badge: 'الأكثر طلباً 🔥',
+    badge: 'الأكثر طلباً 🔥 (+500 بونص)',
     isPopular: true,
   ),
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_15000',
-    title: 'صندوق النقاط',
+    title: 'صندوق النقاط (15 ساعة)',
     coins: 15000,
     bonus: 2500,
-    kwdAmount: 4.500,
-    priceString: '4.500 د.ك',
+    kwdAmount: 15.000,
+    priceString: '15.000 د.ك',
     icon: Icons.inventory_2_outlined,
-    badge: '+17% بونص',
+    badge: '+2,500 بونص مجاني',
   ),
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_50000',
-    title: 'خزانة النقاط الكبرى',
+    title: 'خزانة النقاط الكبرى (50 ساعة)',
     coins: 50000,
     bonus: 15000,
-    kwdAmount: 12.000,
-    priceString: '12.000 د.ك',
+    kwdAmount: 50.000,
+    priceString: '50.000 د.ك',
     icon: Icons.workspace_premium_rounded,
-    badge: 'القيمة الأفضل 👑',
+    badge: 'القيمة الأفضل 👑 (+15,000 بونص)',
   ),
 ];
 
@@ -668,13 +668,35 @@ class _StorePageState extends State<StorePage> {
                 const SizedBox(height: 18),
               ],
 
-              const Text(
-                'باقات النقاط (الدفع بالدينار الكويتي)',
-                style: TextStyle(
-                  color: AppColors.goldLight,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'باقات النقاط (بالدينار الكويتي)',
+                      style: TextStyle(
+                        color: AppColors.goldLight,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withAlpha(30),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.gold.withAlpha(120)),
+                    ),
+                    child: const Text(
+                      '١ د.ك = ١,٠٠٠ نقطة',
+                      style: TextStyle(
+                        color: AppColors.goldLight,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
 

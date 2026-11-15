@@ -197,10 +197,10 @@ class TrumpPicker extends StatelessWidget {
   const TrumpPicker({super.key});
 
   static const _suitNames = {
-    Suit.spades: 'سباتي',
+    Suit.spades: 'سبيت',
     Suit.hearts: 'هاص',
     Suit.diamonds: 'ديمن',
-    Suit.clubs: 'شري',
+    Suit.clubs: 'كلفس',
   };
 
   @override

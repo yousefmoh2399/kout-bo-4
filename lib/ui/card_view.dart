@@ -100,6 +100,9 @@ class PlayingCardView extends StatelessWidget {
   Widget _buildJoker() {
     final isRed = card.isRedJoker;
     final accent = isRed ? AppColors.cardRed : AppColors.cardBlack;
+    final title = isRed ? 'الجوكر الأحمر' : 'الجوكر الأسود';
+    final subtitle = isRed ? 'البكر 👑' : 'العوير ♠';
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: width * 0.08, vertical: width * 0.06),
       child: Column(
@@ -163,20 +166,38 @@ class PlayingCardView extends StatelessWidget {
                       painter: _JesterCrownPainter(color: accent),
                     ),
                   ),
-                  SizedBox(height: width * 0.04),
+                  SizedBox(height: width * 0.03),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: width * 0.10, vertical: 1.5),
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.08, vertical: 1.5),
                     decoration: BoxDecoration(
                       color: accent,
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: AppColors.gold.withAlpha(150), width: 0.6),
                     ),
                     child: Text(
-                      isRed ? 'الجيكر' : 'الميكر',
+                      title,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
-                        fontSize: width * 0.16,
+                        fontSize: width * 0.12,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: width * 0.015),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 1.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.gold.withAlpha(40),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(color: AppColors.gold.withAlpha(120), width: 0.5),
+                    ),
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: isRed ? AppColors.goldDark : Colors.blueGrey.shade800,
+                        fontWeight: FontWeight.w900,
+                        fontSize: width * 0.095,
                         height: 1.1,
                       ),
                     ),
@@ -236,8 +257,8 @@ class PlayingCardView extends StatelessWidget {
         Positioned.fill(
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: width * 0.21,
-              vertical: width * 0.17,
+              horizontal: width * (isFace || rank == Rank.ace ? 0.14 : 0.20),
+              vertical: width * (isFace || rank == Rank.ace ? 0.12 : 0.16),
             ),
             child: isFace
                 ? _buildFaceCenter(rank, suit, color)
@@ -261,29 +282,114 @@ class PlayingCardView extends StatelessWidget {
   }
 
   Widget _buildAceCenter(Suit suit, Color color) {
+    const aceSize = 52.0;
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Container(
-          width: width * 0.56,
-          height: width * 0.56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [
-                AppColors.goldLight.withAlpha(60),
-                Colors.transparent,
-              ],
-            ),
-            border: Border.all(color: AppColors.gold.withAlpha(110), width: 1.0),
-          ),
-          alignment: Alignment.center,
-          child: SuitIcon(
-            suit: suit,
-            size: width * 0.44,
-            color: color,
-            shadows: [
-              Shadow(color: Colors.black.withAlpha(28), blurRadius: 3, offset: const Offset(0, 1)),
+        child: SizedBox(
+          width: 66.0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // الرمز المركزي مع خطوط الكونتور الطبوغرافية والشريط المائل المستوحى من بطاقة Superfly Spitfire
+              SizedBox(
+                width: aceSize,
+                height: aceSize,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    // 1. رسمة الرمز مع خطوط الكونتور الطبوغرافية المحفورة داخله
+                    CustomPaint(
+                      size: const Size(aceSize, aceSize),
+                      painter: _AceContourSuitPainter(
+                        suit: suit,
+                        color: color,
+                      ),
+                    ),
+
+                    // 2. الشريط المائل المصمم بأسلوب البطاقات العالمية الحديثة (Superfly Designer Banner)
+                    Transform.rotate(
+                      angle: -0.09,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD3202A),
+                          borderRadius: BorderRadius.circular(2.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(90),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1.5),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1.5),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'KOUT BO 4',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontStyle: FontStyle.italic,
+                                fontSize: 8.5,
+                                letterSpacing: 0.8,
+                                height: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 1.0),
+                            // الشارة بالاسم الكويتي الأصيل للرمز (سبيت، هاص، ديمن، كلفس)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 0.8),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: Text(
+                                suit.nameAr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 6.5,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 3.0),
+
+              // 3. التايبوغرافي الفاخر أسفل الآس (مثل بطاقات USPCC وSuperfly العالمية)
+              Text(
+                'KOUT BO 4',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 8.5,
+                  letterSpacing: 1.2,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 1.5),
+              Text(
+                'ROYAL KUWAITI DIWANIYA DECK\nEST. KUWAIT • جنجفة كوت أصيلة',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black.withAlpha(160),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 4.2,
+                  letterSpacing: 0.3,
+                  height: 1.15,
+                ),
+              ),
             ],
           ),
         ),
@@ -292,20 +398,25 @@ class PlayingCardView extends StatelessWidget {
   }
 
   Widget _buildFaceCenter(Rank rank, Suit suit, Color color) {
+    final title = card.nameAr;
+
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Container(
-          width: width * 0.54,
-          height: width * 0.84,
+          width: 58,
+          height: 88,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5),
-            border: Border.all(color: AppColors.goldDark.withAlpha(150), width: 1.1),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: suit.isRed ? AppColors.cardRed.withAlpha(180) : AppColors.goldDark.withAlpha(180),
+              width: 1.1,
+            ),
             gradient: LinearGradient(
               colors: [
-                (suit.isRed ? AppColors.cardRed : const Color(0xFF1E3A5F)).withAlpha(22),
+                (suit.isRed ? AppColors.cardRed : const Color(0xFF1E3A5F)).withAlpha(28),
                 AppColors.gold.withAlpha(24),
-                (suit.isRed ? AppColors.cardRed : const Color(0xFF1E3A5F)).withAlpha(18),
+                (suit.isRed ? AppColors.cardRed : const Color(0xFF1E3A5F)).withAlpha(22),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -314,36 +425,70 @@ class PlayingCardView extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // خط داخلي ذهبي للصورة
+              // خط إطار داخلي ذهبي أنيق
               Container(
-                margin: const EdgeInsets.all(2),
+                margin: const EdgeInsets.all(2.5),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: AppColors.gold.withAlpha(90), width: 0.6),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: AppColors.gold.withAlpha(90),
+                    width: 0.6,
+                  ),
                 ),
               ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (rank == Rank.king)
-                    CustomPaint(
-                      size: Size(width * 0.25, width * 0.18),
-                      painter: _CrownPainter(color: AppColors.goldDark),
-                    )
-                  else if (rank == Rank.queen)
-                    CustomPaint(
-                      size: Size(width * 0.25, width * 0.18),
-                      painter: _TiaraPainter(color: AppColors.goldDark),
-                    )
-                  else
-                    Icon(Icons.shield_rounded, size: width * 0.22, color: AppColors.goldDark),
-                  SizedBox(height: width * 0.03),
-                  SuitIcon(
-                    suit: suit,
-                    size: width * 0.27,
-                    color: color,
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3.5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // التاج الملكي / تاج الملكة / درع الولد
+                    if (rank == Rank.king)
+                      CustomPaint(
+                        size: const Size(26, 17),
+                        painter: _CrownPainter(color: AppColors.goldDark),
+                      )
+                    else if (rank == Rank.queen)
+                      CustomPaint(
+                        size: const Size(25, 17),
+                        painter: _TiaraPainter(color: AppColors.goldDark),
+                      )
+                    else
+                      Icon(Icons.shield_rounded, size: 22, color: AppColors.goldDark),
+
+                    // رمز الورقة
+                    SuitIcon(
+                      suit: suit,
+                      size: 25,
+                      color: color,
+                    ),
+
+                    // شريط الاسم الكويتي (شايب الكلفس، شايب السبيت، بنت الكلفس، ولد الديمن...)
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(210),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(
+                            color: AppColors.gold.withAlpha(140),
+                            width: 0.6,
+                          ),
+                        ),
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 7.5,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -426,6 +571,75 @@ class PlayingCardView extends StatelessWidget {
         return const [(0.50, 0.50, false)];
     }
   }
+}
+
+/// رسام الرمز المركزي لورقة الآس مع خطوط كونتور طبوغرافية متموجة مستوحاة من كروت Superfly Spitfire العالمية.
+class _AceContourSuitPainter extends CustomPainter {
+  const _AceContourSuitPainter({
+    required this.suit,
+    required this.color,
+  });
+
+  final Suit suit;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final suitPath = SuitPath.getPath(suit, size);
+
+    // 1. قص الرسمة بدقة على حدود الرمز (♠, ♥, ♦, ♣)
+    canvas.save();
+    canvas.clipPath(suitPath);
+
+    // 2. تعبئة بيضاء نقية كخلفية لخطوط الكونتور
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = Colors.white,
+    );
+
+    // 3. رسم خطوط الكونتور الطبوغرافية المتموجة (Topographical Contour Lines)
+    final strokeW = max(0.9, size.width * 0.040);
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeW
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final step = max(3.4, size.height / 14.0);
+    for (double y = -step; y <= size.height + step; y += step) {
+      final path = Path();
+      const numPoints = 28;
+      for (int i = 0; i <= numPoints; i++) {
+        final x = (size.width / numPoints) * i;
+        // تموجات هيدرولوجية وطبوغرافية متناسقة
+        final wave1 = sin((x / size.width) * pi * 3.2 + y * 0.18) * (step * 0.40);
+        final wave2 = cos((y / size.height) * pi * 3.6 + (x / size.width) * 3.8) * (step * 0.22);
+        final py = y + wave1 + wave2;
+        if (i == 0) {
+          path.moveTo(x, py);
+        } else {
+          path.lineTo(x, py);
+        }
+      }
+      canvas.drawPath(path, linePaint);
+    }
+
+    canvas.restore();
+
+    // 4. إطار خارجي دقيق يحدد شكل الرمز بحدة وفخامة كازينو
+    final borderPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = max(1.1, size.width * 0.038)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(suitPath, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AceContourSuitPainter oldDelegate) =>
+      oldDelegate.suit != suit || oldDelegate.color != color;
 }
 
 class _CrownPainter extends CustomPainter {

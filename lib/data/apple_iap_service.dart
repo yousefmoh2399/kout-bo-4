@@ -114,9 +114,14 @@ class AppleIapService {
       if (response.error != null) {
         debugPrint('[AppleIapService] خطأ جلب المنتجات: ${response.error}');
       }
+      debugPrint('[AppleIapService] عدد المنتجات المسترجعة من StoreKit: ${response.productDetails.length}');
+      if (response.notFoundIDs.isNotEmpty) {
+        debugPrint('[AppleIapService] معرّفات غير معتمدة أو لم يجدها StoreKit: ${response.notFoundIDs}');
+      }
       _products.clear();
       for (final p in response.productDetails) {
         _products[p.id] = p;
+        debugPrint('[AppleIapService] منتج متاح: ${p.id} (${p.title}) بسعر ${p.price}');
       }
     } catch (e) {
       debugPrint('[AppleIapService] تعذر استعلام المنتجات: $e');

@@ -18,7 +18,7 @@
   ],
   "products" : [
     {
-      "displayPrice" : "0.500",
+      "displayPrice" : "1.000",
       "familyShareable" : false,
       "internalID" : "1001",
       "localizations" : [
@@ -38,7 +38,7 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "1.750",
+      "displayPrice" : "5.000",
       "familyShareable" : false,
       "internalID" : "1002",
       "localizations" : [
@@ -58,7 +58,7 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "4.500",
+      "displayPrice" : "15.000",
       "familyShareable" : false,
       "internalID" : "1003",
       "localizations" : [
@@ -78,7 +78,7 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "12.000",
+      "displayPrice" : "50.000",
       "familyShareable" : false,
       "internalID" : "1004",
       "localizations" : [

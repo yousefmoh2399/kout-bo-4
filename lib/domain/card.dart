@@ -9,6 +9,34 @@ enum Suit {
   const Suit(this.symbol, this.isRed);
   final String symbol;
   final bool isRed;
+
+  /// اسم الرمز الكويتي الأصيل في الجنجفة (سبيت، هاص، ديمن، كلفس)
+  String get nameAr {
+    switch (this) {
+      case Suit.spades:
+        return 'سبيت';
+      case Suit.hearts:
+        return 'هاص';
+      case Suit.diamonds:
+        return 'ديمن';
+      case Suit.clubs:
+        return 'كلفس';
+    }
+  }
+
+  /// الاسم المعرّف للرمز في الجنجفة (السبيت، الهاص، الديمن، الكلفس)
+  String get nameArDef {
+    switch (this) {
+      case Suit.spades:
+        return 'السبيت';
+      case Suit.hearts:
+        return 'الهاص';
+      case Suit.diamonds:
+        return 'الديمن';
+      case Suit.clubs:
+        return 'الكلفس';
+    }
+  }
 }
 
 enum Rank {
@@ -25,6 +53,30 @@ enum Rank {
   const Rank(this.value, this.label);
   final int value;
   final String label;
+
+  /// اسم الرتبة في الجنجفة (شايب، بنت، ولد، آس...)
+  String get nameAr {
+    switch (this) {
+      case Rank.six:
+        return 'ستة';
+      case Rank.seven:
+        return 'سبعة';
+      case Rank.eight:
+        return 'ثمانية';
+      case Rank.nine:
+        return 'تسعة';
+      case Rank.ten:
+        return 'عشرة';
+      case Rank.jack:
+        return 'ولد';
+      case Rank.queen:
+        return 'بنت';
+      case Rank.king:
+        return 'شايب';
+      case Rank.ace:
+        return 'آس';
+    }
+  }
 }
 
 enum JokerKind { red, black }
@@ -41,6 +93,26 @@ class PlayingCard extends Equatable {
 
   bool get isJoker => joker != null;
   bool get isRedJoker => joker == JokerKind.red;
+
+  /// الاسم الكويتي الشعبي المعتمد للكرت في لعبة الكوت
+  String get nameAr {
+    if (isJoker) {
+      return isRedJoker ? 'الجوكر الأحمر (البكر)' : 'الجوكر الأسود (العوير)';
+    }
+    if (rank == Rank.king) {
+      return 'شايب ${suit!.nameArDef}';
+    }
+    if (rank == Rank.queen) {
+      return 'بنت ${suit!.nameArDef}';
+    }
+    if (rank == Rank.jack) {
+      return 'ولد ${suit!.nameArDef}';
+    }
+    if (rank == Rank.ace) {
+      return 'آس ${suit!.nameArDef}';
+    }
+    return '${rank!.nameAr} ${suit!.nameArDef}';
+  }
 
   @override
   List<Object?> get props => [suit, rank, joker];

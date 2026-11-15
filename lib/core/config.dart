@@ -53,7 +53,7 @@ class GameSettings {
   const GameSettings({
     this.targetScore = 101,
     this.turnSeconds = 20,
-    this.matchMinutes = 0,
+    this.matchMinutes = 60,
     this.botDifficulty = BotDifficulty.normal,
     this.stakePoints = 0,
   });
