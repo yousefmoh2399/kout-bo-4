@@ -20,7 +20,7 @@ class PlayingCardView extends StatelessWidget {
   final bool dimmed;
   final bool highlighted;
 
-  double get height => width * 1.44;
+  double get height => width * 1.49;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +67,7 @@ class PlayingCardView extends StatelessWidget {
             Image.asset(
               card.assetPath,
               fit: BoxFit.fill,
-              filterQuality: FilterQuality.medium,
+              filterQuality: FilterQuality.high,
               errorBuilder: (context, error, stackTrace) {
                 // رسم متجهي كلاسيكي بديل في حال عدم توفر الصور (مثل بيئة الاختبارات)
                 return Stack(
@@ -790,7 +790,7 @@ class CardBackView extends StatelessWidget {
   final double width;
   final String? label;
 
-  double get height => width * 1.44;
+  double get height => width * 1.49;
 
   @override
   Widget build(BuildContext context) {
@@ -832,7 +832,7 @@ class CardBackView extends StatelessWidget {
               Image.asset(
                 'assets/cards/card_back.png',
                 fit: BoxFit.fill,
-                filterQuality: FilterQuality.medium,
+                filterQuality: FilterQuality.high,
                 errorBuilder: (context, error, stackTrace) {
                   return Stack(
                     fit: StackFit.expand,

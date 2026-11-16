@@ -5,14 +5,18 @@ from bidi.algorithm import get_display
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 SRC_DIR = '/Users/yousef/Desktop/kout-bo-4/images'
+TEMPLATE_DIR = '/Users/yousef/Desktop/kout-bo-4/images/templates'
 OUT_DIR = '/Users/yousef/Desktop/kout-bo-4/assets/cards'
 os.makedirs(OUT_DIR, exist_ok=True)
 
-TARGET_W = 360
-TARGET_H = 518
+TARGET_W = 687
+TARGET_H = 1024
 
 def save_card(im, filename):
-    resized = im.resize((TARGET_W, TARGET_H), Image.Resampling.LANCZOS)
+    if im.size != (TARGET_W, TARGET_H):
+        resized = im.resize((TARGET_W, TARGET_H), Image.Resampling.LANCZOS)
+    else:
+        resized = im
     out_path = os.path.join(OUT_DIR, filename)
     if resized.mode == 'RGBA':
         alpha = resized.split()[-1]
@@ -24,7 +28,7 @@ def save_card(im, filename):
     print(f'Saved {filename} ({TARGET_W}x{TARGET_H}) -> {out_path}')
 
 # -------------------------------------------------------------
-# 1. High-Resolution Single Cards directly from User Photos
+# 1. Native High-Resolution Master Cards directly from User Photos
 # -------------------------------------------------------------
 direct_mappings = {
     'spades_K.png': 'photo_2026-11-16 10.30.56.jpeg',
@@ -55,129 +59,114 @@ for out_name, in_file in direct_mappings.items():
     save_card(im, out_name)
 
 # -------------------------------------------------------------
-# 2. Numbered Cards Extracted from Sheet 1 (photo_2026-11-16 10.30.53.jpeg)
+# 2. Numbered Cards (6, 7, 8, 9) Reconstructed at Native 687x1024
 # -------------------------------------------------------------
-sheet = Image.open(os.path.join(SRC_DIR, 'photo_2026-11-16 10.30.53.jpeg'))
-col_splits = [0, 131, 258, 385, 511, 639, 766, 895, 1024]
-row_splits = [0, 188, 382, 579, 765]
+base_canvas = Image.open(os.path.join(TEMPLATE_DIR, 'pristine_canvas.png')).convert('RGBA')
 
-sheet_extractions = [
-    # Spades: 9, 8, 7, 6
-    ('spades_9.png', 0, 0),
-    ('spades_8.png', 0, 1),
-    ('spades_7.png', 0, 2),
-    ('spades_6.png', 0, 3),
-    # Hearts: 9, 8
-    ('hearts_9.png', 1, 0),
-    ('hearts_8.png', 1, 1),
-    # Diamonds: 9, 8, 7
-    ('diamonds_9.png', 2, 0),
-    ('diamonds_8.png', 2, 1),
-    ('diamonds_7.png', 2, 2),
-    # Clubs: 9 (row 3 col 0), 8 (row 3 col 1), 7 (row 3 col 2)
-    ('clubs_9.png', 3, 0),
-    ('clubs_8.png', 3, 1),
-    ('clubs_7.png', 3, 2),
-]
+# Font: Bodoni 72 Bold (authentic deck typography)
+font_digit = None
+for f_path, f_idx in [
+    ('/System/Library/Fonts/Supplemental/Bodoni 72.ttc', 2),
+    ('/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf', 0),
+    ('/System/Library/Fonts/Times.ttc', 1),
+]:
+    if os.path.exists(f_path):
+        font_digit = ImageFont.truetype(f_path, 110, index=f_idx)
+        break
 
-for out_name, r, c in sheet_extractions:
-    x1 = col_splits[c] + 3
-    x2 = col_splits[c+1] - 3
-    y1 = row_splits[r] + 2
-    y2 = row_splits[r+1] - 2
-    card_crop = sheet.crop((x1, y1, x2, y2))
-    save_card(card_crop, out_name)
+pips_config = {
+    'spades': {
+        'pip': Image.open(os.path.join(TEMPLATE_DIR, 'spade_pip.png')).convert('RGBA'),
+        'color': (20, 20, 20, 255),
+        'ranks': ['6', '7', '8', '9'],
+        'cw': 126,
+    },
+    'clubs': {
+        'pip': Image.open(os.path.join(TEMPLATE_DIR, 'club_pip.png')).convert('RGBA'),
+        'color': (20, 20, 20, 255),
+        'ranks': ['6', '7', '8', '9'],
+        'cw': 126,
+    },
+    'diamonds': {
+        'pip': Image.open(os.path.join(TEMPLATE_DIR, 'diamond_pip.png')).convert('RGBA'),
+        'color': (165, 24, 32, 255),
+        'ranks': ['7', '8', '9'],
+        'cw': 118,
+    },
+    'hearts': {
+        'pip': Image.open(os.path.join(TEMPLATE_DIR, 'heart_pip.png')).convert('RGBA'),
+        'color': (168, 26, 34, 255),
+        'ranks': ['7', '8', '9'],
+        'cw': 122,
+    },
+}
 
-# -------------------------------------------------------------
-# 3. Hearts 7: Fix bottom-right corner (replace erroneous '8' with '7')
-# -------------------------------------------------------------
-x1 = col_splits[2] + 3
-x2 = col_splits[3] - 3
-y1 = row_splits[1] + 2
-y2 = row_splits[2] - 2
-h7_raw = sheet.crop((x1, y1, x2, y2)).resize((TARGET_W, TARGET_H), Image.Resampling.LANCZOS)
-d7_im = Image.open(os.path.join(OUT_DIR, 'diamonds_7.png'))
+card_layouts = {
+    '6': [
+        (197, 228, False), (488, 228, False),
+        (197, 512, False), (488, 512, False),
+        (197, 795, True),  (488, 795, True),
+    ],
+    '7': [
+        (197, 228, False), (488, 228, False),
+        (343, 370, False),
+        (197, 512, False), (488, 512, False),
+        (197, 795, True),  (488, 795, True),
+    ],
+    '8': [
+        (197, 228, False), (488, 228, False),
+        (343, 370, False),
+        (197, 512, False), (488, 512, False),
+        (343, 654, True),
+        (197, 795, True),  (488, 795, True),
+    ],
+    '9': [
+        (197, 218, False), (488, 218, False),
+        (197, 414, False), (488, 414, False),
+        (343, 512, False),
+        (197, 610, True),  (488, 610, True),
+        (197, 806, True),  (488, 806, True),
+    ]
+}
 
-patch_w = 42
-patch_h = 60
-crop_x = 307
-crop_y = 445
-d7_patch = d7_im.crop((crop_x, crop_y, crop_x + patch_w, crop_y + patch_h))
-mask_h7 = Image.new('L', (patch_w, patch_h), 255)
-ImageDraw.Draw(mask_h7).rectangle([0, 0, patch_w, patch_h], outline=0, width=3)
-mask_h7 = mask_h7.filter(ImageFilter.GaussianBlur(radius=2))
-h7_raw.paste(d7_patch, (crop_x, crop_y), mask=mask_h7)
-save_card(h7_raw, 'hearts_7.png')
-
-# -------------------------------------------------------------
-# 4. Clubs 6: Clean 6 of Clubs with exactly 6 pips
-# -------------------------------------------------------------
-c8_im = Image.open(os.path.join(OUT_DIR, 'clubs_8.png'))
-s6_im = Image.open(os.path.join(OUT_DIR, 'spades_6.png'))
-c6 = c8_im.copy()
-
-# Remove the two center pips with feathered inpainting of the gold watermark
-mask_c6 = Image.new('L', c8_im.size, 0)
-draw_c6 = ImageDraw.Draw(mask_c6)
-draw_c6.ellipse([136, 136, 224, 238], fill=255)
-draw_c6.ellipse([136, 276, 224, 378], fill=255)
-draw_c6.rectangle([160, 130, 200, 245], fill=255)
-draw_c6.rectangle([160, 270, 200, 385], fill=255)
-mask_c6 = mask_c6.filter(ImageFilter.GaussianBlur(radius=4))
-c6.paste(s6_im, (0, 0), mask=mask_c6)
-
-# TL corner digit 6
-patch_w = 40
-patch_h = 55
-crop_x = 14
-crop_y = 15
-s6_tl = s6_im.crop((crop_x, crop_y, crop_x + patch_w, crop_y + patch_h))
-mask_tl = Image.new('L', (patch_w, patch_h), 255)
-ImageDraw.Draw(mask_tl).rectangle([0, 0, patch_w, patch_h], outline=0, width=1)
-mask_tl = mask_tl.filter(ImageFilter.GaussianBlur(radius=1))
-c6.paste(s6_tl, (crop_x, crop_y), mask=mask_tl)
-
-# BR corner digit 6 (inverted)
-patch_w_br = 48
-patch_h_br = 62
-crop_x_br = 304
-crop_y_br = 444
-s6_br = s6_im.crop((crop_x_br, crop_y_br, crop_x_br + patch_w_br, crop_y_br + patch_h_br))
-mask_br = Image.new('L', (patch_w_br, patch_h_br), 255)
-ImageDraw.Draw(mask_br).rectangle([0, 0, patch_w_br, patch_h_br], outline=0, width=1)
-mask_br = mask_br.filter(ImageFilter.GaussianBlur(radius=1))
-c6.paste(s6_br, (crop_x_br, crop_y_br), mask=mask_br)
-
-save_card(c6, 'clubs_6.png')
-
-# -------------------------------------------------------------
-# 5. Extract Authentic Gold-Trimmed Heart Pip
-# -------------------------------------------------------------
-h10_raw = Image.open(os.path.join(SRC_DIR, 'photo_2026-11-16 10.31.02 (1).jpeg')).convert('RGB')
-crop_pip = h10_raw.crop((24, 155, 112, 260))
-pw, ph = crop_pip.size
-
-queue = [(0, 0), (pw-1, 0), (0, ph-1), (pw-1, ph-1)]
-visited = set(queue)
-while queue:
-    cx, cy = queue.pop(0)
-    for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)]:
-        if 0 <= nx < pw and 0 <= ny < ph and (nx, ny) not in visited:
-            r, g, b = crop_pip.getpixel((nx, ny))
-            if r > 228 and g > 220 and b > 190 and abs(r - g) < 25:
-                visited.add((nx, ny))
-                queue.append((nx, ny))
-
-heart_mask = Image.new('L', (pw, ph), 255)
-for (bx, by) in visited:
-    heart_mask.putpixel((bx, by), 0)
-heart_mask = heart_mask.filter(ImageFilter.GaussianBlur(radius=0.7))
-
-alpha_heart = crop_pip.convert('RGBA')
-alpha_heart.putalpha(heart_mask)
+for suit, sinfo in pips_config.items():
+    raw_pip = sinfo['pip']
+    cw = sinfo['cw']
+    ch = int(cw * raw_pip.height / raw_pip.width)
+    p_center = raw_pip.resize((cw, ch), Image.Resampling.LANCZOS)
+    p_center_inv = p_center.rotate(180)
+    
+    pw = 58
+    ph = int(pw * raw_pip.height / raw_pip.width)
+    p_corner = raw_pip.resize((pw, ph), Image.Resampling.LANCZOS)
+    p_corner_inv = p_corner.rotate(180)
+    
+    col = sinfo['color']
+    
+    for r in sinfo['ranks']:
+        card = base_canvas.copy()
+        draw = ImageDraw.Draw(card)
+        
+        # TL Numeral & Pip
+        draw.text((72, 80), r, font=font_digit, fill=col, anchor='mm')
+        card.paste(p_corner, (72 - pw // 2, 185 - ph // 2), mask=p_corner)
+        
+        # BR Numeral & Pip (180 deg inverted)
+        digit_im = Image.new('RGBA', (130, 150), (0, 0, 0, 0))
+        ImageDraw.Draw(digit_im).text((65, 75), r, font=font_digit, fill=col, anchor='mm')
+        digit_inv = digit_im.rotate(180)
+        card.paste(digit_inv, (TARGET_W - 72 - 65, TARGET_H - 80 - 75), mask=digit_inv)
+        card.paste(p_corner_inv, (TARGET_W - 72 - pw // 2, TARGET_H - 185 - ph // 2), mask=p_corner_inv)
+        
+        # Central pips
+        for cx, cy, is_inv in card_layouts[r]:
+            p_use = p_center_inv if is_inv else p_center
+            card.paste(p_use, (cx - cw // 2, cy - ch // 2), mask=p_use)
+            
+        save_card(card, f'{suit}_{r}.png')
 
 # -------------------------------------------------------------
-# 6. Spades Ace (Obsidian / Gold Baroque Filigree Medallion)
+# 3. Spades Ace (Obsidian / Gold Baroque Filigree Medallion)
 # -------------------------------------------------------------
 ah = Image.open(os.path.join(SRC_DIR, 'photo_2026-11-16 10.31.01 (1).jpeg')).convert('RGBA')
 ac = Image.open(os.path.join(SRC_DIR, 'photo_2026-11-16 10.31.02.jpeg')).convert('RGBA')
@@ -205,8 +194,10 @@ for y in range(160, 864):
 save_card(ah, 'spades_A.png')
 
 # -------------------------------------------------------------
-# 7. Hearts Court Cards (King, Queen, Jack of Hearts)
+# 4. Hearts Court Cards (King, Queen, Jack of Hearts)
 # -------------------------------------------------------------
+alpha_heart = Image.open(os.path.join(TEMPLATE_DIR, 'heart_pip.png')).convert('RGBA')
+
 courts_info = {
     'hearts_K.png': {
         'source': 'photo_2026-11-16 10.30.58.jpeg',
@@ -297,9 +288,9 @@ for card_name, info in courts_info.items():
     save_card(im, card_name)
 
 # -------------------------------------------------------------
-# 8. Luxury Jokers (البكر 👑 & العوير ♠) with 3D Royal Crown
+# 5. Luxury Jokers (البكر 👑 & العوير ♠) with 3D Royal Crown
 # -------------------------------------------------------------
-crown = Image.open('images/test_verification/royal_crown_isolated.png').convert('RGBA')
+crown = Image.open(os.path.join(TEMPLATE_DIR, 'royal_crown.png')).convert('RGBA')
 cpix = crown.load()
 for cy in range(crown.height):
     for cx in range(crown.width):
@@ -391,4 +382,4 @@ save_card(j_red, 'joker_red.png')
 j_black = build_joker(os.path.join(SRC_DIR, 'photo_2026-11-16 10.31.02.jpeg'), 'العوير', 'THE BLACK JOKER', is_red=False)
 save_card(j_black, 'joker_black.png')
 
-print('\n*** ALL 37 DECK ASSETS FULLY GENERATED AND VERIFIED ***')
+print('\n*** ALL 37 DECK ASSETS FULLY GENERATED AT NATIVE 687x1024 RESOLUTION ***')
