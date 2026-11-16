@@ -51,6 +51,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<SeatLeft>(_onSeatLeft);
     on<AutoPlayToggled>(_onAutoPlayToggled);
     on<MatchTimedOut>(_onMatchTimedOut);
+    on<MatchTimeExtended>(_onMatchTimeExtended);
     on<HostMigrated>(_onHostMigrated);
     on<StateReceived>((e, emit) => emit(e.state));
   }
@@ -188,6 +189,32 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
     _endByMatchTimeout(emit);
+  }
+
+  void _onMatchTimeExtended(
+    MatchTimeExtended event,
+    Emitter<GameState> emit,
+  ) {
+    if (remote) {
+      sendAction?.call(event);
+      return;
+    }
+    final now = DateTime.now();
+    final currentEnd = state.matchEndsAt;
+    final base = (currentEnd != null && currentEnd.isAfter(now))
+        ? currentEnd
+        : now;
+    final newEnd = base.add(Duration(minutes: event.additionalMinutes));
+
+    _matchTimer?.cancel();
+    final remaining = newEnd.difference(now);
+    if (remaining > Duration.zero) {
+      _matchTimer = Timer(remaining, () {
+        if (!isClosed) add(const MatchTimedOut());
+      });
+    }
+
+    emit(_stamp(state.copyWith(matchEndsAt: newEnd)));
   }
 
   Future<void> _onNextRound(

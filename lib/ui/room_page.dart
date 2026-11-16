@@ -68,7 +68,8 @@ class _RoomPageState extends State<RoomPage> {
       client: client,
       room: room,
       userId: _userId,
-      matchMinutes: widget.create?.matchMinutes ?? 0,
+      matchMinutes: widget.create?.matchMinutes ??
+          (room.stakePoints > 0 ? (room.stakePoints ~/ 500) * 20 : 20),
       botDifficulty: widget.create?.botDifficulty ?? BotDifficulty.normal,
     );
     await session.start();

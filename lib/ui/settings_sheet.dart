@@ -52,15 +52,15 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     super.initState();
     if (widget.isOnlineRoom) {
       _settings = const GameSettings(
-        matchMinutes: 60,
-        stakePoints: 1000,
+        matchMinutes: 20,
+        stakePoints: 500,
         targetScore: 101,
         turnSeconds: 20,
         botDifficulty: BotDifficulty.normal,
       );
     } else {
       _settings = const GameSettings(
-        matchMinutes: 60,
+        matchMinutes: 20,
         stakePoints: 0,
         targetScore: 101,
         turnSeconds: 20,
@@ -70,16 +70,16 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   }
 
   /// حساب نقاط الدخول بناءً على المدة:
-  /// الساعة (60 د) = 1,000 نقطة، وكل نصف ساعة إضافية (+30 د) = +500 نقطة.
+  /// الصكة الواحدة (20 دقيقة) = 500 نقطة، وكل 20 دقيقة إضافية = +500 نقطة.
   int _pointsForDuration(int minutes) {
     if (minutes <= 0) return 0;
-    if (minutes < 60) return 1000;
-    final halfHours = (minutes / 30).round();
-    return halfHours * 500;
+    final rounds = (minutes + 19) ~/ 20;
+    return rounds * 500;
   }
 
   String _formatHoursLabel(int minutes) {
     if (minutes <= 0) return 'مفتوح (بدون وقت)';
+    if (minutes < 60) return '$minutes دقيقة';
     final h = minutes ~/ 60;
     final m = minutes % 60;
     if (m == 0) {
@@ -88,9 +88,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       if (h >= 3 && h <= 10) return '$h ساعات';
       return '$h ساعة';
     } else {
-      if (h == 1) return 'ساعة ونصف';
-      if (h == 2) return 'ساعتان ونصف';
-      return '$h ساعات ونصف';
+      if (h == 1) return 'ساعة و$m دقيقة';
+      if (h == 2) return 'ساعتان و$m دقيقة';
+      return '$h ساعات و$m دقيقة';
     }
   }
 
@@ -269,7 +269,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                   ),
                                   SizedBox(width: 6),
                                   Text(
-                                    'الساعة بـ ١,٠٠٠ نقطة • كل نصف ساعة إضافية = +٥٠٠ نقطة',
+                                    'الصكة الافتراضية بـ ٥٠٠ نقطة (٢٠ دقيقة) • كل ٢٠ دقيقة إضافية = +٥٠٠ نقطة',
                                     style: TextStyle(
                                       color: AppColors.goldLight,
                                       fontWeight: FontWeight.w800,
@@ -284,66 +284,79 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                               runSpacing: 8,
                               children: [
                                 _luxuryChip(
-                                  label: 'ساعة (١,٠٠٠ نقطة) 👑',
+                                  label: '٢٠ دقيقة (صكة واحدة 👑 - ٥٠٠ نقطة)',
                                   selected: !_customMatch &&
-                                      _settings.matchMinutes == 60 &&
+                                      _settings.matchMinutes == 20 &&
+                                      _settings.stakePoints == 500,
+                                  onTap: () => setState(() {
+                                    _customMatch = false;
+                                    _settings = _settings.copyWith(
+                                      matchMinutes: 20,
+                                      stakePoints: 500,
+                                    );
+                                  }),
+                                ),
+                                _luxuryChip(
+                                  label: '٤٠ دقيقة (صكتان - ١,٠٠٠ نقطة)',
+                                  selected: !_customMatch &&
+                                      _settings.matchMinutes == 40 &&
                                       _settings.stakePoints == 1000,
                                   onTap: () => setState(() {
                                     _customMatch = false;
                                     _settings = _settings.copyWith(
-                                      matchMinutes: 60,
+                                      matchMinutes: 40,
                                       stakePoints: 1000,
                                     );
                                   }),
                                 ),
                                 _luxuryChip(
-                                  label: 'ساعة ونصف (١,٥٠٠ نقطة)',
+                                  label: '٦٠ دقيقة (٣ صكات / ساعة - ١,٥٠٠ نقطة)',
                                   selected: !_customMatch &&
-                                      _settings.matchMinutes == 90 &&
+                                      _settings.matchMinutes == 60 &&
                                       _settings.stakePoints == 1500,
                                   onTap: () => setState(() {
                                     _customMatch = false;
                                     _settings = _settings.copyWith(
-                                      matchMinutes: 90,
+                                      matchMinutes: 60,
                                       stakePoints: 1500,
                                     );
                                   }),
                                 ),
                                 _luxuryChip(
-                                  label: 'ساعتان (٢,٠٠٠ نقطة)',
+                                  label: '٨٠ دقيقة (٤ صكات - ٢,٠٠٠ نقطة)',
                                   selected: !_customMatch &&
-                                      _settings.matchMinutes == 120 &&
+                                      _settings.matchMinutes == 80 &&
                                       _settings.stakePoints == 2000,
                                   onTap: () => setState(() {
                                     _customMatch = false;
                                     _settings = _settings.copyWith(
-                                      matchMinutes: 120,
+                                      matchMinutes: 80,
                                       stakePoints: 2000,
                                     );
                                   }),
                                 ),
                                 _luxuryChip(
-                                  label: 'ساعتان ونصف (٢,٥٠٠ نقطة)',
+                                  label: '١٠٠ دقيقة (٥ صكات - ٢,٥٠٠ نقطة)',
                                   selected: !_customMatch &&
-                                      _settings.matchMinutes == 150 &&
+                                      _settings.matchMinutes == 100 &&
                                       _settings.stakePoints == 2500,
                                   onTap: () => setState(() {
                                     _customMatch = false;
                                     _settings = _settings.copyWith(
-                                      matchMinutes: 150,
+                                      matchMinutes: 100,
                                       stakePoints: 2500,
                                     );
                                   }),
                                 ),
                                 _luxuryChip(
-                                  label: '٣ ساعات (٣,٠٠٠ نقطة)',
+                                  label: '١٢٠ دقيقة (٦ صكات / ساعتان - ٣,٠٠٠ نقطة)',
                                   selected: !_customMatch &&
-                                      _settings.matchMinutes == 180 &&
+                                      _settings.matchMinutes == 120 &&
                                       _settings.stakePoints == 3000,
                                   onTap: () => setState(() {
                                     _customMatch = false;
                                     _settings = _settings.copyWith(
-                                      matchMinutes: 180,
+                                      matchMinutes: 120,
                                       stakePoints: 3000,
                                     );
                                   }),
@@ -353,10 +366,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                   selected: _customMatch,
                                   onTap: () => setState(() {
                                     _customMatch = true;
-                                    if (_settings.matchMinutes < 60) {
+                                    if (_settings.matchMinutes < 20) {
                                       _settings = _settings.copyWith(
-                                        matchMinutes: 60,
-                                        stakePoints: 1000,
+                                        matchMinutes: 20,
+                                        stakePoints: 500,
                                       );
                                     }
                                   }),
@@ -369,7 +382,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                     _customMatch = false;
                                     _settings = _settings.copyWith(
                                       stakePoints: 0,
-                                      matchMinutes: 60,
+                                      matchMinutes: 20,
                                     );
                                   }),
                                 ),
@@ -378,12 +391,12 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                             if (_customMatch) ...[
                               const SizedBox(height: 10),
                               _stepper(
-                                value: _settings.matchMinutes < 60
-                                    ? 60
+                                value: _settings.matchMinutes < 20
+                                    ? 20
                                     : _settings.matchMinutes,
-                                minVal: 60,
-                                maxVal: 360,
-                                step: 30,
+                                minVal: 20,
+                                maxVal: 240,
+                                step: 20,
                                 unit: 'دقيقة',
                                 customLabel:
                                     '${_formatHoursLabel(_settings.matchMinutes)} (${_settings.matchMinutes} دقيقة)\n➔ ${_pointsForDuration(_settings.matchMinutes)} نقطة',
@@ -528,7 +541,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                for (final v in const [60, 90, 120, 0, -1])
+                                for (final v in const [20, 40, 60, 0, -1])
                                   _luxuryChip(
                                     label: v == -1
                                         ? 'مخصص...'
@@ -543,7 +556,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                         _customMatch = true;
                                         if (_settings.matchMinutes == 0) {
                                           _settings = _settings.copyWith(
-                                            matchMinutes: 60,
+                                            matchMinutes: 20,
                                           );
                                         }
                                       } else {
@@ -560,11 +573,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                               const SizedBox(height: 8),
                               _stepper(
                                 value: _settings.matchMinutes == 0
-                                    ? 60
+                                    ? 20
                                     : _settings.matchMinutes,
-                                minVal: 15,
+                                minVal: 10,
                                 maxVal: 240,
-                                step: 15,
+                                step: 10,
                                 unit: 'دقيقة',
                                 customLabel:
                                     '${_formatHoursLabel(_settings.matchMinutes)} (${_settings.matchMinutes} دقيقة)',

@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../bloc/auth_cubit.dart';
 import '../../bloc/game_bloc.dart';
 import '../../core/sound.dart';
 import '../../core/theme.dart';
@@ -10,6 +12,7 @@ import '../../domain/rules.dart';
 import '../card_view.dart';
 import '../effects.dart';
 import '../panels.dart';
+import '../store_page.dart';
 import '../suit_icon.dart';
 import '../widgets.dart';
 
@@ -86,12 +89,14 @@ class TopControlsPill extends StatelessWidget {
     required this.me,
     this.onResync,
     this.isPortrait = false,
+    this.roomCode,
   });
 
   final GameState state;
   final int me;
   final VoidCallback? onResync;
   final bool isPortrait;
+  final String? roomCode;
 
   Future<void> _showLastTrick(BuildContext context) =>
       showLastTrickDialog(context, state);
@@ -126,6 +131,285 @@ class TopControlsPill extends StatelessWidget {
     }
   }
 
+  Future<void> _showExtendTimeDialog(BuildContext context) async {
+    SoundService.instance.play(Sfx.click);
+    final authCubit = context.read<AuthCubit>();
+    final userCoins = authCubit.state.coins;
+    final isOnline = roomCode != null;
+    int selectedMinutes = 20;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final cost = (selectedMinutes ~/ 20) * 500;
+          final canAfford = !isOnline || userCoins >= cost;
+
+          return Container(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF133B2B), Color(0xFF091E16), Color(0xFF04100C)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+              border: Border.all(color: AppColors.gold.withAlpha(160), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(220),
+                  blurRadius: 32,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4.5,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withAlpha(140),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.gold.withAlpha(30),
+                          border: Border.all(color: AppColors.gold, width: 1.2),
+                        ),
+                        child: const Icon(
+                          Icons.hourglass_top_rounded,
+                          color: AppColors.goldLight,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'تمديد وقت المباراة',
+                              style: TextStyle(
+                                color: AppColors.goldLight,
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Text(
+                              'زيادة مؤقت الغرفة ومواصلة اللعب الحماسي',
+                              style: TextStyle(color: Colors.white60, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Colors.white12, height: 20),
+                  if (isOnline) ...[
+                    // رصيد اللاعب
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black45,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.gold.withAlpha(60)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.account_balance_wallet_outlined, size: 16, color: AppColors.goldLight),
+                              const SizedBox(width: 6),
+                              Text(
+                                'رصيدك الحالي: $userCoins نقطة',
+                                style: TextStyle(
+                                  color: canAfford ? AppColors.goldLight : AppColors.danger,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'التكلفة: $cost نقطة',
+                            style: const TextStyle(
+                              color: Color(0xFF4BE0A8),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  const Text(
+                    'اختر مدة التمديد:',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final m in [20, 40, 60])
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            SoundService.instance.tap();
+                            setSheetState(() => selectedMinutes = m);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: selectedMinutes == m
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFFF3D270), Color(0xFFD4AF37)],
+                                    )
+                                  : const LinearGradient(
+                                      colors: [Color(0x990C2219), Color(0x9905140F)],
+                                    ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selectedMinutes == m ? AppColors.goldLight : Colors.white24,
+                                width: selectedMinutes == m ? 1.4 : 0.9,
+                              ),
+                            ),
+                            child: Text(
+                              '+$m دقيقة (${isOnline ? '${(m ~/ 20) * 500} نقطة' : 'مجاناً'})',
+                              style: TextStyle(
+                                color: selectedMinutes == m ? const Color(0xFF1B1102) : Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (isOnline && !canAfford) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withAlpha(35),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.danger.withAlpha(120)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'رصيدك لا يكفي ($userCoins نقطة). تحتاج $cost نقطة لتمديد الوقت.',
+                              style: const TextStyle(color: Colors.white, fontSize: 11.5),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              StorePage.show(context, requiredPoints: cost);
+                            },
+                            child: const Text('اشحن الآن', style: TextStyle(color: AppColors.goldLight, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: GoldButton(
+                          label: 'إلغاء',
+                          outlined: true,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 7,
+                        child: GoldButton(
+                          label: !canAfford ? 'اشحن النقاط' : 'تأكيد التمديد',
+                          icon: !canAfford ? Icons.monetization_on_rounded : Icons.check_circle_rounded,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          onPressed: !canAfford
+                              ? () {
+                                  Navigator.pop(ctx);
+                                  StorePage.show(context, requiredPoints: cost);
+                                }
+                              : () async {
+                                  Navigator.pop(ctx);
+                                  if (isOnline) {
+                                    authCubit.setCoins(userCoins - cost);
+                                    try {
+                                      final client = Supabase.instance.client;
+                                      await client.rpc('extend_room_time', params: {
+                                        'p_room_code': roomCode,
+                                        'p_minutes': selectedMinutes,
+                                      });
+                                    } catch (_) {
+                                      try {
+                                        final client = Supabase.instance.client;
+                                        final uid = client.auth.currentUser?.id;
+                                        if (uid != null) {
+                                          await client.from('profiles').update({
+                                            'coins': userCoins - cost,
+                                          }).eq('id', uid);
+                                        }
+                                      } catch (_) {}
+                                    }
+                                  }
+                                  if (context.mounted) {
+                                    context.read<GameBloc>().add(MatchTimeExtended(additionalMinutes: selectedMinutes));
+                                    SoundService.instance.play(Sfx.win);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('تم تمديد وقت المباراة بنجاح (+ $selectedMinutes دقيقة)! 🎉'),
+                                        backgroundColor: const Color(0xFF1B6B46),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _showMoreMenu(BuildContext context, {required bool canRestart}) async {
     SoundService.instance.play(Sfx.click);
     await showLuxuryDialog<void>(
@@ -144,6 +428,19 @@ class TopControlsPill extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 _confirmRestart(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (state.matchEndsAt != null) ...[
+            _MoreMenuTile(
+              icon: Icons.hourglass_top_rounded,
+              title: 'تمديد وقت المباراة',
+              subtitle: 'تمديد مؤقت المباراة بمقدار ٢٠ دقيقة إضافية',
+              color: const Color(0xFFF39C12),
+              onTap: () {
+                Navigator.pop(context);
+                _showExtendTimeDialog(context);
               },
             ),
             const SizedBox(height: 8),
@@ -311,32 +608,42 @@ class TopControlsPill extends StatelessWidget {
         ],
 
         SizedBox(width: spacing),
-        // كبسولة المؤقت الاحترافية
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isPortrait ? 7 : 9,
-            vertical: isPortrait ? 5 : 6,
-          ),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xEE09291D), Color(0xEE03150E)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+        // كبسولة المؤقت الاحترافية (قابلة للنقر لتمديد الوقت)
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(11),
-            border: Border.all(
-              color: AppColors.gold.withAlpha(120),
-              width: 1.0,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black54,
-                blurRadius: 6,
-                offset: Offset(0, 2),
+            onTap: () => _showExtendTimeDialog(context),
+            child: Tooltip(
+              message: 'اضغط لتمديد وقت المباراة',
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isPortrait ? 7 : 9,
+                  vertical: isPortrait ? 5 : 6,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xEE09291D), Color(0xEE03150E)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: AppColors.gold.withAlpha(120),
+                    width: 1.0,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black54,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ElapsedClock(state: state, compact: isPortrait),
               ),
-            ],
+            ),
           ),
-          child: ElapsedClock(state: state, compact: isPortrait),
         ),
       ],
     );
@@ -840,12 +1147,14 @@ class GameTopBar extends StatelessWidget {
     required this.me,
     this.onResync,
     required this.isPortrait,
+    this.roomCode,
   });
 
   final GameState state;
   final int me;
   final VoidCallback? onResync;
   final bool isPortrait;
+  final String? roomCode;
 
   @override
   Widget build(BuildContext context) {
@@ -866,6 +1175,7 @@ class GameTopBar extends StatelessWidget {
                   me: me,
                   onResync: onResync,
                   isPortrait: isPortrait,
+                  roomCode: roomCode,
                 ),
               ),
             ),
@@ -1268,6 +1578,14 @@ class _ElapsedClockState extends State<ElapsedClock> {
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
+        if (remaining != null) ...[
+          const SizedBox(width: 3),
+          Icon(
+            Icons.add_circle_outline_rounded,
+            size: widget.compact ? 10 : 12,
+            color: AppColors.goldLight.withAlpha(200),
+          ),
+        ],
       ],
     );
   }

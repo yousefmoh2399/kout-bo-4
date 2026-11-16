@@ -18,7 +18,7 @@ class AppAuthState extends Equatable {
     this.isGuest = true,
     this.busy = false,
     this.error,
-    this.coins = 1000,
+    this.coins = 500,
   });
 
   final AuthStatus status;

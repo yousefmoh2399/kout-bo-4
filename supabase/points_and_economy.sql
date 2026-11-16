@@ -3,20 +3,20 @@
 -- شغّل هذا الملف كاملاً في Supabase → SQL Editor (مرة واحدة بالكامل).
 -- ==============================================================================
 
--- 1. إضافة عمود رصيد النقاط (coins) إلى جدول الملفات الشخصية (الافتراضي 1000 نقطة ترحيبية)
+-- 1. إضافة عمود رصيد النقاط (coins) إلى جدول الملفات الشخصية (الافتراضي 500 نقطة ترحيبية = صكة تجريبية واحدة ٢٠ دقيقة)
 alter table public.profiles 
-  add column if not exists coins bigint not null default 1000;
+  add column if not exists coins bigint not null default 500;
 
 -- 2. إضافة عمود رسم دخول الغرفة (stake_points) إلى جدول الغرف
 alter table public.rooms 
-  add column if not exists stake_points int not null default 0 check (stake_points in (0, 100, 250, 500, 1000, 2500, 5000));
+  add column if not exists stake_points int not null default 0 check (stake_points in (0, 100, 250, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000));
 
 -- 3. جدول سجل معاملات وحركات النقاط (Transactions History)
 create table if not exists public.coin_transactions (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade,
   amount      int not null, -- موجب للشحن والجوائز، سالب للرسوم
-  type        text not null check (type in ('welcome_bonus', 'apple_purchase', 'myfatoorah_purchase', 'room_entry', 'room_win', 'room_refund', 'admin_gift')),
+  type        text not null check (type in ('welcome_bonus', 'apple_purchase', 'myfatoorah_purchase', 'room_entry', 'room_win', 'room_refund', 'room_extend_time', 'admin_gift')),
   room_code   text, -- كود الغرفة (بدون قيد خارجي حتى يبقى كود الغرفة في السجل المالي دائماً)
   order_id    text, -- رقم طلب شراء أبل أو رقم فاتورة ماي فاتورة
   balance_after bigint not null,
@@ -24,12 +24,12 @@ create table if not exists public.coin_transactions (
   created_at  timestamptz not null default now()
 );
 
--- تحديث قيد النوع ليشمل ماي فاتورة إن كان الجدول موجوداً مسبقاً
+-- تحديث قيد النوع ليشمل ماي فاتورة وتمديد الوقت إن كان الجدول موجوداً مسبقاً
 alter table if exists public.coin_transactions 
   drop constraint if exists coin_transactions_type_check;
 alter table if exists public.coin_transactions 
   add constraint coin_transactions_type_check 
-  check (type in ('welcome_bonus', 'apple_purchase', 'myfatoorah_purchase', 'room_entry', 'room_win', 'room_refund', 'admin_gift'));
+  check (type in ('welcome_bonus', 'apple_purchase', 'myfatoorah_purchase', 'room_entry', 'room_win', 'room_refund', 'room_extend_time', 'admin_gift'));
 
 -- إزالة أي قيد خارجي سابق لـ room_code لمنع أي تعارض مفاتيح عند إنشاء الغرف
 alter table if exists public.coin_transactions 
@@ -88,7 +88,7 @@ declare
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   if p_target not in (51, 101) or p_turn < 0 or p_turn > 120 then raise exception 'bad_settings'; end if;
-  if p_stake not in (0, 100, 250, 500, 1000, 2500, 5000) then raise exception 'bad_stake'; end if;
+  if p_stake not in (0, 100, 250, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000) then raise exception 'bad_stake'; end if;
 
   p_name := left(btrim(coalesce(p_name, '')), 16);
   if p_name = '' then p_name := 'لاعب'; end if;
@@ -247,7 +247,7 @@ begin
 
   -- التأكد من وجود بروفايل اللاعب
   insert into public.profiles (id, name, is_guest, coins, updated_at)
-  values (p_user_id, 'لاعب', true, 1000, now())
+  values (p_user_id, 'لاعب', true, 500, now())
   on conflict (id) do nothing;
 
   -- منع تكرار نفس المعاملة (Replay Protection)
@@ -292,7 +292,7 @@ begin
 
   -- التأكد من وجود بروفايل اللاعب
   insert into public.profiles (id, name, is_guest, coins, updated_at)
-  values (p_user_id, 'لاعب', true, 1000, now())
+  values (p_user_id, 'لاعب', true, 500, now())
   on conflict (id) do nothing;
 
   -- منع تكرار شحن نفس الفاتورة (Replay Protection)
@@ -411,6 +411,39 @@ begin
   return to_jsonb(r);
 end $$;
 
+-- ح. دالة تمديد وقت الغرفة وخصم النقاط من الممدد (كل ٢٠ دقيقة = ٥٠٠ نقطة)
+create or replace function public.extend_room_time(
+  p_room_code text,
+  p_minutes int default 20
+) returns bigint
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_cost int;
+  v_balance bigint;
+begin
+  if v_uid is null then raise exception 'not_authenticated'; end if;
+  if p_minutes <= 0 then raise exception 'invalid_minutes'; end if;
+
+  -- حساب التكلفة: كل 20 دقيقة = 500 نقطة
+  v_cost := ((p_minutes + 19) / 20) * 500;
+
+  select coins into v_balance from public.profiles where id = v_uid for update;
+  if v_balance is null or v_balance < v_cost then
+    raise exception 'insufficient_coins';
+  end if;
+
+  update public.profiles 
+  set coins = coins - v_cost, updated_at = now()
+  where id = v_uid
+  returning coins into v_balance;
+
+  insert into public.coin_transactions (user_id, amount, type, room_code, balance_after, description)
+  values (v_uid, -v_cost, 'room_extend_time', upper(coalesce(p_room_code, '')), v_balance, 'تمديد وقت الغرفة ' || p_minutes || ' دقيقة');
+
+  return v_balance;
+end $$;
+
 -- ───────────────────────────── الصلاحيات (Grants) ─────────────────────────────
 grant execute on function public.refund_room_stakes_for_user(uuid) to authenticated;
 grant execute on function public.create_room_with_stake(text, int, int, int) to authenticated;
@@ -418,5 +451,6 @@ grant execute on function public.join_room_with_stake(text, text) to authenticat
 grant execute on function public.award_room_winnings(text, int) to authenticated;
 grant execute on function public.leave_room(text) to authenticated;
 grant execute on function public.switch_seat(text, int) to authenticated;
+grant execute on function public.extend_room_time(text, int) to authenticated;
 grant execute on function public.credit_myfatoorah_purchase(uuid, int, text, numeric, text) to authenticated, anon;
 grant execute on function public.credit_apple_purchase(uuid, int, text, text) to authenticated, anon;

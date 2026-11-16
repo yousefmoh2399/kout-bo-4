@@ -284,6 +284,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
                         bubbles: _bubbles,
                         onEmoteTap: widget.onEmote == null ? null : _showPhrases,
                         onResync: widget.onResync,
+                        roomCode: widget.roomCode,
                       ),
                     ),
                     ValueListenableBuilder<bool>(
@@ -410,6 +411,7 @@ class _GameBody extends StatelessWidget {
     required this.bubbles,
     required this.onEmoteTap,
     this.onResync,
+    this.roomCode,
   });
 
   final GameState state;
@@ -417,6 +419,7 @@ class _GameBody extends StatelessWidget {
   final ValueNotifier<Map<int, String>> bubbles;
   final VoidCallback? onEmoteTap;
   final VoidCallback? onResync;
+  final String? roomCode;
 
   @override
   Widget build(BuildContext context) {
@@ -470,6 +473,7 @@ class _GameBody extends StatelessWidget {
                 me: me,
                 onResync: onResync,
                 isPortrait: isPortrait,
+                roomCode: roomCode,
               ),
             ),
 

@@ -104,7 +104,7 @@ class StorePage extends StatefulWidget {
 }
 
 class _StorePageState extends State<StorePage> {
-  int _currentCoins = 1000;
+  int _currentCoins = 500;
   bool _loading = true;
   String? _purchasingId;
 

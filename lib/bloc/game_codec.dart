@@ -200,6 +200,9 @@ class GameCodec {
     if (e is NextRoundRequested) return {'seat': seat, 'kind': 'next'};
     if (e is SeatLeft) return {'seat': seat, 'kind': 'leave'};
     if (e is AutoPlayToggled) return {'seat': seat, 'kind': 'auto', 'v': e.enabled};
+    if (e is MatchTimeExtended) {
+      return {'seat': seat, 'kind': 'extend', 'v': e.additionalMinutes};
+    }
     return {'seat': seat, 'kind': 'restart'};
   }
 
@@ -218,6 +221,11 @@ class GameCodec {
         return SeatLeft(seat);
       case 'auto':
         return AutoPlayToggled(enabled: j['v'] as bool, seat: seat);
+      case 'extend':
+        return MatchTimeExtended(
+          additionalMinutes: (j['v'] as num?)?.toInt() ?? 20,
+          seat: seat,
+        );
       case 'restart':
         return GameStarted(seat: seat);
     }

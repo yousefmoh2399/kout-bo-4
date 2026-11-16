@@ -232,7 +232,7 @@ class AppleIapService {
         final user = _db.auth.currentUser;
         if (user != null && coins > 0) {
           final row = await _db.from('profiles').select('coins').eq('id', user.id).maybeSingle();
-          final cur = (row?['coins'] as num?)?.toInt() ?? 1000;
+          final cur = (row?['coins'] as num?)?.toInt() ?? 500;
           newBalance = cur + coins;
           await _db.from('profiles').update({
             'coins': newBalance,

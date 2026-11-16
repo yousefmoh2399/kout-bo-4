@@ -104,3 +104,13 @@ class HostMigrated extends GameEvent {
   @override
   List<Object?> get props => [fullState, oldHostSeat];
 }
+
+/// تمديد وقت المباراة بعدد دقائق إضافية (الافتراضي 20 دقيقة = صكة إضافية).
+class MatchTimeExtended extends GameEvent {
+  const MatchTimeExtended({this.additionalMinutes = 20, this.seat});
+  final int additionalMinutes;
+  final int? seat;
+
+  @override
+  List<Object?> get props => [additionalMinutes, seat];
+}
