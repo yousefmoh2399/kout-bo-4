@@ -223,7 +223,26 @@ class AppleIapService {
         }
       }
     } catch (e) {
-      debugPrint('[AppleIapService] تعذر شحن النقاط في قاعدة البيانات: $e');
+      debugPrint('[AppleIapService] تعذر شحن النقاط في قاعدة البيانات عبر RPC: $e');
+    }
+
+    // محاولة شحن مباشرة كحل طوارئ لضمان عدم ضياع نقاط الشراء
+    if (!credited) {
+      try {
+        final user = _db.auth.currentUser;
+        if (user != null && coins > 0) {
+          final row = await _db.from('profiles').select('coins').eq('id', user.id).maybeSingle();
+          final cur = (row?['coins'] as num?)?.toInt() ?? 1000;
+          newBalance = cur + coins;
+          await _db.from('profiles').update({
+            'coins': newBalance,
+            'updated_at': DateTime.now().toIso8601String(),
+          }).eq('id', user.id);
+          credited = true;
+        }
+      } catch (e) {
+        debugPrint('[AppleIapService] تعذر الشحن المباشر في البروفايل: $e');
+      }
     }
 
     // إشعار أبل بانتهاء معالجة المعاملة لعدم تكرار الخصم

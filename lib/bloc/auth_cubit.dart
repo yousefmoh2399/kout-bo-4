@@ -111,6 +111,11 @@ class AuthCubit extends Cubit<AppAuthState> {
     }
   }
 
+  /// تحديث رصيد النقاط محلياً فوراً
+  void setCoins(int newCoins) {
+    if (!isClosed) emit(state.copyWith(coins: newCoins));
+  }
+
   /// تحديث رصيد النقاط من Supabase
   Future<void> refreshCoins() async {
     final c = _client;

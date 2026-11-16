@@ -610,10 +610,14 @@ class _StorePageState extends State<StorePage> {
     await _creditAccount(package, simulatedId, 'KNET (تجريبي)');
   }
 
-  /// إضافة النقاط إلى حساب اللاعب في Supabase
+  /// إضافة النقاط إلى حساب اللاعب في Supabase مع حماية ثلاثية متكاملة
   Future<void> _creditAccount(CoinPackage package, String invoiceId, String? gateway) async {
-    final uid = context.read<AuthCubit>().state.userId!;
-    if (AppConfig.isOnlineConfigured) {
+    final authCubit = context.read<AuthCubit>();
+    final uid = authCubit.state.userId;
+    bool dbCredited = false;
+
+    if (uid != null && uid != 'local' && AppConfig.isOnlineConfigured) {
+      // 1. محاولة الشحن الذري عبر دالة ماي فاتورة في Supabase
       try {
         await Supabase.instance.client.rpc('credit_myfatoorah_purchase', params: {
           'p_user_id': uid,
@@ -622,8 +626,13 @@ class _StorePageState extends State<StorePage> {
           'p_kwd_amount': package.kwdAmount,
           'p_package_id': package.id,
         });
-      } catch (_) {
-        // في حال عدم تشغيل دالة myfatoorah في SQL بعد، نجرب دالة الشحن العامة
+        dbCredited = true;
+      } catch (e) {
+        debugPrint('[StorePage] credit_myfatoorah_purchase failed: $e');
+      }
+
+      // 2. محاولة بديلة عبر دالة الشحن العامة في حال لم تُنشأ دالة ماي فاتورة بعد
+      if (!dbCredited) {
         try {
           await Supabase.instance.client.rpc('credit_apple_purchase', params: {
             'p_user_id': uid,
@@ -631,16 +640,41 @@ class _StorePageState extends State<StorePage> {
             'p_order_id': invoiceId,
             'p_product_id': package.id,
           });
-        } catch (_) {}
+          dbCredited = true;
+        } catch (e) {
+          debugPrint('[StorePage] credit_apple_purchase failed: $e');
+        }
+      }
+
+      // 3. محاولة شحن مباشرة لجدول profiles كحل طوارئ لضمان عدم ضياع نقاط اللاعب أبداً
+      if (!dbCredited) {
+        try {
+          final row = await Supabase.instance.client
+              .from('profiles')
+              .select('coins')
+              .eq('id', uid)
+              .maybeSingle();
+          final current = (row?['coins'] as num?)?.toInt() ?? _currentCoins;
+          final updated = current + package.totalCoins;
+          await Supabase.instance.client
+              .from('profiles')
+              .update({'coins': updated, 'updated_at': DateTime.now().toIso8601String()})
+              .eq('id', uid);
+          dbCredited = true;
+        } catch (e) {
+          debugPrint('[StorePage] direct profile coins update fallback error: $e');
+        }
       }
     }
 
     if (!mounted) return;
+    final newBalance = _currentCoins + package.totalCoins;
     setState(() {
-      _currentCoins += package.totalCoins;
+      _currentCoins = newBalance;
       _purchasingId = null;
     });
-    context.read<AuthCubit>().refreshCoins();
+    authCubit.setCoins(newBalance);
+    authCubit.refreshCoins();
 
     SoundService.instance.play(Sfx.win);
     await showLuxuryDialog<void>(

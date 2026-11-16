@@ -241,21 +241,37 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_new_balance bigint;
 begin
+  if p_user_id is null or p_coins <= 0 or p_order_id is null then
+    raise exception 'invalid_parameters';
+  end if;
+
+  -- التأكد من وجود بروفايل اللاعب
+  insert into public.profiles (id, name, is_guest, coins, updated_at)
+  values (p_user_id, 'لاعب', true, 1000, now())
+  on conflict (id) do nothing;
+
   -- منع تكرار نفس المعاملة (Replay Protection)
   if exists (select 1 from public.coin_transactions where order_id = p_order_id) then
     select coins into v_new_balance from public.profiles where id = p_user_id;
-    return v_new_balance;
+    return coalesce(v_new_balance, 0);
   end if;
 
   update public.profiles 
-  set coins = coins + p_coins, updated_at = now()
+  set coins = coalesce(coins, 0) + p_coins, updated_at = now()
   where id = p_user_id
   returning coins into v_new_balance;
 
   insert into public.coin_transactions (user_id, amount, type, order_id, balance_after, description)
-  values (p_user_id, p_coins, 'apple_purchase', p_order_id, v_new_balance, 'شراء عبر أبل: ' || coalesce(p_product_id, ''));
+  values (
+    p_user_id, 
+    p_coins, 
+    'apple_purchase', 
+    p_order_id, 
+    coalesce(v_new_balance, p_coins), 
+    'شراء عبر أبل: ' || coalesce(p_product_id, '')
+  );
 
-  return v_new_balance;
+  return coalesce(v_new_balance, p_coins);
 end $$;
 
 -- و. دالة شحن النقاط عبر بوابة ماي فاتورة (MyFatoorah KNET / بطاقات الدفع)
@@ -274,6 +290,11 @@ begin
     raise exception 'invalid_parameters';
   end if;
 
+  -- التأكد من وجود بروفايل اللاعب
+  insert into public.profiles (id, name, is_guest, coins, updated_at)
+  values (p_user_id, 'لاعب', true, 1000, now())
+  on conflict (id) do nothing;
+
   -- منع تكرار شحن نفس الفاتورة (Replay Protection)
   if exists (select 1 from public.coin_transactions where order_id = p_invoice_id) then
     select coins into v_new_balance from public.profiles where id = p_user_id;
@@ -281,7 +302,7 @@ begin
   end if;
 
   update public.profiles 
-  set coins = coins + p_coins, updated_at = now()
+  set coins = coalesce(coins, 0) + p_coins, updated_at = now()
   where id = p_user_id
   returning coins into v_new_balance;
 
@@ -291,11 +312,11 @@ begin
     p_coins, 
     'myfatoorah_purchase', 
     p_invoice_id, 
-    v_new_balance, 
-    'شحن ماي فاتورة (' || p_kwd_amount || ' د.ك): ' || coalesce(p_package_id, '')
+    coalesce(v_new_balance, p_coins), 
+    'شحن ماي فاتورة (' || coalesce(p_kwd_amount::text, '') || ' د.ك): ' || coalesce(p_package_id, '')
   );
 
-  return v_new_balance;
+  return coalesce(v_new_balance, p_coins);
 end $$;
 
 -- و. دالة مغادرة الغرفة مع استرداد النقاط في حال كانت الغرفة قيد الانتظار
@@ -397,5 +418,5 @@ grant execute on function public.join_room_with_stake(text, text) to authenticat
 grant execute on function public.award_room_winnings(text, int) to authenticated;
 grant execute on function public.leave_room(text) to authenticated;
 grant execute on function public.switch_seat(text, int) to authenticated;
-grant execute on function public.credit_myfatoorah_purchase(uuid, int, text, numeric, text) to authenticated;
-grant execute on function public.credit_apple_purchase(uuid, int, text, text) to service_role;
+grant execute on function public.credit_myfatoorah_purchase(uuid, int, text, numeric, text) to authenticated, anon;
+grant execute on function public.credit_apple_purchase(uuid, int, text, text) to authenticated, anon;
