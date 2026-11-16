@@ -268,12 +268,15 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                     size: 15,
                                   ),
                                   SizedBox(width: 6),
-                                  Text(
-                                    'الصكة الافتراضية بـ ٥٠٠ نقطة (٢٠ دقيقة) • كل ٢٠ دقيقة إضافية = +٥٠٠ نقطة',
-                                    style: TextStyle(
-                                      color: AppColors.goldLight,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 11,
+                                  Flexible(
+                                    child: Text(
+                                      'الصكة الافتراضية بـ ٥٠٠ نقطة (٢٠ دقيقة) • كل ٢٠ دقيقة إضافية = +٥٠٠ نقطة',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: AppColors.goldLight,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 11,
+                                      ),
                                     ),
                                   ),
                                 ],
