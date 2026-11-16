@@ -61,32 +61,54 @@ class PlayingCardView extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(width * 0.12),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            // إطار داخلي دقيق يحدد حافة الورقة
-            Positioned.fill(
-              child: Container(
-                margin: EdgeInsets.all(max(2.0, width * 0.045)),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(width * 0.09),
-                  border: Border.all(
-                    color: highlighted
-                        ? AppColors.gold.withAlpha(110)
-                        : (isRed
-                            ? AppColors.cardRed.withAlpha(26)
-                            : Colors.black.withAlpha(20)),
-                    width: 0.7,
+            // صورة الكرت الاحترافية الملكية مع التحميل فائق السرعة
+            Image.asset(
+              card.assetPath,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, error, stackTrace) {
+                // رسم متجهي كلاسيكي بديل في حال عدم توفر الصور (مثل بيئة الاختبارات)
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        margin: EdgeInsets.all(max(2.0, width * 0.045)),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(width * 0.09),
+                          border: Border.all(
+                            color: highlighted
+                                ? AppColors.gold.withAlpha(110)
+                                : (isRed
+                                    ? AppColors.cardRed.withAlpha(26)
+                                    : Colors.black.withAlpha(20)),
+                            width: 0.7,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (card.isJoker) _buildJoker() else _buildSuited(color),
+                  ],
+                );
+              },
+            ),
+            // إطار ذهبي بارز عند تحديد الكرت للعب
+            if (highlighted)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(width * 0.12),
+                    border: Border.all(color: AppColors.gold, width: 2.2),
                   ),
                 ),
               ),
-            ),
-            // محتوى الورقة
-            if (card.isJoker) _buildJoker() else _buildSuited(color),
             // طبقة التعتيم النظيفة للأوراق غير المتاحة حالياً
             if (dimmed)
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(95),
+                    color: Colors.black.withAlpha(100),
                   ),
                 ),
               ),
@@ -806,42 +828,52 @@ class CardBackView extends StatelessWidget {
             fit: StackFit.expand,
             alignment: Alignment.center,
             children: [
-              // خلفية عنابية ملكية عميقة بتدرج مركزي غني
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment.center,
-                    radius: 0.95,
-                    colors: [
-                      Color(0xFF9C162E),
-                      Color(0xFF6B0B1C),
-                      Color(0xFF3E040E),
+              // صورة ظهر الكرت الملكية الفاخرة
+              Image.asset(
+                'assets/cards/card_back.png',
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (context, error, stackTrace) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment.center,
+                            radius: 0.95,
+                            colors: [
+                              Color(0xFF9C162E),
+                              Color(0xFF6B0B1C),
+                              Color(0xFF3E040E),
+                            ],
+                            stops: [0.0, 0.58, 1.0],
+                          ),
+                        ),
+                      ),
+                      CustomPaint(
+                        painter: _CardBackPainter(
+                          detailed: width >= 26,
+                          showMedallion: label == null,
+                        ),
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withAlpha(34),
+                              Colors.transparent,
+                              Colors.black.withAlpha(24),
+                            ],
+                            stops: const [0.0, 0.45, 1.0],
+                          ),
+                        ),
+                      ),
                     ],
-                    stops: [0.0, 0.58, 1.0],
-                  ),
-                ),
-              ),
-              // زخرفة هندسية عربية وميدالية ذهبية في الوسط
-              CustomPaint(
-                painter: _CardBackPainter(
-                  detailed: width >= 26,
-                  showMedallion: label == null,
-                ),
-              ),
-              // لمعة حريرية مائلة أعلى الورقة لإبراز ملمس الكوتشينة الأصلي
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withAlpha(34),
-                      Colors.transparent,
-                      Colors.black.withAlpha(24),
-                    ],
-                    stops: const [0.0, 0.45, 1.0],
-                  ),
-                ),
+                  );
+                },
               ),
               if (label != null)
                 Center(

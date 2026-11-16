@@ -114,6 +114,16 @@ class PlayingCard extends Equatable {
     return '${rank!.nameAr} ${suit!.nameArDef}';
   }
 
+  /// مسار الصورة الاحترافية للكرت في مجلد الأصول
+  String get assetPath {
+    if (isJoker) {
+      return isRedJoker
+          ? 'assets/cards/joker_red.png'
+          : 'assets/cards/joker_black.png';
+    }
+    return 'assets/cards/${suit!.name}_${rank!.label}.png';
+  }
+
   @override
   List<Object?> get props => [suit, rank, joker];
 

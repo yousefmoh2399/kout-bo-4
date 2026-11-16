@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'bloc/auth_cubit.dart';
+import 'core/card_image_service.dart';
 import 'core/config.dart';
 import 'core/connectivity_service.dart';
 import 'core/crash.dart';
@@ -71,6 +72,11 @@ class _KoutBoAppState extends State<KoutBoApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        CardImageService.precacheDeck(context);
+      }
+    });
     _connSub = ConnectivityService.instance.onConnectivityChanged.listen((isOnline) {
       if (!mounted) return;
       _messengerKey.currentState?.removeCurrentSnackBar();
