@@ -319,13 +319,13 @@ class TopControlsPill extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xDD1A2634), Color(0xDD0D151F)],
+              colors: [Color(0xEE09291D), Color(0xEE03150E)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(11),
             border: Border.all(
-              color: Colors.white.withAlpha(45),
+              color: AppColors.gold.withAlpha(120),
               width: 1.0,
             ),
             boxShadow: const [
@@ -506,7 +506,7 @@ class _Studio3DButtonState extends State<_Studio3DButton> {
                     ),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: Colors.white.withAlpha(95),
+                      color: AppColors.gold.withAlpha(140),
                       width: 1.0,
                     ),
                   ),
@@ -637,20 +637,24 @@ class ScoreAndContractHud extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xEE182432), Color(0xEE0C131C)],
+                colors: [Color(0xF6092C1F), Color(0xF603150E)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: Colors.white.withAlpha(55),
-                width: 1.1,
+                color: AppColors.gold.withAlpha(155),
+                width: 1.2,
               ),
-              boxShadow: const [
-                BoxShadow(
+              boxShadow: [
+                const BoxShadow(
                   color: Colors.black54,
                   blurRadius: 8,
                   offset: Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: AppColors.gold.withAlpha(45),
+                  blurRadius: 8,
                 ),
               ],
             ),
@@ -936,12 +940,13 @@ class PhaseStatusTicker extends StatelessWidget {
             vertical: compact ? 4 : 3.5,
           ),
           decoration: BoxDecoration(
-            color: isMe ? AppColors.gold.withAlpha(240) : const Color(0xCC0D1824),
+            color: isMe ? AppColors.gold.withAlpha(240) : const Color(0xEE08261B),
             borderRadius: BorderRadius.circular(compact ? 12 : 14),
             border: Border.all(
-              color:
-                  isMe ? Colors.white.withAlpha(190) : Colors.white.withAlpha(45),
-              width: 1.0,
+              color: isMe
+                  ? Colors.white.withAlpha(210)
+                  : AppColors.gold.withAlpha(100),
+              width: 1.1,
             ),
             boxShadow: [
               if (isMe)

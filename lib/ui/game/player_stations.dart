@@ -16,19 +16,31 @@ BoxDecoration _stationDecoration({required bool isTurn, required bool sameTeam})
     gradient: LinearGradient(
       colors: isTurn
           ? (sameTeam
-              ? const [Color(0xF0124B33), Color(0xF0062216)]
-              : const [Color(0xF044250F), Color(0xF01C0E06)])
-          : const [Color(0xD8061C13), Color(0xD8020F0A)],
+              ? const [Color(0xF6105439), Color(0xF6062A1C)]
+              : const [Color(0xF6521A15), Color(0xF6280B07)])
+          : const [Color(0xF008271B), Color(0xF003150E)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
     borderRadius: BorderRadius.circular(18),
     border: Border.all(
-      color: isTurn ? AppColors.goldLight : Colors.white.withAlpha(34),
-      width: isTurn ? 1.6 : 0.9,
+      color: isTurn ? AppColors.goldLight : AppColors.gold.withAlpha(75),
+      width: isTurn ? 1.8 : 1.0,
     ),
     boxShadow: [
-      if (isTurn) BoxShadow(color: AppColors.gold.withAlpha(115), blurRadius: 12),
+      if (isTurn) ...[
+        BoxShadow(
+          color: AppColors.gold.withAlpha(140),
+          blurRadius: 14,
+          spreadRadius: 1,
+        ),
+        BoxShadow(
+          color: sameTeam
+              ? const Color(0xFF2ECC71).withAlpha(65)
+              : const Color(0xFFE74C3C).withAlpha(65),
+          blurRadius: 8,
+        ),
+      ],
       const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 3)),
     ],
   );
@@ -333,20 +345,30 @@ class DealerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 15,
-      height: 15,
+      width: 16,
+      height: 16,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.gold,
-        border: Border.all(color: Colors.white, width: 0.8),
+        gradient: const RadialGradient(
+          center: Alignment(-0.25, -0.3),
+          colors: [
+            Color(0xFFFFF7C2),
+            Color(0xFFE5B83A),
+            Color(0xFF9E7412),
+          ],
+        ),
+        border: Border.all(color: AppColors.goldLight, width: 0.9),
+        boxShadow: const [
+          BoxShadow(color: Colors.black45, blurRadius: 3, offset: Offset(0, 1)),
+        ],
       ),
       child: const Text(
         'D',
         style: TextStyle(
           fontSize: 8.5,
           fontWeight: FontWeight.w900,
-          color: Color(0xFF1E1304),
+          color: Color(0xFF261603),
           height: 1,
         ),
       ),
@@ -432,23 +454,31 @@ class AvatarCircle extends StatelessWidget {
           center: const Alignment(-0.25, -0.35),
           radius: 0.95,
           colors: sameTeam
-              ? const [Color(0xFF4AD9A3), Color(0xFF17704F), Color(0xFF0B3B28)]
-              : const [Color(0xFFE89052), Color(0xFF8C4115), Color(0xFF471E07)],
+              ? const [Color(0xFF38E09B), Color(0xFF147E53), Color(0xFF073C26)]
+              : const [Color(0xFFFF6B6B), Color(0xFFA82626), Color(0xFF520E0E)],
         ),
         border: Border.all(
-          color: isTurn ? AppColors.goldLight : Colors.white.withAlpha(75),
-          width: isTurn ? 2.0 : 1.1,
+          color: isTurn ? AppColors.goldLight : AppColors.gold.withAlpha(160),
+          width: isTurn ? 2.2 : 1.3,
         ),
         boxShadow: [
-          if (isTurn)
+          if (isTurn) ...[
             BoxShadow(
-              color: AppColors.gold.withAlpha(110),
+              color: AppColors.gold.withAlpha(140),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+            BoxShadow(
+              color: sameTeam
+                  ? const Color(0xFF2ECC71).withAlpha(80)
+                  : const Color(0xFFE74C3C).withAlpha(80),
               blurRadius: 8,
             ),
-          BoxShadow(
-            color: Colors.black.withAlpha(90),
-            blurRadius: 4,
-            offset: const Offset(0, 1.5),
+          ],
+          const BoxShadow(
+            color: Colors.black54,
+            blurRadius: 5,
+            offset: Offset(0, 2),
           ),
         ],
       ),

@@ -125,13 +125,13 @@ class TrickArena extends StatelessWidget {
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(outerRadius),
-                      // حافة الطاولة المصقولة ثلاثية الأبعاد (خشب الجوز الملكي مع الإطار الذهبي)
+                      // حافة الطاولة المصقولة ثلاثية الأبعاد (خشب الجوز والماهوجني الملكي مع الإطار الذهبي)
                       gradient: const LinearGradient(
                         colors: [
-                          Color(0xFF4B2B17),
-                          Color(0xFF2B160B),
-                          Color(0xFF1B0D06),
-                          Color(0xFF3D2111),
+                          Color(0xFF3E2313),
+                          Color(0xFF24130A),
+                          Color(0xFF140A05),
+                          Color(0xFF331B0E),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -139,20 +139,20 @@ class TrickArena extends StatelessWidget {
                       border: Border.all(
                         color: winner != null
                             ? AppColors.goldLight
-                            : AppColors.gold.withAlpha(140),
-                        width: winner != null ? 2.0 : 1.4,
+                            : AppColors.gold.withAlpha(165),
+                        width: winner != null ? 2.2 : 1.6,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(210),
-                          blurRadius: 24,
+                          color: Colors.black.withAlpha(220),
+                          blurRadius: 26,
                           spreadRadius: 1,
                           offset: const Offset(0, 10),
                         ),
                         if (winner != null)
                           BoxShadow(
-                            color: AppColors.gold.withAlpha(70),
-                            blurRadius: 20,
+                            color: AppColors.gold.withAlpha(85),
+                            blurRadius: 22,
                             spreadRadius: 2,
                           ),
                       ],
@@ -161,19 +161,19 @@ class TrickArena extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(innerRadius),
                         border: Border.all(
-                          color: AppColors.gold.withAlpha(65),
+                          color: AppColors.gold.withAlpha(85),
                           width: 1.2,
                         ),
-                        // سطح جوخ كويتي زمردي-تركواز هادئ ومريح للعين كما في الألعاب العالمية
+                        // سطح جوخ كازينو ملكي زمردي فاخر ومريح للعين
                         gradient: const RadialGradient(
                           center: Alignment(0.0, -0.06),
-                          radius: 0.95,
+                          radius: 0.98,
                           colors: [
-                            Color(0xFF237A68),
-                            Color(0xFF17584A),
-                            Color(0xFF0E3B31),
+                            Color(0xFF0F5A40), // زمردي حيوي فاخر في المركز
+                            Color(0xFF093D2A), // زمردي مخملي ملكي
+                            Color(0xFF042116), // أطراف الجوخ العميقة
                           ],
-                          stops: [0.0, 0.58, 1.0],
+                          stops: [0.0, 0.55, 1.0],
                         ),
                       ),
                       child: ClipRRect(
@@ -276,29 +276,51 @@ class TrickArena extends StatelessWidget {
                               child: s.trump != null
                                   ? Container(
                                       key: ValueKey('trump_${s.trump}_${s.roundNumber}'),
-                                      width: isLandscape ? 38 : 44,
-                                      height: isLandscape ? 38 : 44,
+                                      width: isLandscape ? 40 : 46,
+                                      height: isLandscape ? 40 : 46,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: const Color(0xD8041B12),
+                                        gradient: const RadialGradient(
+                                          center: Alignment(-0.28, -0.32),
+                                          colors: [
+                                            Color(0xFFFFF6B8),
+                                            Color(0xFFE5B83A),
+                                            Color(0xFF9E720F),
+                                          ],
+                                        ),
                                         border: Border.all(
-                                          color: AppColors.gold.withAlpha(175),
-                                          width: 1.4,
+                                          color: AppColors.goldLight,
+                                          width: 1.6,
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: AppColors.gold.withAlpha(60),
+                                            color: Colors.black.withAlpha(160),
                                             blurRadius: 10,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                          BoxShadow(
+                                            color: AppColors.gold.withAlpha(120),
+                                            blurRadius: 12,
+                                            spreadRadius: 1,
                                           ),
                                         ],
                                       ),
                                       alignment: Alignment.center,
-                                      child: SuitIcon(
-                                        suit: s.trump!,
-                                        size: isLandscape ? 19 : 22,
-                                        color: s.trump!.isRed
-                                            ? const Color(0xFFFF6B6B)
-                                            : AppColors.goldLight,
+                                      child: Container(
+                                        width: isLandscape ? 30 : 34,
+                                        height: isLandscape ? 30 : 34,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Color(0xFF041B12),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: SuitIcon(
+                                          suit: s.trump!,
+                                          size: isLandscape ? 17 : 20,
+                                          color: s.trump!.isRed
+                                              ? const Color(0xFFFF5252)
+                                              : AppColors.goldLight,
+                                        ),
                                       ),
                                     )
                                   : const SizedBox.shrink(),
@@ -902,14 +924,15 @@ class MiniLastTrickBox extends StatelessWidget {
         height: 56,
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: const Color(0xCC071622),
+          color: const Color(0xF207241A),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.gold.withAlpha(115),
-            width: 1.1,
+            color: AppColors.gold.withAlpha(160),
+            width: 1.2,
           ),
-          boxShadow: const [
-            BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
+          boxShadow: [
+            const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
+            BoxShadow(color: AppColors.gold.withAlpha(45), blurRadius: 6),
           ],
         ),
         child: Stack(
@@ -941,28 +964,46 @@ class _TableSurfacePainter extends CustomPainter {
     final minDim = min(size.width, size.height);
     final isLandscape = size.width > size.height * 1.15;
 
-    // 1. خط ذهبي داخلي رفيع وهادئ يتبع انحناء الطاولة
+    // 1. خياطة ذهبية ملكية مزدوجة تتبع انحناء حافة الطاولة
     final outerStitch = Paint()
-      ..color = AppColors.gold.withAlpha(42)
+      ..color = AppColors.gold.withAlpha(48)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 1.1;
+
+    final innerStitch = Paint()
+      ..color = AppColors.goldLight.withAlpha(22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75;
 
     final rOuter = isLandscape
         ? min(22.0, size.height * 0.12)
         : max(12.0, min(30.0, minDim * 0.15));
-    final rect = Rect.fromLTWH(10, 10, size.width - 20, size.height - 20);
+
+    final rectOuter = Rect.fromLTWH(8, 8, size.width - 16, size.height - 16);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, Radius.circular(rOuter)),
+      RRect.fromRectAndRadius(rectOuter, Radius.circular(rOuter)),
       outerStitch,
     );
 
-    // 2. ميدالية وسطية هادئة (النجمة الثمانية الكويتية) بحجم متناسق مع الطولي والعرضي
-    final r = minDim * (isLandscape ? 0.22 : 0.24);
-    final starPaint = Paint()
-      ..color = AppColors.gold.withAlpha(24)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+    final rectInner = Rect.fromLTWH(12, 12, size.width - 24, size.height - 24);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rectInner, Radius.circular(max(6.0, rOuter - 4))),
+      innerStitch,
+    );
 
+    // 2. ميدالية مركزية ملكية فاخرة (النجمة الثمانية الإسلامية والأرابيسك المذهب)
+    final r = minDim * (isLandscape ? 0.22 : 0.25);
+    final starPaint = Paint()
+      ..color = AppColors.gold.withAlpha(30)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+
+    final filigreePaint = Paint()
+      ..color = AppColors.goldLight.withAlpha(20)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    // نجمة ثمانية مذهبة مكونة من مربعين متعامدين بزاوية 45 درجة
     for (var k = 0; k < 2; k++) {
       canvas.save();
       canvas.translate(cx, cy);
@@ -973,7 +1014,22 @@ class _TableSurfacePainter extends CustomPainter {
       );
       canvas.restore();
     }
-    canvas.drawCircle(Offset(cx, cy), r * 0.78, starPaint);
+
+    // دوائر التاج الملكي المتدرجة والمحيطة بمركز الطاولة
+    canvas.drawCircle(Offset(cx, cy), r * 0.82, filigreePaint);
+    canvas.drawCircle(Offset(cx, cy), r * 0.58, starPaint);
+    canvas.drawCircle(Offset(cx, cy), r * 0.32, filigreePaint);
+
+    // بتلات الأرابيسك الملكية الناعمة داخل المركز
+    final petalPaint = Paint()
+      ..color = AppColors.gold.withAlpha(22)
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < 8; i++) {
+      final angle = i * pi / 4;
+      final px = cx + cos(angle) * (r * 0.45);
+      final py = cy + sin(angle) * (r * 0.45);
+      canvas.drawCircle(Offset(px, py), 2.0, petalPaint);
+    }
   }
 
   @override

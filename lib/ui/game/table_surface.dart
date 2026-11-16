@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 
-/// أرضية وسجاد الديوانية الكويتية الملكية (المحيط الخلفي حول طاولة اللعب):
-/// سجاد ديواني داكن بنقش سدو هندسي هادئ وإضاءة سقف دافئة تبرز طاولة اللعب في المنتصف.
+/// أرضية وسجاد الصالة الملكية الفاخرة (المحيط الخلفي حول طاولة اللعب):
+/// أرضية مخملية زمردية ملكية عميقة مزينة بنقوش الأرابيسك الإسلامية الذهبية
+/// وإضاءة سينمائية دافئة تبرز طاولة اللعب في المنتصف كالجوهرة.
 class DiwaniyaTableSurface extends StatelessWidget {
   const DiwaniyaTableSurface({super.key});
 
@@ -14,47 +15,47 @@ class DiwaniyaTableSurface extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0.0, -0.08),
-            radius: 1.15,
+            center: Alignment(0.0, -0.06),
+            radius: 1.18,
             colors: [
-              Color(0xFF162436), // كحلي ديواني دافئ في المركز حول الطاولة
-              Color(0xFF0D1724), // كحلي ليلي عميق
-              Color(0xFF070C14), // أطراف الغرفة الداكنة
+              Color(0xFF093E2B), // زمردي ملكي دافئ في المركز حول الطاولة
+              Color(0xFF05271B), // زمردي مخملي ليلي عميق
+              Color(0xFF02120C), // أطراف الغرفة الداكنة المشبعة
             ],
-            stops: [0.0, 0.58, 1.0],
+            stops: [0.0, 0.56, 1.0],
           ),
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // نقش سجاد الديوانية الكويتي الهندسي الهادئ في الخلفية
-            const CustomPaint(painter: _DiwaniyaCarpetPainter()),
+            // نقوش الأرابيسك والزخارف الهندسية الملكية المذهبة الهادئة في الخلفية
+            const CustomPaint(painter: _RoyalArabesqueCarpetPainter()),
 
-            // هالة إضاءة دافئة ثابتة خلف الطاولة الوسطية لإبرازها ثلاثياً دون استهلاك معالج الرسوميات
+            // هالة إضاءة ذهبية دافئة ثابتة خلف الطاولة الوسطية لإبرازها ثلاثياً دون استهلاك الرسوميات
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  center: const Alignment(0.0, -0.05),
-                  radius: 0.72,
+                  center: const Alignment(0.0, -0.04),
+                  radius: 0.76,
                   colors: [
-                    AppColors.gold.withAlpha(26),
+                    AppColors.gold.withAlpha(32),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
 
-            // تظليل محيطي ناعم (Vignette) يركز العين على الطاولة واللاعبين
+            // تظليل محيطي ناعم وفاخر (Cinematic Vignette) يركز العين على الطاولة واللاعبين
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment.center,
-                  radius: 1.05,
+                  radius: 1.08,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withAlpha(145),
+                    Colors.black.withAlpha(165),
                   ],
-                  stops: const [0.62, 1.0],
+                  stops: const [0.58, 1.0],
                 ),
               ),
             ),
@@ -65,46 +66,58 @@ class DiwaniyaTableSurface extends StatelessWidget {
   }
 }
 
-class _DiwaniyaCarpetPainter extends CustomPainter {
-  const _DiwaniyaCarpetPainter();
+class _RoyalArabesqueCarpetPainter extends CustomPainter {
+  const _RoyalArabesqueCarpetPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final linePaint = Paint()
-      ..color = const Color(0xFFD4AF37).withAlpha(14)
+    final goldLinePaint = Paint()
+      ..color = AppColors.gold.withAlpha(18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.85;
 
-    final crimsonAccent = Paint()
-      ..color = const Color(0xFF8B2635).withAlpha(22)
+    final goldStarPaint = Paint()
+      ..color = AppColors.goldLight.withAlpha(24)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.95;
+
+    final emeraldAccent = Paint()
+      ..color = const Color(0xFF14754F).withAlpha(26)
       ..style = PaintingStyle.fill;
 
-    final tealAccent = Paint()
-      ..color = const Color(0xFF1F6E66).withAlpha(18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    // شبكة زخارف سجاد الديوانية (معينات السدو والنجوم الثمانية المتكررة بهدوء)
-    const tile = 68.0;
+    // شبكة الزخارف الإسلامية الملكية (النجوم الثمانية المتداخلة والأرابيسك الذهبي)
+    const tile = 72.0;
     for (double y = -tile / 2; y < size.height + tile; y += tile) {
       for (double x = -tile / 2; x < size.width + tile; x += tile) {
         final center = Offset(x, y);
-        _drawDiamond(canvas, center, 22, linePaint);
-        _drawDiamond(canvas, center, 13, tealAccent);
-        _drawDiamond(canvas, center, 4.5, crimsonAccent);
+        _drawEightPointStar(canvas, center, 18, goldStarPaint);
+        _drawDiamond(canvas, center, 8, emeraldAccent);
+        _drawDiamond(canvas, center, 24, goldLinePaint);
       }
     }
 
-    // شريط سدو تقليدي خفيف على الحافة العلوية والسفلية لأرضية الديوانية
-    final borderPaint = Paint()
-      ..color = AppColors.gold.withAlpha(24)
+    // شريط إطار زخرفي ملكي مذهب على الحواف العلوية والسفلية
+    final borderOuter = Paint()
+      ..color = AppColors.gold.withAlpha(35)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    canvas.drawLine(const Offset(0, 4), Offset(size.width, 4), borderPaint);
+      ..strokeWidth = 1.2;
+
+    final borderInner = Paint()
+      ..color = AppColors.goldLight.withAlpha(20)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+
+    canvas.drawLine(const Offset(0, 3), Offset(size.width, 3), borderOuter);
+    canvas.drawLine(const Offset(0, 6), Offset(size.width, 6), borderInner);
     canvas.drawLine(
-      Offset(0, size.height - 4),
-      Offset(size.width, size.height - 4),
-      borderPaint,
+      Offset(0, size.height - 3),
+      Offset(size.width, size.height - 3),
+      borderOuter,
+    );
+    canvas.drawLine(
+      Offset(0, size.height - 6),
+      Offset(size.width, size.height - 6),
+      borderInner,
     );
   }
 
@@ -114,6 +127,22 @@ class _DiwaniyaCarpetPainter extends CustomPainter {
       ..lineTo(c.dx + r, c.dy)
       ..lineTo(c.dx, c.dy + r)
       ..lineTo(c.dx - r, c.dy)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawEightPointStar(Canvas canvas, Offset c, double r, Paint paint) {
+    // نجمة ثمانية إسلامية مكونة من 8 رؤوس بتناسق هندسي رفيع
+    final half = r * 0.7071;
+    final path = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + half * 0.45, c.dy - half * 0.45)
+      ..lineTo(c.dx + r, c.dy)
+      ..lineTo(c.dx + half * 0.45, c.dy + half * 0.45)
+      ..lineTo(c.dx, c.dy + r)
+      ..lineTo(c.dx - half * 0.45, c.dy + half * 0.45)
+      ..lineTo(c.dx - r, c.dy)
+      ..lineTo(c.dx - half * 0.45, c.dy - half * 0.45)
       ..close();
     canvas.drawPath(path, paint);
   }
