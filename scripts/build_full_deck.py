@@ -44,7 +44,7 @@ direct_mappings = {
     'hearts_A.png': 'photo_2026-11-16 10.31.01 (1).jpeg',
     'hearts_10.png': 'photo_2026-11-16 10.31.02 (1).jpeg',
     
-    'card_back.png': 'photo_2026-11-16 10.30.55.jpeg',
+    'card_back.png': 'card_back_official.jpeg',
 }
 
 for out_name, in_file in direct_mappings.items():
