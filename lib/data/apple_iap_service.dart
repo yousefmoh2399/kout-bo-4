@@ -5,16 +5,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// معرفات باقات الشراء داخل التطبيق لمتجر أبل (StoreKit)
 class AppleIapProducts {
+  static const String coins500 = 'com.faisal.koutbo4.coins_500';
   static const String coins1000 = 'com.faisal.koutbo4.coins_1000';
   static const String coins5000 = 'com.faisal.koutbo4.coins_5000';
   static const String coins15000 = 'com.faisal.koutbo4.coins_15000';
   static const String coins50000 = 'com.faisal.koutbo4.coins_50000';
 
   static const Set<String> allIds = {
+    coins500,
     coins1000,
     coins5000,
     coins15000,
     coins50000,
+    'com.koutbo4.coins_500',
     'com.koutbo4.coins_1000',
     'com.koutbo4.coins_5000',
     'com.koutbo4.coins_15000',
@@ -23,6 +26,7 @@ class AppleIapProducts {
 
   /// خريطة تحويل معرف المنتج إلى عدد النقاط الإجمالي (شاملاً البونص)
   static int coinsForProduct(String productId) {
+    if (productId.endsWith('coins_500')) return 500;
     if (productId.endsWith('coins_1000')) return 1000;
     if (productId.endsWith('coins_5000')) return 5500; // 5000 + 500
     if (productId.endsWith('coins_15000')) return 17500; // 15000 + 2500

@@ -100,8 +100,11 @@ void main() {
 
       expect(find.byType(StorePage), findsOneWidget);
       expect(find.text('متجر النقاط'), findsOneWidget);
+      expect(find.text('0.500 د.ك'), findsOneWidget);
       expect(find.text('1.000 د.ك'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('5.000 د.ك'), 150);
       expect(find.text('5.000 د.ك'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('15.000 د.ك'), 150);
       expect(find.text('15.000 د.ك'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('50.000 د.ك'), 200);
       expect(find.text('50.000 د.ك'), findsOneWidget);

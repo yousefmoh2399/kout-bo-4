@@ -18,17 +18,37 @@
   ],
   "products" : [
     {
-      "displayPrice" : "1.000",
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "1000",
+      "localizations" : [
+        {
+          "description" : "500 نقطة (صكة واحدة ٢٠ دقيقة)",
+          "displayName" : "صرة البداية (500)",
+          "locale" : "ar"
+        },
+        {
+          "description" : "500 points (1 match - 20 mins)",
+          "displayName" : "Starter Pouch (500)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.faisal.koutbo4.coins_500",
+      "referenceName" : "500 Coins (1 Match)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
       "familyShareable" : false,
       "internalID" : "1001",
       "localizations" : [
         {
-          "description" : "1,000 نقطة للعب في غرف كوت بو 4",
+          "description" : "1,000 نقطة (صكتان ٤٠ دقيقة)",
           "displayName" : "كيس النقاط (1,000)",
           "locale" : "ar"
         },
         {
-          "description" : "1,000 points for rooms",
+          "description" : "1,000 points (2 matches - 40 mins)",
           "displayName" : "Bag of Points",
           "locale" : "en_US"
         }
@@ -38,17 +58,17 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "5.000",
+      "displayPrice" : "14.99",
       "familyShareable" : false,
       "internalID" : "1002",
       "localizations" : [
         {
-          "description" : "5,000 نقطة + 500 هدية مجانية",
+          "description" : "5,000 نقطة + 500 هدية (١١ صكة - ٣.٥ ساعات)",
           "displayName" : "صرة النقاط (5,500)",
           "locale" : "ar"
         },
         {
-          "description" : "5,000 points + 500 bonus",
+          "description" : "5,000 points + 500 bonus (11 matches)",
           "displayName" : "Pouch of Points",
           "locale" : "en_US"
         }
@@ -58,17 +78,17 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "15.000",
+      "displayPrice" : "49.99",
       "familyShareable" : false,
       "internalID" : "1003",
       "localizations" : [
         {
-          "description" : "15,000 نقطة + 2,500 هدية مجانية",
+          "description" : "15,000 نقطة + 2,500 هدية (٣٥ صكة - ١١.٥ ساعة)",
           "displayName" : "صندوق النقاط (17,500)",
           "locale" : "ar"
         },
         {
-          "description" : "15,000 points + 2,500 bonus",
+          "description" : "15,000 points + 2,500 bonus (35 matches)",
           "displayName" : "Chest of Points",
           "locale" : "en_US"
         }
@@ -78,17 +98,17 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "50.000",
+      "displayPrice" : "149.99",
       "familyShareable" : false,
       "internalID" : "1004",
       "localizations" : [
         {
-          "description" : "50,000 نقطة + 15,000 هدية كبرى",
+          "description" : "50,000 نقطة + 15,000 هدية كبرى (١٣٠ صكة - ٤٣ ساعة)",
           "displayName" : "خزانة النقاط الكبرى (65,000)",
           "locale" : "ar"
         },
         {
-          "description" : "50,000 points + 15,000 bonus",
+          "description" : "50,000 points + 15,000 bonus (130 matches)",
           "displayName" : "Vault of Points",
           "locale" : "en_US"
         }

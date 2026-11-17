@@ -7,15 +7,18 @@ import 'package:test_build_game/data/apple_iap_service.dart';
 void main() {
   group('AppleIapProducts', () {
     test('verifies product identifiers and point mapping', () {
+      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_500'));
       expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_1000'));
       expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_5000'));
       expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_15000'));
       expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_50000'));
 
+      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_500'), 500);
       expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_1000'), 1000);
       expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_5000'), 5500);
       expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_15000'), 17500);
       expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_50000'), 65000);
+      expect(AppleIapProducts.coinsForProduct('com.koutbo4.coins_500'), 500);
       expect(AppleIapProducts.coinsForProduct('com.koutbo4.coins_1000'), 1000);
       expect(AppleIapProducts.coinsForProduct('unknown'), 0);
     });
@@ -26,9 +29,10 @@ void main() {
 
       final content = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
       final products = content['products'] as List;
-      expect(products.length, 4);
+      expect(products.length, 5);
 
       final ids = products.map((p) => p['productID']).toSet();
+      expect(ids, contains('com.faisal.koutbo4.coins_500'));
       expect(ids, contains('com.faisal.koutbo4.coins_1000'));
       expect(ids, contains('com.faisal.koutbo4.coins_5000'));
       expect(ids, contains('com.faisal.koutbo4.coins_15000'));

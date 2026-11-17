@@ -15,15 +15,17 @@ import '../data/myfatoorah_service.dart';
 import 'effects.dart';
 import 'widgets.dart';
 
-/// باقة النقاط المتاحة للشراء في المتجر بالدينار الكويتي (KWD)
+/// باقة النقاط المتاحة للشراء في المتجر بالدينار الكويتي (KWD) والدولار (USD)
 class CoinPackage {
   const CoinPackage({
     required this.id,
     required this.title,
+    required this.matchesText,
     required this.coins,
     required this.bonus,
     required this.kwdAmount,
     required this.priceString,
+    required this.usdPriceString,
     required this.icon,
     this.badge,
     this.isPopular = false,
@@ -31,10 +33,12 @@ class CoinPackage {
 
   final String id;
   final String title;
+  final String matchesText;
   final int coins;
   final int bonus;
   final double kwdAmount;
   final String priceString;
+  final String usdPriceString;
   final IconData icon;
   final String? badge;
   final bool isPopular;
@@ -44,42 +48,61 @@ class CoinPackage {
 
 const List<CoinPackage> kCoinPackages = [
   CoinPackage(
+    id: 'com.faisal.koutbo4.coins_500',
+    title: 'صرة البداية (صكة واحدة)',
+    matchesText: 'صكة كاملة ٢٠ دقيقة • ٥٠٠ نقطة',
+    coins: 500,
+    bonus: 0,
+    kwdAmount: 0.500,
+    priceString: '0.500 د.ك',
+    usdPriceString: '\$1.99',
+    icon: Icons.hourglass_top_rounded,
+  ),
+  CoinPackage(
     id: 'com.faisal.koutbo4.coins_1000',
-    title: 'كيس النقاط (ساعة لعب)',
+    title: 'كيس النقاط (صكتان)',
+    matchesText: 'صكتان كاملتان ٤٠ دقيقة • ١,٠٠٠ نقطة',
     coins: 1000,
     bonus: 0,
     kwdAmount: 1.000,
     priceString: '1.000 د.ك',
+    usdPriceString: '\$2.99',
     icon: Icons.monetization_on_outlined,
   ),
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_5000',
-    title: 'صرة النقاط (5 ساعات)',
+    title: 'صرة الديوانية (١١ صكة)',
+    matchesText: '١١ صكة (٣ ساعات و٤٠ دقيقة) • ٥,٠٠٠ + ٥٠٠ هدية',
     coins: 5000,
     bonus: 500,
     kwdAmount: 5.000,
     priceString: '5.000 د.ك',
+    usdPriceString: '\$14.99',
     icon: Icons.savings_outlined,
     badge: 'الأكثر طلباً 🔥 (+500 بونص)',
     isPopular: true,
   ),
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_15000',
-    title: 'صندوق النقاط (15 ساعة)',
+    title: 'صندوق المحترفين (٣٥ صكة)',
+    matchesText: '٣٥ صكة (١١.٥ ساعة لعب) • ١٥,٠٠٠ + ٢,٥٠٠ هدية',
     coins: 15000,
     bonus: 2500,
     kwdAmount: 15.000,
     priceString: '15.000 د.ك',
+    usdPriceString: '\$49.99',
     icon: Icons.inventory_2_outlined,
-    badge: '+2,500 بونص مجاني',
+    badge: 'توفير إضافي ✨ (+2,500 بونص)',
   ),
   CoinPackage(
     id: 'com.faisal.koutbo4.coins_50000',
-    title: 'خزانة النقاط الكبرى (50 ساعة)',
+    title: 'خزانة النقاط الكبرى (١٣٠ صكة)',
+    matchesText: '١٣٠ صكة (أكثر من ٤٣ ساعة) • ٥٠,٠٠٠ + ١٥,٠٠٠ هدية',
     coins: 50000,
     bonus: 15000,
     kwdAmount: 50.000,
     priceString: '50.000 د.ك',
+    usdPriceString: '\$149.99',
     icon: Icons.workspace_premium_rounded,
     badge: 'القيمة الأفضل 👑 (+15,000 بونص)',
   ),
@@ -293,7 +316,7 @@ class _StorePageState extends State<StorePage> {
     String customerName,
   ) async {
     final appleProduct = _iap.products[package.id];
-    final applePrice = appleProduct?.price ?? package.priceString;
+    final applePrice = appleProduct?.price ?? package.usdPriceString;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -762,7 +785,7 @@ class _StorePageState extends State<StorePage> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'باقات النقاط (بالدينار الكويتي)',
+                      'باقات شحن النقاط',
                       style: TextStyle(
                         color: AppColors.goldLight,
                         fontWeight: FontWeight.w900,
@@ -771,18 +794,18 @@ class _StorePageState extends State<StorePage> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.gold.withAlpha(30),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppColors.gold.withAlpha(120)),
                     ),
                     child: const Text(
-                      '١ د.ك = ١,٠٠٠ نقطة',
+                      '٥٠٠ نقطة = صكة',
                       style: TextStyle(
                         color: AppColors.goldLight,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
                       ),
                     ),
                   ),
@@ -1067,7 +1090,16 @@ class _StorePageState extends State<StorePage> {
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          fontSize: 15,
+                          fontSize: 14.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        pkg.matchesText,
+                        style: const TextStyle(
+                          color: Color(0xFF68D391),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -1082,7 +1114,7 @@ class _StorePageState extends State<StorePage> {
                               style: const TextStyle(
                                 color: AppColors.goldLight,
                                 fontWeight: FontWeight.w900,
-                                fontSize: 13.5,
+                                fontSize: 13,
                               ),
                             ),
                             if (pkg.bonus > 0) ...[
@@ -1104,7 +1136,7 @@ class _StorePageState extends State<StorePage> {
                                   style: const TextStyle(
                                     color: Color(0xFF58F29A),
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                   ),
                                 ),
                               ),
@@ -1116,7 +1148,7 @@ class _StorePageState extends State<StorePage> {
                   ),
                 ),
 
-                // زر الشراء بالدينار الكويتي
+                // زر الشراء بالدينار الكويتي والدولار
                 ElevatedButton(
                   onPressed: isBusy ? null : () => _handlePurchase(pkg),
                   style: ElevatedButton.styleFrom(
@@ -1128,8 +1160,8 @@ class _StorePageState extends State<StorePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                      horizontal: 14,
+                      vertical: 8,
                     ),
                   ),
                   child: isBusy
@@ -1138,12 +1170,29 @@ class _StorePageState extends State<StorePage> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          pkg.priceString,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
-                          ),
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              pkg.priceString,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                height: 1.15,
+                              ),
+                            ),
+                            Text(
+                              pkg.usdPriceString,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                                color: pkg.isPopular
+                                    ? const Color(0xFF1E1304).withAlpha(190)
+                                    : Colors.white70,
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
                         ),
                 ),
               ],
