@@ -217,29 +217,34 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   void _showPhrases() {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.feltDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          alignment: WrapAlignment.center,
-          children: [
-            for (final phrase in kQuickPhrases)
-              ActionChip(
-                label: Text(
-                  phrase,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                onPressed: () {
-                  widget.onEmote?.call(phrase);
-                  Navigator.pop(ctx);
-                },
-              ),
-          ],
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final phrase in kQuickPhrases)
+                  ActionChip(
+                    label: Text(
+                      phrase,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      widget.onEmote?.call(phrase);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

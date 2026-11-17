@@ -167,10 +167,11 @@ class TopControlsPill extends StatelessWidget {
             ),
             child: SafeArea(
               top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Center(
                     child: Container(
                       width: 44,
@@ -404,6 +405,7 @@ class TopControlsPill extends StatelessWidget {
                 ],
               ),
             ),
+          ),
           );
         },
       ),
