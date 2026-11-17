@@ -129,7 +129,7 @@ class LobbyCubit extends Cubit<LobbyState> {
     }
     if (text.contains('not_authenticated')) return 'سجّل الدخول أولاً';
     if (text.contains('bad_settings')) return 'إعدادات الغرفة غير صالحة';
-    if (text.contains('bad_stake')) return 'قيمة الرهان المحددة غير صالحة';
+    if (text.contains('bad_stake')) return 'رسوم الغرفة المحددة غير صالحة';
     if (text.contains('coin_transactions_room_code_fkey') || text.contains('23503')) {
       return 'يجب تحديث سكيما قاعدة البيانات في Supabase لإصلاح قيد الغرف';
     }

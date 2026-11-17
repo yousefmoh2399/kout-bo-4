@@ -238,51 +238,15 @@ begin
   return to_jsonb(r);
 end $$;
 
--- د. دالة توزيع جائزة المباراة (Pot) بالتساوي على لاعبي الفريق الفائز
+-- د. دالة توزيع جائزة المباراة: تم إيقافها بالكامل لمنع أي رهانات أو أرباح على اللعب (لعب نظيف وبدون مراهنات)
 create or replace function public.award_room_winnings(
   p_code text, 
   p_winning_team int -- 0: المقاعد (0, 2) | 1: المقاعد (1, 3)
 ) returns void
 language plpgsql security definer set search_path = public as $$
-declare
-  r public.rooms;
-  v_total_pot bigint;
-  v_share bigint;
-  v_winner_1 uuid;
-  v_winner_2 uuid;
-  v_bal bigint;
 begin
-  select * into r from public.rooms where code = upper(p_code) for update;
-  if r.code is null or r.stake_points = 0 then return; end if;
-
-  -- إجمالي النقاط المجمعة (4 لاعبين * رسم الدخول)
-  v_total_pot := r.stake_points * 4;
-  -- نصيب كل لاعب في الفريق الفائز (نصف الجائزة)
-  v_share := (v_total_pot * 0.95)::bigint / 2;
-
-  if p_winning_team = 0 then
-    v_winner_1 := (r.seats->0->>'id')::uuid;
-    v_winner_2 := (r.seats->2->>'id')::uuid;
-  else
-    v_winner_1 := (r.seats->1->>'id')::uuid;
-    v_winner_2 := (r.seats->3->>'id')::uuid;
-  end if;
-
-  -- إضافة الجائزة للفائز الأول إذا لم يكن بوتاً
-  if v_winner_1 is not null and not coalesce((r.seats->(case when p_winning_team=0 then 0 else 1 end)->>'bot')::boolean, false) then
-    select coins into v_bal from public.profiles where id = v_winner_1 for update;
-    update public.profiles set coins = coins + v_share where id = v_winner_1;
-    insert into public.coin_transactions (user_id, amount, type, room_code, balance_after, description)
-    values (v_winner_1, v_share, 'room_win', r.code, coalesce(v_bal, 0) + v_share, 'جائزة الفوز في الغرفة ' || r.code);
-  end if;
-
-  -- إضافة الجائزة للفائز الثاني (الشريك) إذا لم يكن بوتاً
-  if v_winner_2 is not null and not coalesce((r.seats->(case when p_winning_team=0 then 2 else 3 end)->>'bot')::boolean, false) then
-    select coins into v_bal from public.profiles where id = v_winner_2 for update;
-    update public.profiles set coins = coins + v_share where id = v_winner_2;
-    insert into public.coin_transactions (user_id, amount, type, room_code, balance_after, description)
-    values (v_winner_2, v_share, 'room_win', r.code, coalesce(v_bal, 0) + v_share, 'جائزة الفوز في الغرفة ' || r.code);
-  end if;
+  -- تم إلغاء توزيع أي نقاط أو أرباح للفريق الفائز (النقاط هي رسم خدمة حجز الغرفة والوقت فقط ولا توجد أي مراهنات)
+  return;
 end $$;
 
 -- هـ. دالة شحن النقاط عند الشراء من Apple In-App Purchase

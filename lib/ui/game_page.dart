@@ -178,16 +178,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             playerName: s.names[me],
           );
 
-      // توزيع أرباح الغرفة بالنقاط للفريق الفائز عبر المضيف
-      if (widget.roomCode != null &&
-          widget.isHost &&
-          s.winnerTeam != null &&
-          widget.roomStake > 0) {
-        RoomRepository(Supabase.instance.client).awardRoomWinnings(
-          code: widget.roomCode!,
-          winningTeam: s.winnerTeam!,
-        );
-      }
+      // اللعب نظيف وبدون أي جوائز أو مراهنات نقاط - لا يتم توزيع أي أرباح للفائز
       try {
         context.read<AuthCubit>().refreshCoins();
       } catch (_) {}

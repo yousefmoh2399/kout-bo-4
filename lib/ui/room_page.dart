@@ -260,8 +260,8 @@ class _RoomPageState extends State<RoomPage> {
                   const SizedBox(width: 6),
                   Text(
                     room.stakePoints > 0
-                        ? 'رسم الدخول: ${room.stakePoints} نقطة • جائزة الفوز: ${(room.stakePoints * 4 * 0.95).toInt()} 🏆'
-                        : 'غرفة ودية (بدون رهان نقاط)',
+                        ? 'رسم الديوانية: ${room.stakePoints} نقطة • لعب نظيف'
+                        : 'ديوانية ودية مجانية (بدون نقاط)',
                     style: TextStyle(
                       color: room.stakePoints > 0 ? AppColors.goldLight : Colors.white70,
                       fontSize: 12,

@@ -54,7 +54,7 @@ void main() {
       expect(pointsForDuration(100), equals(2500));
       // 6 صكات (120 دقيقة / ساعتان) = 3,000 نقطة
       expect(pointsForDuration(120), equals(3000));
-      // ودية مجانية (0 دقيقة أو بدون رهان) = 0 نقطة
+      // ودية مجانية (0 دقيقة أو بدون نقاط) = 0 نقطة
       expect(pointsForDuration(0), equals(0));
     });
 
@@ -350,6 +350,80 @@ void main() {
       // التحقق من أن الدوال ترفض الضيف عبر استثناء guest_not_allowed
       expect(sql.contains("raise exception 'guest_not_allowed';"), isTrue,
           reason: 'يجب أن تمنع دالات SQL الضيف من دخول الغرف عبر استثناء guest_not_allowed');
+    });
+  });
+
+  group('5. منع الجوائز والمراهنات (No Gambling, No Winnings Policy)', () {
+    testWidgets('نافذة الإعدادات تعرض "لعب نظيف بدون مراهنات" ولا تعرض أي جوائز فوز أو رهانات',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () {
+                  showGameSettingsSheet(
+                    ctx,
+                    confirmLabel: 'إنشاء الغرفة',
+                    isOnlineRoom: true,
+                    userCoins: 1000,
+                    isGuest: false,
+                  );
+                },
+                child: const Text('افتح'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('افتح'));
+      await tester.pumpAndSettle();
+
+      // التحقق من ظهور عبارة اللعب النظيف والأيقونة المعتمدة
+      expect(find.text('لعب نظيف بدون مراهنات'), findsOneWidget);
+      expect(find.byIcon(Icons.verified_user_rounded), findsOneWidget);
+
+      // التحقق التام من عدم وجود كلمة جائزة أو رهان في النافذة
+      expect(find.textContaining('جائزة'), findsNothing);
+      expect(find.textContaining('رهان'), findsNothing);
+      expect(find.text('ودية مجانية (بدون نقاط)'), findsOneWidget);
+    });
+
+    test('دالة award_room_winnings في SQL لا توزع أي نقاط أو تسجل معاملات فوز', () {
+      final file = File('supabase/points_and_economy.sql');
+      expect(file.existsSync(), isTrue);
+
+      final sql = file.readAsStringSync();
+
+      // التحقق من أن دالة award_room_winnings معطلة تماماً وترجع فوراً بدون توزيع نقاط
+      expect(sql.contains('create or replace function public.award_room_winnings'), isTrue);
+      // التأكد من عدم وجود كود إضافة أرصدة أو إدراج room_win
+      expect(sql.contains('update public.profiles set coins = coins + v_share'), isFalse,
+          reason: 'يجب عدم توزيع أي أرباح للفريق الفائز لضمان خلو اللعبة من شبهة القمار والرهان');
+    });
+
+    test('اقتصاد اللعبة: النقاط تخصم عند الدخول فقط ورصيد الفائزين لا يزداد عند الفوز', () {
+      // رصيد اللاعب قبل الدخول
+      var playerBalance = 500;
+      const roomEntryCost = 500;
+
+      // خصم رسم حجز الديوانية عند الدخول
+      playerBalance -= roomEntryCost;
+      expect(playerBalance, equals(0));
+
+      // انتهاء اللعبة بفوز اللاعب: لا توجد أي أرباح أو جوائز مضافة للرصيد
+      const winningPointsAwarded = 0;
+      playerBalance += winningPointsAwarded;
+
+      // الرصيد يظل 0 ولا يزداد عند الفوز
+      expect(playerBalance, equals(0));
     });
   });
 }

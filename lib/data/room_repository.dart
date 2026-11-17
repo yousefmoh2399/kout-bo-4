@@ -27,7 +27,7 @@ class RoomRepository {
       });
       return code as String;
     } catch (e) {
-      // إذا كانت الغرفة بدون رهان وفشلت دالة الرهان، نجرب الدالة الكلاسيكية كاحتياط
+      // إذا كانت الغرفة بدون نقاط وفشلت دالة النقاط، نجرب الدالة الكلاسيكية كاحتياط
       if (settings.stakePoints == 0) {
         try {
           final code = await _client.rpc('create_room', params: {
@@ -106,17 +106,12 @@ class RoomRepository {
   Future<void> finishRoom(String code) =>
       _client.rpc('finish_room', params: {'p_code': code});
 
-  /// توزيع جائزة الغرفة على الفريق الفائز (0 أو 1).
+  /// تم إيقاف توزيع جوائز الفوز بالنقاط التزاماً باللعب النظيف ومنع المراهنات
   Future<void> awardRoomWinnings({
     required String code,
     required int winningTeam,
   }) async {
-    try {
-      await _client.rpc('award_room_winnings', params: {
-        'p_code': code.toUpperCase(),
-        'p_winning_team': winningTeam,
-      });
-    } catch (_) {}
+    // اللعب نظيف وبدون أي رهانات أو أرباح نقاط عند الفوز
   }
 
   /// يبث تحديثات الغرفة. null = الغرفة حُذفت (غادر المضيف).

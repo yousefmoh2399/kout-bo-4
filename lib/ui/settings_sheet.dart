@@ -384,7 +384,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                   }),
                                 ),
                                 _luxuryChip(
-                                  label: 'ودية مجانية (بدون رهان)',
+                                  label: 'ودية مجانية (بدون نقاط)',
                                   selected: !_customMatch &&
                                       _settings.stakePoints == 0,
                                   onTap: () => setState(() {
@@ -457,18 +457,20 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                                     ],
                                   ),
                                   if (_settings.stakePoints > 0)
-                                    Row(
+                                    const Row(
                                       children: [
-                                        const Text(
-                                          '🏆 الجائزة: ',
-                                          style: TextStyle(fontSize: 11),
+                                        Icon(
+                                          Icons.verified_user_rounded,
+                                          size: 14,
+                                          color: Color(0xFF4BE0A8),
                                         ),
+                                        SizedBox(width: 4),
                                         Text(
-                                          '${(_settings.stakePoints * 4 * 0.95).toInt()} نقطة',
-                                          style: const TextStyle(
+                                          'لعب نظيف بدون مراهنات',
+                                          style: TextStyle(
                                             color: Color(0xFF4BE0A8),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w800,
                                           ),
                                         ),
                                       ],
