@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../bloc/auth_cubit.dart';
 import '../core/config.dart';
 import '../core/sound.dart';
 import '../core/theme.dart';
@@ -13,6 +15,7 @@ Future<GameSettings?> showGameSettingsSheet(
   required String confirmLabel,
   bool isOnlineRoom = false,
   int userCoins = 0,
+  bool isGuest = false,
 }) {
   return showModalBottomSheet<GameSettings>(
     context: context,
@@ -23,6 +26,7 @@ Future<GameSettings?> showGameSettingsSheet(
       confirmLabel: confirmLabel,
       isOnlineRoom: isOnlineRoom,
       userCoins: userCoins,
+      isGuest: isGuest,
     ),
   );
 }
@@ -32,11 +36,13 @@ class _SettingsSheet extends StatefulWidget {
     required this.confirmLabel,
     this.isOnlineRoom = false,
     this.userCoins = 0,
+    this.isGuest = false,
   });
 
   final String confirmLabel;
   final bool isOnlineRoom;
   final int userCoins;
+  final bool isGuest;
 
   @override
   State<_SettingsSheet> createState() => _SettingsSheetState();
@@ -756,27 +762,36 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   Expanded(
                     flex: 7,
                     child: GoldButton(
-                      label: !hasEnoughCoins
-                          ? 'اشحن النقاط'
-                          : widget.confirmLabel,
-                      icon: !hasEnoughCoins
-                          ? Icons.monetization_on_rounded
-                          : (widget.isOnlineRoom
-                              ? Icons.add_home_work_rounded
-                              : Icons.play_arrow_rounded),
+                      label: widget.isGuest && widget.isOnlineRoom
+                          ? 'سجّل حسابك للمتابعة'
+                          : (!hasEnoughCoins
+                              ? 'اشحن النقاط'
+                              : widget.confirmLabel),
+                      icon: widget.isGuest && widget.isOnlineRoom
+                          ? Icons.lock_person_rounded
+                          : (!hasEnoughCoins
+                              ? Icons.monetization_on_rounded
+                              : (widget.isOnlineRoom
+                                  ? Icons.add_home_work_rounded
+                                  : Icons.play_arrow_rounded)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      onPressed: !hasEnoughCoins
+                      onPressed: widget.isGuest && widget.isOnlineRoom
                           ? () {
                               Navigator.pop(context);
-                              StorePage.show(
-                                context,
-                                requiredPoints: _settings.stakePoints,
-                              );
+                              context.read<AuthCubit>().signOut();
                             }
-                          : () {
-                              SoundService.instance.play(Sfx.click);
-                              Navigator.pop(context, _settings);
-                            },
+                          : (!hasEnoughCoins
+                              ? () {
+                                  Navigator.pop(context);
+                                  StorePage.show(
+                                    context,
+                                    requiredPoints: _settings.stakePoints,
+                                  );
+                                }
+                              : () {
+                                  SoundService.instance.play(Sfx.click);
+                                  Navigator.pop(context, _settings);
+                                }),
                     ),
                   ),
                 ],

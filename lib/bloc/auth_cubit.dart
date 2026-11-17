@@ -18,7 +18,7 @@ class AppAuthState extends Equatable {
     this.isGuest = true,
     this.busy = false,
     this.error,
-    this.coins = 500,
+    this.coins = 0,
   });
 
   final AuthStatus status;
@@ -88,38 +88,54 @@ class AuthCubit extends Cubit<AppAuthState> {
     final name = (meta is String && meta.isNotEmpty)
         ? meta
         : (u.email?.split('@').first ?? 'لاعب');
+    final isGuest = u.isAnonymous;
     emit(AppAuthState(
       status: AuthStatus.signedIn,
       name: name,
       userId: u.id,
-      isGuest: u.isAnonymous,
+      isGuest: isGuest,
+      // الضيف يبدأ بـ 0 نقاط، بينما العضو المسجل يحصل على 500 نقطة ترحيبية
+      coins: isGuest ? 0 : 500,
     ));
 
     // مزامنة فورية للبروفايل مع قاعدة البيانات وجلب الرصيد
     final c = _client;
     if (c != null) {
-      c.from('profiles').upsert({
-        'id': u.id,
-        'name': name,
-        'is_guest': u.isAnonymous,
-        'updated_at': DateTime.now().toIso8601String(),
+      c.rpc('sync_profile', params: {
+        'p_name': name,
+        'p_is_guest': isGuest,
       }).then((_) {
         refreshCoins();
       }).catchError((_) {
-        refreshCoins();
+        c.from('profiles').upsert({
+          'id': u.id,
+          'name': name,
+          'is_guest': isGuest,
+          'coins': isGuest ? 0 : 500,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).then((_) {
+          refreshCoins();
+        }).catchError((_) {
+          refreshCoins();
+        });
       });
     }
   }
 
   /// تحديث رصيد النقاط محلياً فوراً
   void setCoins(int newCoins) {
-    if (!isClosed) emit(state.copyWith(coins: newCoins));
+    if (!isClosed) emit(state.copyWith(coins: state.isGuest ? 0 : newCoins));
   }
 
   /// تحديث رصيد النقاط من Supabase
   Future<void> refreshCoins() async {
     final c = _client;
     final uid = state.userId;
+    // الضيف لا يملك أي رصيد نقاط (0 دائماً) حتى يسجل حسابه
+    if (state.isGuest) {
+      if (state.coins != 0 && !isClosed) emit(state.copyWith(coins: 0));
+      return;
+    }
     if (c == null || uid == null || uid == 'local') return;
     try {
       final row = await c.from('profiles').select('coins').eq('id', uid).maybeSingle();

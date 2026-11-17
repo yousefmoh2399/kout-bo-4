@@ -3,9 +3,9 @@
 -- شغّل هذا الملف كاملاً في Supabase → SQL Editor (مرة واحدة بالكامل).
 -- ==============================================================================
 
--- 1. إضافة عمود رصيد النقاط (coins) إلى جدول الملفات الشخصية (الافتراضي 500 نقطة ترحيبية = صكة تجريبية واحدة ٢٠ دقيقة)
+-- 1. إضافة عمود رصيد النقاط (coins) إلى جدول الملفات الشخصية (الافتراضي 0 للضيوف، و500 للحساب المسجل)
 alter table public.profiles 
-  add column if not exists coins bigint not null default 500;
+  add column if not exists coins bigint not null default 0;
 
 -- 2. إضافة عمود رسم دخول الغرفة (stake_points) إلى جدول الغرف
 alter table public.rooms 
@@ -73,7 +73,48 @@ begin
   end loop;
 end $$;
 
--- ب. دالة إنشاء غرفة مع رسم دخول (تنشئ الغرفة أولاً ثم تخصم الرصيد وتسجل المعاملة)
+-- ب. دالة مزامنة وإنشاء بروفايل اللاعب (الضيف = 0 نقطة، الحساب المسجل = 500 نقطة ترحيبية)
+create or replace function public.sync_profile(p_name text, p_is_guest boolean default true)
+returns public.profiles
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_profile public.profiles;
+  v_initial_coins bigint;
+begin
+  if v_uid is null then raise exception 'not_authenticated'; end if;
+  p_name := left(btrim(coalesce(p_name, '')), 24);
+  if p_name = '' then p_name := 'لاعب'; end if;
+
+  -- الضيف لا يحصل على أي نقاط أولية (0 نقطة)، بينما الحساب المسجل يحصل على 500 نقطة ترحيبية
+  v_initial_coins := case when p_is_guest then 0 else 500 end;
+
+  insert into public.profiles (id, name, is_guest, coins, updated_at)
+  values (v_uid, p_name, p_is_guest, v_initial_coins, now())
+  on conflict (id) do update
+    set name = p_name,
+        -- إذا تحول الحساب من ضيف إلى مسجل، وكان رصيده 0 ولم يأخذ بونص ترحيبي، يمنح 500 نقطة ترحيبية
+        coins = case 
+          when profiles.is_guest and not p_is_guest and coalesce(profiles.coins, 0) = 0 then 500
+          else profiles.coins
+        end,
+        is_guest = p_is_guest,
+        updated_at = now()
+  returning * into v_profile;
+
+  -- تسجيل معاملة welcome_bonus عند منح 500 نقطة لأول مرة لحساب مسجل
+  if not p_is_guest and not exists (
+    select 1 from public.coin_transactions 
+    where user_id = v_uid and type = 'welcome_bonus'
+  ) and v_profile.coins = 500 then
+    insert into public.coin_transactions (user_id, amount, type, balance_after, description)
+    values (v_uid, 500, 'welcome_bonus', 500, 'مكافأة التسجيل والترحيب بالعضو الجديد');
+  end if;
+
+  return v_profile;
+end $$;
+
+-- ج. دالة إنشاء غرفة مع رسم دخول (تنشئ الغرفة أولاً ثم تخصم الرصيد وتسجل المعاملة)
 create or replace function public.create_room_with_stake(
   p_name text, 
   p_target int, 
@@ -85,6 +126,7 @@ declare
   v_code text;
   v_uid uuid := auth.uid();
   v_balance bigint;
+  v_is_guest boolean;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   if p_target not in (51, 101) or p_turn < 0 or p_turn > 120 then raise exception 'bad_settings'; end if;
@@ -95,6 +137,12 @@ begin
 
   -- التأكد من وجود بروفايل اللاعب ومزامنته
   perform public.sync_profile(p_name);
+
+  -- التحقق الصارم: يمنع الضيف من إنشاء الغرف نهائياً
+  select is_guest into v_is_guest from public.profiles where id = v_uid;
+  if coalesce(v_is_guest, true) then
+    raise exception 'guest_not_allowed';
+  end if;
 
   -- التحقق من رصيد اللاعب
   select coins into v_balance from public.profiles where id = v_uid for update;
@@ -125,7 +173,7 @@ begin
   return v_code;
 end $$;
 
--- ج. دالة الانضمام لغرفة مع خصم رسم الدخول من المنضم
+-- د. دالة الانضمام لغرفة مع خصم رسم الدخول من المنضم
 create or replace function public.join_room_with_stake(p_code text, p_name text) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
@@ -135,6 +183,7 @@ declare
   v_order int[] := array[2, 1, 3];
   i int;
   v_balance bigint;
+  v_is_guest boolean;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   p_name := left(btrim(coalesce(p_name, '')), 16);
@@ -142,6 +191,12 @@ begin
 
   -- التأكد من وجود بروفايل اللاعب ومزامنته
   perform public.sync_profile(p_name);
+
+  -- التحقق الصارم: يمنع الضيف من الانضمام للغرف نهائياً
+  select is_guest into v_is_guest from public.profiles where id = v_uid;
+  if coalesce(v_is_guest, true) then
+    raise exception 'guest_not_allowed';
+  end if;
 
   select * into r from public.rooms where code = upper(p_code) for update;
   if r.code is null then raise exception 'room_not_found'; end if;
@@ -421,9 +476,16 @@ declare
   v_uid uuid := auth.uid();
   v_cost int;
   v_balance bigint;
+  v_is_guest boolean;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   if p_minutes <= 0 then raise exception 'invalid_minutes'; end if;
+
+  -- التحقق الصارم: يمنع الضيف من تمديد الوقت
+  select is_guest into v_is_guest from public.profiles where id = v_uid;
+  if coalesce(v_is_guest, true) then
+    raise exception 'guest_not_allowed';
+  end if;
 
   -- حساب التكلفة: كل 20 دقيقة = 500 نقطة
   v_cost := ((p_minutes + 19) / 20) * 500;
@@ -445,6 +507,7 @@ begin
 end $$;
 
 -- ───────────────────────────── الصلاحيات (Grants) ─────────────────────────────
+grant execute on function public.sync_profile(text, boolean) to authenticated;
 grant execute on function public.refund_room_stakes_for_user(uuid) to authenticated;
 grant execute on function public.create_room_with_stake(text, int, int, int) to authenticated;
 grant execute on function public.join_room_with_stake(text, text) to authenticated;

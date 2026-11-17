@@ -45,6 +45,20 @@ class _RoomPageState extends State<RoomPage> {
     } else {
       _repo = RoomRepository(Supabase.instance.client);
       _cubit = LobbyCubit(_repo, userId: _userId, userName: auth.name);
+      if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('الدخول للغرف متاح فقط للأعضاء المسجلين.'),
+                backgroundColor: AppColors.danger,
+              ),
+            );
+          }
+        });
+        return;
+      }
       if (widget.create != null) {
         _cubit.create(widget.create!);
       } else {

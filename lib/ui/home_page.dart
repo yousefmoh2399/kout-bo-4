@@ -116,17 +116,94 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _showGuestBlockedDialog({
+    required String title,
+    required String actionName,
+  }) async {
+    SoundService.instance.play(Sfx.click);
+    await showLuxuryDialog<void>(
+      context: context,
+      title: title,
+      icon: Icons.lock_person_rounded,
+      accentColor: AppColors.gold,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withAlpha(25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.gold.withAlpha(90)),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.card_giftcard_rounded, color: AppColors.goldLight, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'احصل على ٥٠٠ نقطة ترحيبية مجاناً 🎁',
+                  style: TextStyle(
+                    color: AppColors.goldLight,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'أنت تلعب حالياً كـ (ضيف / زائر).\n\nميزة ($actionName) متاحة فقط للأعضاء المسجلين لحفظ النقاط والنتائج.\n\nسجّل حسابك الآن واحصل على ٥٠٠ نقطة ترحيبية مجاناً لفتح الغرف واللعب مع الربع!',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        GoldButton(
+          label: 'إلغاء',
+          outlined: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          onPressed: () => Navigator.pop(context),
+        ),
+        GoldButton(
+          label: 'تسجيل حساب الآن (٥٠٠ نقطة 🎁)',
+          icon: Icons.app_registration_rounded,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          onPressed: () {
+            Navigator.pop(context);
+            context.read<AuthCubit>().signOut();
+          },
+        ),
+      ],
+    );
+  }
+
   Future<void> _createRoom() async {
     if (!ConnectivityService.instance.isOnline) {
       _showOfflineActionDialog(actionName: 'إنشاء ديوانية أونلاين');
       return;
     }
-    final userCoins = context.read<AuthCubit>().state.coins;
+    final auth = context.read<AuthCubit>().state;
+    if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
+      _showGuestBlockedDialog(
+        title: 'تسجيل الحساب مطلوب',
+        actionName: 'إنشاء ديوانية أونلاين',
+      );
+      return;
+    }
+    final userCoins = auth.coins;
     final settings = await showGameSettingsSheet(
       context,
       confirmLabel: 'إنشاء الغرفة',
       isOnlineRoom: true,
       userCoins: userCoins,
+      isGuest: false,
     );
     if (settings == null || !mounted) return;
     await Navigator.push(
@@ -142,6 +219,14 @@ class _HomePageState extends State<HomePage> {
   Future<void> _joinRoom() async {
     if (!ConnectivityService.instance.isOnline) {
       _showOfflineActionDialog(actionName: 'الانضمام لديوانية أونلاين');
+      return;
+    }
+    final auth = context.read<AuthCubit>().state;
+    if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
+      _showGuestBlockedDialog(
+        title: 'تسجيل الحساب مطلوب',
+        actionName: 'الانضمام لديوانية أونلاين',
+      );
       return;
     }
     final controller = TextEditingController();
@@ -190,6 +275,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _rejoinRoom(Room room) async {
+    final auth = context.read<AuthCubit>().state;
+    if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
+      _showGuestBlockedDialog(
+        title: 'تسجيل الحساب مطلوب',
+        actionName: 'الانضمام لديوانية أونلاين',
+      );
+      return;
+    }
     SoundService.instance.play(Sfx.click);
     await Navigator.push(
       context,
@@ -241,7 +334,15 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(width: 8),
                         _CoinsPill(
                           coins: auth.coins,
+                          isGuest: auth.isGuest,
                           onTap: () async {
+                            if (auth.isGuest) {
+                              _showGuestBlockedDialog(
+                                title: 'رصيد نقاط الأعضاء',
+                                actionName: 'شحن واستخدام النقاط',
+                              );
+                              return;
+                            }
                             if (!ConnectivityService.instance.isOnline) {
                               SoundService.instance.play(Sfx.click);
                               showLuxuryDialog<void>(
@@ -743,10 +844,12 @@ class _CoinsPill extends StatelessWidget {
   const _CoinsPill({
     required this.coins,
     required this.onTap,
+    this.isGuest = false,
   });
 
   final int coins;
   final VoidCallback onTap;
+  final bool isGuest;
 
   String _format(int n) {
     return n.toString().replaceAllMapped(
@@ -781,16 +884,18 @@ class _CoinsPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.monetization_on_rounded,
+              Icon(
+                isGuest
+                    ? Icons.card_giftcard_rounded
+                    : Icons.monetization_on_rounded,
                 size: 16,
                 color: AppColors.goldLight,
               ),
               const SizedBox(width: 4),
               Text(
-                _format(coins),
+                isGuest ? 'ضيف (٠)' : _format(coins),
                 style: const TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: AppColors.goldLight,
                   letterSpacing: 0.3,

@@ -18,10 +18,14 @@ void main() {
   });
 
   group('1. الرصيد الافتتاحي وحساب النقاط (Initial Balance & Calculations)', () {
-    test('الرصيد الترحيبي لأي حساب جديد هو 500 نقطة', () {
-      const state = AppAuthState();
-      expect(state.coins, equals(500),
-          reason: 'يجب أن يكون الرصيد الافتتاحي 500 نقطة فقط لمنح صكة تجريبية واحدة');
+    test('الضيف (Guest) يبدأ بـ 0 نقطة ولا يحصل على نقاط إلا عند تسجيل حسابه', () {
+      const guestState = AppAuthState(isGuest: true);
+      expect(guestState.coins, equals(0),
+          reason: 'يجب أن يبدأ الضيف بـ 0 نقطة ولا يحصل على أي نقاط إلا بعد تسجيل حسابه');
+
+      const registeredState = AppAuthState(isGuest: false, coins: 500);
+      expect(registeredState.coins, equals(500),
+          reason: 'الحساب المسجل يحصل على 500 نقطة ترحيبية');
     });
 
     test('مدة المباراة الافتراضية في الإعدادات هي 20 دقيقة', () {
@@ -54,7 +58,7 @@ void main() {
       expect(pointsForDuration(0), equals(0));
     });
 
-    test('الرصيد الأولي 500 يتيح فتح غرفة تجريبية واحدة ثم يصبح الرصيد 0 ويرفض فتح الغرفة الثانية', () {
+    test('الرصيد الأولي 500 للمسجل يتيح فتح غرفة تجريبية واحدة ثم يصبح 0 ويرفض فتح الغرفة الثانية', () {
       var userBalance = 500;
       const roundCost = 500;
 
@@ -289,27 +293,63 @@ void main() {
     });
   });
 
-  group('4. التحقق من سكيما وقواعد قاعدة البيانات (Supabase SQL Check)', () {
-    test('ملف supabase/points_and_economy.sql يحتوي على الرصيد 500 ودالة تمديد الوقت', () {
+  group('4. قيود ومنع الضيف من الغرف والنقاط (Guest Blocking & Policy)', () {
+    testWidgets('الضيف في نافذة الإعدادات يتحول زر التأكيد إلى "سجّل حسابك للمتابعة"',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () {
+                  showGameSettingsSheet(
+                    ctx,
+                    confirmLabel: 'إنشاء ديوانية',
+                    isOnlineRoom: true,
+                    userCoins: 0,
+                    isGuest: true, // ضيف
+                  );
+                },
+                child: const Text('افتح'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('افتح'));
+      await tester.pumpAndSettle();
+
+      // يتحول الزر السفلي فوراً لمنع الضيف ومطالبته بالتسجيل
+      expect(find.text('سجّل حسابك للمتابعة'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_person_rounded), findsOneWidget);
+    });
+
+    test('ملف SQL يمنع الضيف من إنشاء أو دخول الغرف أو تمديد الوقت (guest_not_allowed)', () {
       final file = File('supabase/points_and_economy.sql');
       expect(file.existsSync(), isTrue);
 
       final sql = file.readAsStringSync();
 
-      // التحقق من أن الرصيد الافتراضي هو 500
-      expect(sql.contains('default 500'), isTrue,
-          reason: 'يجب أن يكون الرصيد الافتراضي 500 نقطة');
+      // التحقق من أن الرصيد الافتراضي هو 0 للضيوف
+      expect(sql.contains('default 0'), isTrue,
+          reason: 'يجب أن يكون الرصيد الافتراضي 0 نقاط للضيوف');
 
-      // التحقق من أن قيود النقاط تشمل مضاعفات الـ 20 دقيقة (500, 1000, 1500, 2000, 2500, 3000)
-      expect(sql.contains('1500, 2000, 2500, 3000'), isTrue,
-          reason: 'يجب أن تسمح قيود stake_points بجميع فئات الصكات');
+      // التحقق من قيود stake_points
+      expect(sql.contains('1500, 2000, 2500, 3000'), isTrue);
 
       // التحقق من وجود دالة extend_room_time
-      expect(sql.contains('create or replace function public.extend_room_time'), isTrue,
-          reason: 'يجب أن توجد دالة extend_room_time لخصم النقاط وتسجيل المعاملة الذرية');
+      expect(sql.contains('create or replace function public.extend_room_time'), isTrue);
 
-      // التحقق من نوع المعاملة المالية room_extend_time
-      expect(sql.contains("'room_extend_time'"), isTrue);
+      // التحقق من أن الدوال ترفض الضيف عبر استثناء guest_not_allowed
+      expect(sql.contains("raise exception 'guest_not_allowed';"), isTrue,
+          reason: 'يجب أن تمنع دالات SQL الضيف من دخول الغرف عبر استثناء guest_not_allowed');
     });
   });
 }
