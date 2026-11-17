@@ -435,10 +435,10 @@ class _GameBody extends StatelessWidget {
             // 1. طاولة الديوانية الكويتية الوسطية (ساحة رمي الأوراق)
             Positioned(
               key: const ValueKey('trick_arena'),
-              top: isPortrait ? 128 : 48,
-              bottom: isPortrait ? 184 : 74,
-              left: isPortrait ? 68 : 92,
-              right: isPortrait ? 68 : 92,
+              top: isPortrait ? 126 : 46,
+              bottom: isPortrait ? 186 : 74,
+              left: isPortrait ? 74 : 92,
+              right: isPortrait ? 74 : 92,
               child: TrickArena(state: s, me: me),
             ),
 
@@ -522,7 +522,7 @@ class _GameBody extends StatelessWidget {
             Positioned(
               key: const ValueKey('player_station'),
               left: 10,
-              bottom: isPortrait ? 124 : 8,
+              bottom: isPortrait ? 130 : 6,
               child: PlayerStation(state: s, seat: me),
             ),
 

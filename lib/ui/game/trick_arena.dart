@@ -12,6 +12,294 @@ import '../card_view.dart';
 import '../suit_icon.dart';
 import 'game_hud.dart';
 
+// ============================================================================
+// 1. رسام الطاولة ثلاثية الأبعاد الفاخرة (Diwaniya 3D Table Painter)
+// ============================================================================
+class Diwaniya3DTablePainter extends CustomPainter {
+  final bool isLandscape;
+  final bool isWinnerActive;
+
+  const Diwaniya3DTablePainter({
+    required this.isLandscape,
+    this.isWinnerActive = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // أبعاد وهندسة الطاولة ثلاثية الأبعاد
+    final apronH = isLandscape ? 28.0 : 22.0;
+    final shadowH = isLandscape ? 16.0 : 12.0;
+    final padX = isLandscape ? 12.0 : 8.0;
+    final topY = isLandscape ? 8.0 : 6.0;
+    final bottomY = h - apronH - shadowH;
+    final taper = isLandscape ? 0.055 : 0.065; // نسبة الميل المنظوري (Trapezoid)
+
+    // نقاط السطح العلوي
+    final tl = Offset(padX + w * taper, topY);
+    final tr = Offset(w - padX - w * taper, topY);
+    final br = Offset(w - padX, bottomY);
+    final bl = Offset(padX, bottomY);
+
+    // 1. ظل الطاولة على الأرضية (Floor Drop Shadow) يعطي إحساساً بارتفاع الطاولة وتجسيمها
+    final shadowPath = Path()
+      ..moveTo(bl.dx - 6, bottomY + apronH * 0.3)
+      ..lineTo(br.dx + 6, bottomY + apronH * 0.3)
+      ..lineTo(br.dx + 12, bottomY + apronH + shadowH)
+      ..lineTo(bl.dx - 12, bottomY + apronH + shadowH)
+      ..close();
+
+    final shadowPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.black.withAlpha(165),
+          Colors.black.withAlpha(0),
+        ],
+      ).createShader(Rect.fromLTWH(0, bottomY, w, apronH + shadowH))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    // 2. الواجهة الأمامية الخشبية للطاولة (3D Front Apron / Skirt) لإظهار سماكة وعمق الطاولة
+    final apronBl = Offset(bl.dx, bottomY + apronH);
+    final apronBr = Offset(br.dx, bottomY + apronH);
+
+    final apronPath = Path()
+      ..moveTo(bl.dx, bl.dy)
+      ..lineTo(br.dx, br.dy)
+      ..lineTo(apronBr.dx, apronBr.dy)
+      ..lineTo(apronBl.dx, apronBl.dy)
+      ..close();
+
+    final apronShader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: const [
+        Color(0xFF4A2814), // خشب ماهوجني مصقول في الأعلى
+        Color(0xFF2C160B), // خشب جوز كلاسيكي داكن
+        Color(0xFF160A04), // ظل سفلي عميق للواجهة
+      ],
+      stops: const [0.0, 0.45, 1.0],
+    ).createShader(Rect.fromLTWH(bl.dx, bottomY, br.dx - bl.dx, apronH));
+    canvas.drawPath(apronPath, Paint()..shader = apronShader);
+
+    // خط حفر ذهبي أفقي مذهب (Brass Inlay) على الواجهة الأمامية
+    final goldInlayY = bottomY + apronH * 0.46;
+    final goldInlayPaint = Paint()
+      ..shader = const LinearGradient(
+        colors: [
+          Colors.transparent,
+          Color(0xFFD4AF37),
+          Color(0xFFFFF2A1),
+          Color(0xFFD4AF37),
+          Colors.transparent,
+        ],
+        stops: [0.0, 0.12, 0.5, 0.88, 1.0],
+      ).createShader(Rect.fromLTWH(bl.dx, goldInlayY, br.dx - bl.dx, 1.4))
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      Offset(bl.dx + 14, goldInlayY),
+      Offset(br.dx - 14, goldInlayY),
+      goldInlayPaint,
+    );
+
+    // شطفة الحافة السفلية للواجهة
+    final apronBottomBevel = Paint()
+      ..color = const Color(0xFF0F0603)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(apronBl, apronBr, apronBottomBevel);
+
+    // 3. الجوانب ثلاثية الأبعاد (Side Chamfers / Facets)
+    // الجانب الأيسر
+    final leftSidePath = Path()
+      ..moveTo(tl.dx, tl.dy)
+      ..lineTo(bl.dx, bl.dy)
+      ..lineTo(apronBl.dx, apronBl.dy)
+      ..lineTo(tl.dx, tl.dy)
+      ..close();
+    final leftSidePaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topRight,
+        end: Alignment.bottomLeft,
+        colors: [Color(0xFF381B0D), Color(0xFF1E0E06)],
+      ).createShader(leftSidePath.getBounds());
+    canvas.drawPath(leftSidePath, leftSidePaint);
+
+    // الجانب الأيمن (مظلل بشكل أعمق للواقعية)
+    final rightSidePath = Path()
+      ..moveTo(tr.dx, tr.dy)
+      ..lineTo(br.dx, br.dy)
+      ..lineTo(apronBr.dx, apronBr.dy)
+      ..lineTo(tr.dx, tr.dy)
+      ..close();
+    final rightSidePaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF281207), Color(0xFF120803)],
+      ).createShader(rightSidePath.getBounds());
+    canvas.drawPath(rightSidePath, rightSidePaint);
+
+    // 4. إطار الخشب العلوي المصقول (Outer Wood Rail Rim)
+    final topSurfacePath = Path()
+      ..moveTo(tl.dx, tl.dy)
+      ..lineTo(tr.dx, tr.dy)
+      ..lineTo(br.dx, br.dy)
+      ..lineTo(bl.dx, bl.dy)
+      ..close();
+
+    final woodRimShader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: const [
+        Color(0xFF3E2212),
+        Color(0xFF24130A),
+        Color(0xFF331B0E),
+      ],
+    ).createShader(topSurfacePath.getBounds());
+    canvas.drawPath(topSurfacePath, Paint()..shader = woodRimShader);
+
+    // الإطار الذهبي المحيط بالسطح
+    final goldRimPaint = Paint()
+      ..color = isWinnerActive
+          ? AppColors.goldLight
+          : AppColors.gold.withAlpha(160)
+      ..strokeWidth = isWinnerActive ? 2.2 : 1.3
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(topSurfacePath, goldRimPaint);
+
+    // شطفة ذهبية براقة (Specular Gold Highlight) على الحافة الفاصلة بين السطح والواجهة
+    final frontRimSpecular = Paint()
+      ..shader = const LinearGradient(
+        colors: [
+          Colors.transparent,
+          Color(0xFFFFEE99),
+          Color(0xFFFFD700),
+          Color(0xFFFFEE99),
+          Colors.transparent,
+        ],
+        stops: [0.0, 0.12, 0.5, 0.88, 1.0],
+      ).createShader(Rect.fromLTWH(bl.dx, bottomY - 1, br.dx - bl.dx, 2.5))
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(bl, br, frontRimSpecular);
+
+    // 5. الجوخ الزمردي الكازينو الفاخر (Inner Casino Emerald Felt)
+    const feltInset = 9.0;
+    final feltTl = Offset(tl.dx + feltInset * 0.9, tl.dy + feltInset * 0.8);
+    final feltTr = Offset(tr.dx - feltInset * 0.9, tr.dy + feltInset * 0.8);
+    final feltBr = Offset(br.dx - feltInset, br.dy - feltInset * 0.8);
+    final feltBl = Offset(bl.dx + feltInset, bl.dy - feltInset * 0.8);
+
+    final feltPath = Path()
+      ..moveTo(feltTl.dx, feltTl.dy)
+      ..lineTo(feltTr.dx, feltTr.dy)
+      ..lineTo(feltBr.dx, feltBr.dy)
+      ..lineTo(feltBl.dx, feltBl.dy)
+      ..close();
+
+    final feltBounds = feltPath.getBounds();
+    final feltShader = RadialGradient(
+      center: const Alignment(0.0, -0.06),
+      radius: 0.96,
+      colors: const [
+        Color(0xFF106044), // زمردي كازينو حيوي ومضيء في المركز
+        Color(0xFF093E2B), // زمردي مخملي فاخر
+        Color(0xFF042116), // أطراف الجوخ العميقة
+      ],
+      stops: const [0.0, 0.58, 1.0],
+    ).createShader(feltBounds);
+
+    canvas.drawPath(feltPath, Paint()..shader = feltShader);
+
+    // ظل داخلي تحت حافة الخشب لإبراز العمق ثلاثي الأبعاد
+    final feltInnerShadow = Paint()
+      ..color = Colors.black.withAlpha(85)
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(feltPath, feltInnerShadow);
+
+    // 6. خياطة ذهبية ملكية مزدوجة داخل الجوخ (Double Arabesque Stitching)
+    const stitchInset = 4.5;
+    final stitchPath = Path()
+      ..moveTo(feltTl.dx + stitchInset * 0.9, feltTl.dy + stitchInset * 0.8)
+      ..lineTo(feltTr.dx - stitchInset * 0.9, feltTr.dy + stitchInset * 0.8)
+      ..lineTo(feltBr.dx - stitchInset, feltBr.dy - stitchInset * 0.8)
+      ..lineTo(feltBl.dx + stitchInset, feltBl.dy - stitchInset * 0.8)
+      ..close();
+
+    final stitchPaint = Paint()
+      ..color = AppColors.gold.withAlpha(45)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawPath(stitchPath, stitchPaint);
+
+    // 7. النجمة الثمانية والزخرفة الإسلامية المركزية المائلة بالمنظور ثلاثي الأبعاد
+    final cx = feltBounds.center.dx;
+    final cy = feltBounds.center.dy;
+    final minFeltDim = min(feltBounds.width, feltBounds.height);
+    final r = minFeltDim * (isLandscape ? 0.22 : 0.25);
+
+    final starPaint = Paint()
+      ..color = AppColors.gold.withAlpha(28)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+
+    final filigreePaint = Paint()
+      ..color = AppColors.goldLight.withAlpha(20)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (var k = 0; k < 2; k++) {
+      canvas.save();
+      canvas.translate(cx, cy);
+      canvas.rotate(k * pi / 4);
+      canvas.scale(1.0, 0.84); // ضغط ثلاثي الأبعاد ليطابق ميل المنظور
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset.zero, width: r, height: r),
+        starPaint,
+      );
+      canvas.restore();
+    }
+
+    final ovalR1 = Rect.fromCenter(
+      center: Offset(cx, cy),
+      width: r * 1.64,
+      height: r * 1.64 * 0.84,
+    );
+    canvas.drawOval(ovalR1, filigreePaint);
+    final ovalR2 = Rect.fromCenter(
+      center: Offset(cx, cy),
+      width: r * 1.16,
+      height: r * 1.16 * 0.84,
+    );
+    canvas.drawOval(ovalR2, starPaint);
+
+    final petalPaint = Paint()
+      ..color = AppColors.gold.withAlpha(22)
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < 8; i++) {
+      final angle = i * pi / 4;
+      final px = cx + cos(angle) * (r * 0.45);
+      final py = cy + sin(angle) * (r * 0.45 * 0.84);
+      canvas.drawCircle(Offset(px, py), 1.8, petalPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant Diwaniya3DTablePainter oldDelegate) =>
+      oldDelegate.isLandscape != isLandscape ||
+      oldDelegate.isWinnerActive != isWinnerActive;
+}
+
+// ============================================================================
+// 2. ساحة اللعب الوسطية ثلاثية الأبعاد (TrickArena)
+// ============================================================================
 class TrickArena extends StatelessWidget {
   const TrickArena({
     super.key,
@@ -28,24 +316,24 @@ class TrickArena extends StatelessWidget {
     if (isLandscape) {
       switch (rel) {
         case 0:
-          return const Alignment(0.0, 0.86); // أنت (South)
+          return const Alignment(0.0, 0.58); // أنت (South)
         case 1:
-          return const Alignment(0.70, 0.0); // الخصم الأيمن (East)
+          return const Alignment(0.44, -0.02); // الخصم الأيمن (East)
         case 2:
-          return const Alignment(0.0, -0.86); // الشريك (North)
+          return const Alignment(0.0, -0.62); // الشريك (North)
         default:
-          return const Alignment(-0.70, 0.0); // الخصم الأيسر (West)
+          return const Alignment(-0.44, -0.02); // الخصم الأيسر (West)
       }
     }
     switch (rel) {
       case 0:
-        return const Alignment(0.0, 0.68); // أنت (South)
+        return const Alignment(0.0, 0.50); // أنت (South)
       case 1:
-        return const Alignment(0.68, 0.0); // الخصم الأيمن (East)
+        return const Alignment(0.42, -0.02); // الخصم الأيمن (East)
       case 2:
-        return const Alignment(0.0, -0.68); // الشريك (North)
+        return const Alignment(0.0, -0.54); // الشريك (North)
       default:
-        return const Alignment(-0.68, 0.0); // الخصم الأيسر (West)
+        return const Alignment(-0.42, -0.02); // الخصم الأيسر (West)
     }
   }
 
@@ -65,11 +353,11 @@ class TrickArena extends StatelessWidget {
   static Offset _winnerEdgeOffset(int rel, double arenaW, double arenaH) {
     switch (rel) {
       case 0:
-        return Offset(0, arenaH * 0.58 + 38); // أنت (أسفل)
+        return Offset(0, arenaH * 0.56 + 36); // أنت (أسفل)
       case 1:
         return Offset(arenaW * 0.54 + 48, 0); // الخصم الأيمن
       case 2:
-        return Offset(0, -(arenaH * 0.58 + 38)); // الشريك (أعلى)
+        return Offset(0, -(arenaH * 0.56 + 36)); // الشريك (أعلى)
       default:
         return Offset(-(arenaW * 0.54 + 48), 0); // الخصم الأيسر
     }
@@ -101,10 +389,7 @@ class TrickArena extends StatelessWidget {
             ? (arenaH * 0.215).clamp(40.0, 56.0)
             : min(arenaH * 0.24, arenaW * 0.21).clamp(48.0, 72.0);
         final cardH = cardW * 1.44;
-        final outerRadius = isLandscape
-            ? min(30.0, arenaH * 0.14)
-            : min(38.0, min(arenaH, arenaW) * 0.16);
-        final innerRadius = max(14.0, outerRadius - 7);
+
         final winnerRel = winner == null ? null : _rel(winner);
         final winnerDest = winnerRel == null
             ? null
@@ -118,222 +403,143 @@ class TrickArena extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // الإطار الخشبي + الجوخ المقصوص بالزوايا الدائرية (معزول بـ RepaintBoundary عن حركة الورق)
+                // 1. هيكل الطاولة ثلاثية الأبعاد الفاخرة بالكامل معزولة بـ RepaintBoundary لسرعة 60fps
                 Positioned.fill(
                   child: RepaintBoundary(
-                    child: Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(outerRadius),
-                      // حافة الطاولة المصقولة ثلاثية الأبعاد (خشب الجوز والماهوجني الملكي مع الإطار الذهبي)
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF3E2313),
-                          Color(0xFF24130A),
-                          Color(0xFF140A05),
-                          Color(0xFF331B0E),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                    child: CustomPaint(
+                      painter: Diwaniya3DTablePainter(
+                        isLandscape: isLandscape,
+                        isWinnerActive: winner != null,
                       ),
-                      border: Border.all(
-                        color: winner != null
-                            ? AppColors.goldLight
-                            : AppColors.gold.withAlpha(165),
-                        width: winner != null ? 2.2 : 1.6,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(220),
-                          blurRadius: 26,
-                          spreadRadius: 1,
-                          offset: const Offset(0, 10),
-                        ),
-                        if (winner != null)
-                          BoxShadow(
-                            color: AppColors.gold.withAlpha(85),
-                            blurRadius: 22,
-                            spreadRadius: 2,
-                          ),
-                      ],
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(innerRadius),
-                        border: Border.all(
-                          color: AppColors.gold.withAlpha(85),
-                          width: 1.2,
-                        ),
-                        // سطح جوخ كازينو ملكي زمردي فاخر ومريح للعين
-                        gradient: const RadialGradient(
-                          center: Alignment(0.0, -0.06),
-                          radius: 0.98,
-                          colors: [
-                            Color(0xFF0F5A40), // زمردي حيوي فاخر في المركز
-                            Color(0xFF093D2A), // زمردي مخملي ملكي
-                            Color(0xFF042116), // أطراف الجوخ العميقة
-                          ],
-                          stops: [0.0, 0.55, 1.0],
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(max(12.0, innerRadius - 2)),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // زخرفة وسط الطاولة الهادئة مع عزل الرسم في طبقة منفصلة لسرعة الأداء
-                            const Positioned.fill(
-                              child: RepaintBoundary(
-                                child: CustomPaint(painter: _TableSurfacePainter()),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // إضاءة الدور (Turn Spotlight) نحو اللاعب الحالي على سطح الجوخ
+                          if (s.actor != null &&
+                              (s.phase == GamePhase.playing ||
+                                  s.phase == GamePhase.bidding))
+                            AnimatedAlign(
+                              key: const ValueKey('turn_spotlight'),
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeOutCubic,
+                              alignment: _cardAlignment(
+                                _rel(s.actor!),
+                                isLandscape: isLandscape,
                               ),
-                            ),
-
-                            // ظل داخلي ناعم تحت حافة الطاولة لإبراز العمق ثلاثي الأبعاد
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                      max(12.0, innerRadius - 2),
-                                    ),
-                                    border: Border.all(
-                                      color: Colors.black.withAlpha(90),
-                                      width: 3.0,
-                                    ),
+                              child: Container(
+                                width: cardW * 1.85,
+                                height: cardH * 1.35,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      AppColors.gold.withAlpha(48),
+                                      Colors.transparent,
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
 
-                            // إضاءة الدور (Turn Spotlight) نحو اللاعب الحالي
-                            if (s.actor != null &&
-                                (s.phase == GamePhase.playing ||
-                                    s.phase == GamePhase.bidding))
-                              AnimatedAlign(
-                                key: const ValueKey('turn_spotlight'),
-                                duration: const Duration(milliseconds: 280),
-                                curve: Curves.easeOutCubic,
-                                alignment: _cardAlignment(
-                                  _rel(s.actor!),
-                                  isLandscape: isLandscape,
-                                ),
-                                child: RepaintBoundary(
-                                  child: Container(
-                                    width: cardW * 1.85,
-                                    height: cardH * 1.35,
+                          // رزم الأكلات المكتسبة على زوايا الطاولة
+                          if (ourTricks > 0)
+                            Positioned(
+                              key: const ValueKey('our_trick_stack'),
+                              left: isLandscape ? 24 : 18,
+                              bottom: isLandscape ? 34 : 26,
+                              child: _TeamTrickStack(
+                                count: ourTricks,
+                                isOurTeam: true,
+                                onTap: s.lastTrick.isEmpty
+                                    ? null
+                                    : () => showLastTrickDialog(context, s),
+                              ),
+                            ),
+                          if (oppTricks > 0)
+                            Positioned(
+                              key: const ValueKey('opp_trick_stack'),
+                              right: isLandscape ? 24 : 18,
+                              top: isLandscape ? 16 : 12,
+                              child: _TeamTrickStack(
+                                count: oppTricks,
+                                isOurTeam: false,
+                                onTap: s.lastTrick.isEmpty
+                                    ? null
+                                    : () => showLastTrickDialog(context, s),
+                              ),
+                            ),
+
+                          // الختم المركزي المذهب للحكم
+                          AnimatedSwitcher(
+                            key: const ValueKey('trump_badge'),
+                            duration: const Duration(milliseconds: 380),
+                            transitionBuilder: (child, anim) => ScaleTransition(
+                              scale: CurvedAnimation(
+                                parent: anim,
+                                curve: Curves.easeOutBack,
+                              ),
+                              child: FadeTransition(opacity: anim, child: child),
+                            ),
+                            child: s.trump != null
+                                ? Container(
+                                    key: ValueKey(
+                                        'trump_${s.trump}_${s.roundNumber}'),
+                                    width: isLandscape ? 40 : 46,
+                                    height: isLandscape ? 40 : 46,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      gradient: RadialGradient(
+                                      gradient: const RadialGradient(
+                                        center: Alignment(-0.28, -0.32),
                                         colors: [
-                                          AppColors.gold.withAlpha(48),
-                                          Colors.transparent,
+                                          Color(0xFFFFF6B8),
+                                          Color(0xFFE5B83A),
+                                          Color(0xFF9E720F),
                                         ],
                                       ),
+                                      border: Border.all(
+                                        color: AppColors.goldLight,
+                                        width: 1.6,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withAlpha(160),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                        BoxShadow(
+                                          color: AppColors.gold.withAlpha(120),
+                                          blurRadius: 12,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ),
-                              ),
-
-                            // رزم الأكلات المكتسبة لكل فريق على الطاولة (بالضغط عليها تعرض آخر أكلة)
-                            if (ourTricks > 0)
-                              Positioned(
-                                key: const ValueKey('our_trick_stack'),
-                                left: isLandscape ? 18 : 14,
-                                bottom: 10,
-                                child: _TeamTrickStack(
-                                  count: ourTricks,
-                                  isOurTeam: true,
-                                  onTap: s.lastTrick.isEmpty
-                                      ? null
-                                      : () => showLastTrickDialog(context, s),
-                                ),
-                              ),
-                            if (oppTricks > 0)
-                              Positioned(
-                                key: const ValueKey('opp_trick_stack'),
-                                right: isLandscape ? 18 : 14,
-                                top: 10,
-                                child: _TeamTrickStack(
-                                  count: oppTricks,
-                                  isOurTeam: false,
-                                  onTap: s.lastTrick.isEmpty
-                                      ? null
-                                      : () => showLastTrickDialog(context, s),
-                                ),
-                              ),
-
-                            // الختم المركزي للحكم
-                            AnimatedSwitcher(
-                              key: const ValueKey('trump_badge'),
-                              duration: const Duration(milliseconds: 380),
-                              transitionBuilder: (child, anim) => ScaleTransition(
-                                scale: CurvedAnimation(
-                                  parent: anim,
-                                  curve: Curves.easeOutBack,
-                                ),
-                                child: FadeTransition(opacity: anim, child: child),
-                              ),
-                              child: s.trump != null
-                                  ? Container(
-                                      key: ValueKey('trump_${s.trump}_${s.roundNumber}'),
-                                      width: isLandscape ? 40 : 46,
-                                      height: isLandscape ? 40 : 46,
-                                      decoration: BoxDecoration(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      width: isLandscape ? 30 : 34,
+                                      height: isLandscape ? 30 : 34,
+                                      decoration: const BoxDecoration(
                                         shape: BoxShape.circle,
-                                        gradient: const RadialGradient(
-                                          center: Alignment(-0.28, -0.32),
-                                          colors: [
-                                            Color(0xFFFFF6B8),
-                                            Color(0xFFE5B83A),
-                                            Color(0xFF9E720F),
-                                          ],
-                                        ),
-                                        border: Border.all(
-                                          color: AppColors.goldLight,
-                                          width: 1.6,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withAlpha(160),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                          BoxShadow(
-                                            color: AppColors.gold.withAlpha(120),
-                                            blurRadius: 12,
-                                            spreadRadius: 1,
-                                          ),
-                                        ],
+                                        color: Color(0xFF041B12),
                                       ),
                                       alignment: Alignment.center,
-                                      child: Container(
-                                        width: isLandscape ? 30 : 34,
-                                        height: isLandscape ? 30 : 34,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Color(0xFF041B12),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: SuitIcon(
-                                          suit: s.trump!,
-                                          size: isLandscape ? 17 : 20,
-                                          color: s.trump!.isRed
-                                              ? const Color(0xFFFF5252)
-                                              : AppColors.goldLight,
-                                        ),
+                                      child: SuitIcon(
+                                        suit: s.trump!,
+                                        size: isLandscape ? 17 : 20,
+                                        color: s.trump!.isRed
+                                            ? const Color(0xFFFF5252)
+                                            : AppColors.goldLight,
                                       ),
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                          ],
-                        ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-                ),
 
-                // طبقة حركة الورق فوق الطاولة بدون قصّ (Clip.none) حتى تظهر الورقة الرابعة أثناء دخولها وسحب الأكلة
+                // 2. حركة توزيع الكروت المتسلسلة فوق الطاولة
                 if (s.roundNumber > 0)
                   _DealDeckBurst(
                     key: ValueKey('deal_burst_${s.roundNumber}'),
@@ -344,12 +550,14 @@ class TrickArena extends StatelessWidget {
                     arenaHeight: arenaH,
                   ),
 
+                // 3. كروت اللمة (Trick plays) مستقرة على سطح الطاولة ثلاثية الأبعاد
                 for (final p in s.trick.plays)
                   Builder(
                     key: ValueKey('slot_${p.card}-${p.player}'),
                     builder: (_) {
                       final rel = _rel(p.player);
-                      final align = _cardAlignment(rel, isLandscape: isLandscape);
+                      final align =
+                          _cardAlignment(rel, isLandscape: isLandscape);
                       final seatOffset = _alignmentOffset(
                         align,
                         arenaW - 14,
@@ -357,26 +565,23 @@ class TrickArena extends StatelessWidget {
                         cardW,
                         cardH,
                       );
-                      return Padding(
-                        padding: const EdgeInsets.all(7),
-                        child: Align(
-                          alignment: align,
-                          child: _PlayedCard(
-                            key: ValueKey('${p.card}-${p.player}'),
-                            rel: rel,
-                            card: p.card,
-                            cardWidth: cardW,
-                            isWinner: winner == p.player || leading == p.player,
-                            sweepRel: winnerRel,
-                            seatOffset: seatOffset,
-                            sweepTarget: winnerDest,
-                          ),
+                      return Align(
+                        alignment: align,
+                        child: _PlayedCard(
+                          key: ValueKey('${p.card}-${p.player}'),
+                          rel: rel,
+                          card: p.card,
+                          cardWidth: cardW,
+                          isWinner: winner == p.player || leading == p.player,
+                          sweepRel: winnerRel,
+                          seatOffset: seatOffset,
+                          sweepTarget: winnerDest,
                         ),
                       );
                     },
                   ),
 
-                // شارة الفائز باللمة تظهر بعد نزول الورقة الرابعة واستقرارها
+                // 4. شارة الفائز باللمة تظهر بعد استقرار الورقة الرابعة
                 if (winner != null)
                   _TrickWinnerBadge(
                     key: ValueKey(
@@ -393,7 +598,9 @@ class TrickArena extends StatelessWidget {
   }
 }
 
-/// توزيع احترافي متسلسل لاعب تلو الآخر (عكس عقارب الساعة بدءاً من يمين الموزع).
+// ============================================================================
+// 3. توزيع احترافي متسلسل لاعب تلو الآخر
+// ============================================================================
 class _DealDeckBurst extends StatefulWidget {
   const _DealDeckBurst({
     super.key,
@@ -530,7 +737,6 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
             if (v >= 0.99) return const SizedBox.shrink();
 
             final deckRemaining = (9 * (1.0 - v)).ceil().clamp(0, 9);
-            // ترتيب التوزيع: 4 لاعبين بالتتابع، كل لاعب له نافذة زمنية مخصصة (0.25 من الوقت)
             final seatsInOrder = [
               for (var order = 0; order < 4; order++)
                 (widget.dealer + 1 + order) % 4,
@@ -543,7 +749,6 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
             return Stack(
               alignment: Alignment.center,
               children: [
-                // هالة ذهبية وظل ناعم تحت رزمة الكوتشينة الوسطية
                 Transform.scale(
                   scale: (1.0 - v * 0.35).clamp(0.45, 1.0),
                   child: Container(
@@ -553,14 +758,14 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          AppColors.gold.withAlpha(((1.0 - v) * 62).round().clamp(0, 80)),
+                          AppColors.gold.withAlpha(
+                              ((1.0 - v) * 62).round().clamp(0, 80)),
                           Colors.transparent,
                         ],
                       ),
                     ),
                   ),
                 ),
-                // طبقات سمك الكوتشينة المخزّنة مسبقاً ثم الوجه العلوي الفاخر
                 for (var s = 0; s < deckRemaining - 1; s++)
                   Transform.translate(
                     offset: Offset(-s * 1.25, -s * 1.5),
@@ -582,10 +787,10 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
                       -(deckRemaining - 1) * 1.5,
                     ),
                     child: deckFadeScale < 0.99
-                        ? Transform.scale(scale: deckFadeScale, child: _deckBack)
+                        ? Transform.scale(
+                            scale: deckFadeScale, child: _deckBack)
                         : _deckBack,
                   ),
-                // توزيع الأوراق لاعب تلو الآخر مع زمن طيران أطول (~16 إطاراً لكل ورقة) لسلاسة حريرية
                 for (var order = 0; order < 4; order++)
                   if (_rel(seatsInOrder[order]) != 0)
                     for (var cardIdx = 0; cardIdx < 5; cardIdx++)
@@ -615,7 +820,6 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
     if (local <= 0.0 || local >= 1.0) return const SizedBox.shrink();
     final t = Curves.easeOutQuart.transform(local);
     final arc = sin(local * pi) * 18.0;
-    // استبدال Opacity بتلاشي الحجم في البداية والنهاية لتفادي saveLayer وضمان 60fps
     final popScale = local < 0.14
         ? (0.58 + 0.42 * (local / 0.14))
         : (local > 0.80 ? (1.0 - (local - 0.80) / 0.20 * 0.35) : 1.0);
@@ -632,6 +836,9 @@ class _DealDeckBurstState extends State<_DealDeckBurst>
   }
 }
 
+// ============================================================================
+// 4. شارة الفائز باللمة
+// ============================================================================
 class _TrickWinnerBadge extends StatelessWidget {
   const _TrickWinnerBadge({super.key, required this.sameTeam});
 
@@ -645,10 +852,10 @@ class _TrickWinnerBadge extends StatelessWidget {
         duration: const Duration(milliseconds: 1180),
         curve: Curves.linear,
         builder: (context, t, child) {
-          // تنتظر الشارة حتى تنزل الورقة الرابعة وتستقر على الطاولة أولاً
           if (t < 0.25) return const SizedBox.shrink();
           final local = ((t - 0.25) / 0.75).clamp(0.0, 1.0);
-          final pop = Curves.easeOutBack.transform((local * 2.4).clamp(0.0, 1.0));
+          final pop =
+              Curves.easeOutBack.transform((local * 2.4).clamp(0.0, 1.0));
           final fade = local < 0.72
               ? 1.0
               : (1.0 - (local - 0.72) / 0.28).clamp(0.0, 1.0);
@@ -685,7 +892,9 @@ class _TrickWinnerBadge extends StatelessWidget {
   }
 }
 
-/// ورقة على الطاولة: تنطلق بميل ثلاثي الأبعاد وقوس واقعي، وعند اكتمال الـ 4 أوراق تستقر جميعها معاً ثم تتجمع وتطير للفائز.
+// ============================================================================
+// 5. ورقة على سطح الطاولة ثلاثية الأبعاد
+// ============================================================================
 class _PlayedCard extends StatefulWidget {
   const _PlayedCard({
     super.key,
@@ -710,7 +919,8 @@ class _PlayedCard extends StatefulWidget {
   State<_PlayedCard> createState() => _PlayedCardState();
 }
 
-class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin {
+class _PlayedCardState extends State<_PlayedCard>
+    with TickerProviderStateMixin {
   static const _from = [
     Offset(0, 150),
     Offset(210, 0),
@@ -719,11 +929,11 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
   ];
   static const _restAngle = [0.0, 0.09, -0.04, -0.09];
 
-  late final AnimationController _enter =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 280))
-        ..forward();
-  late final AnimationController _sweep =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
+  late final AnimationController _enter = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 280))
+    ..forward();
+  late final AnimationController _sweep = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 520));
   Timer? _sweepTimer;
 
   @override
@@ -740,7 +950,6 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
 
   void _scheduleSweep() {
     _sweepTimer?.cancel();
-    // مهلة واضحة (820ms): تنزل الورقة الرابعة (280ms) وتظل الـ 4 أوراق ظاهرة معاً (540ms) قبل السحب
     _sweepTimer = Timer(const Duration(milliseconds: 820), () {
       if (mounted) _sweep.forward();
     });
@@ -761,10 +970,10 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
       builder: (context, child) {
         final t = Curves.easeOutCubic.transform(_enter.value);
         final swRaw = _sweep.value;
-        // المرحلة 1: تجميع الأوراق الأربع في منتصف الطاولة تماماً فوق بعضها (0.0 -> 0.42)
-        final gatherT = Curves.easeOutCubic.transform((swRaw / 0.42).clamp(0.0, 1.0));
-        // المرحلة 2: طيران الكومة المجمّعة معاً دفعة واحدة نحو الفائز (0.36 -> 1.0)
-        final flyOutT = Curves.easeInCubic.transform(((swRaw - 0.36) / 0.64).clamp(0.0, 1.0));
+        final gatherT =
+            Curves.easeOutCubic.transform((swRaw / 0.42).clamp(0.0, 1.0));
+        final flyOutT = Curves.easeInCubic
+            .transform(((swRaw - 0.36) / 0.64).clamp(0.0, 1.0));
 
         final o = _from[widget.rel];
         final stackFan = Offset(
@@ -772,7 +981,8 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
           (widget.rel - 1.5) * 1.5,
         );
 
-        var dx = o.dx * (1 - t) + (-widget.seatOffset.dx + stackFan.dx) * gatherT;
+        var dx = o.dx * (1 - t) +
+            (-widget.seatOffset.dx + stackFan.dx) * gatherT;
         var dy = o.dy * (1 - t) -
             sin(t * pi) * 18 +
             (-widget.seatOffset.dy + stackFan.dy) * gatherT;
@@ -784,14 +994,14 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
         }
 
         final enterScale = 1.18 - 0.18 * t;
-        final winnerPop = widget.isWinner ? (1.0 + 0.08 * sin(_enter.value * pi)) : 1.0;
+        final winnerPop =
+            widget.isWinner ? (1.0 + 0.08 * sin(_enter.value * pi)) : 1.0;
         final sweepScale = flyOutT < 0.78
             ? (1.0 - 0.50 * flyOutT)
             : (0.61 - 0.46 * ((flyOutT - 0.78) / 0.22)).clamp(0.14, 1.0);
-        final tiltX = (1 - t) * 0.36;
+        final tiltX = (1 - t) * 0.36 + 0.08 * t; // ميل ثلاثي الأبعاد دائم على سطح الطاولة
         final gatherAngle = _restAngle[widget.rel] * (1 - gatherT) +
             (widget.rel - 1.5) * 0.05 * gatherT;
-        // بدون Opacity/saveLayer عند الدخول أو الطيران — تلاشي الحجم السلس يمنع أي تقطيع فريمات
         final sweepOpacity = flyOutT < 0.82
             ? 1.0
             : (1.0 - (flyOutT - 0.82) / 0.18).clamp(0.0, 1.0);
@@ -807,15 +1017,13 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
           offset: Offset(dx, dy),
           child: Transform.scale(
             scale: enterScale * winnerPop * sweepScale,
-            child: tiltX > 0.002
-                ? Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0015)
-                      ..rotateX(tiltX),
-                    child: rotatedChild,
-                  )
-                : rotatedChild,
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0012)
+                ..rotateX(tiltX),
+              child: rotatedChild,
+            ),
           ),
         );
       },
@@ -828,6 +1036,9 @@ class _PlayedCardState extends State<_PlayedCard> with TickerProviderStateMixin 
   }
 }
 
+// ============================================================================
+// 6. رزم أكلات الفريق المكتسبة
+// ============================================================================
 class _TeamTrickStack extends StatelessWidget {
   const _TeamTrickStack({
     required this.count,
@@ -842,7 +1053,8 @@ class _TeamTrickStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visible = min(count, 4);
-    final accent = isOurTeam ? const Color(0xFF34C992) : const Color(0xFFE06D44);
+    final accent =
+        isOurTeam ? const Color(0xFF34C992) : const Color(0xFFE06D44);
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -885,7 +1097,9 @@ class _TeamTrickStack extends StatelessWidget {
   }
 }
 
-/// نافذة مصغرة في زاوية الشاشة تعرض آخر 4 أوراق نزلت بوضعية (شمال/جنوب/شرق/غرب) كما في الألعاب العالمية.
+// ============================================================================
+// 7. نافذة مصغرة لآخر أكلة
+// ============================================================================
 class MiniLastTrickBox extends StatelessWidget {
   const MiniLastTrickBox({
     super.key,
@@ -931,7 +1145,8 @@ class MiniLastTrickBox extends StatelessWidget {
             width: 1.2,
           ),
           boxShadow: [
-            const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
+            const BoxShadow(
+                color: Colors.black54, blurRadius: 8, offset: Offset(0, 2)),
             BoxShadow(color: AppColors.gold.withAlpha(45), blurRadius: 6),
           ],
         ),
@@ -952,86 +1167,4 @@ class MiniLastTrickBox extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TableSurfacePainter extends CustomPainter {
-  const _TableSurfacePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final minDim = min(size.width, size.height);
-    final isLandscape = size.width > size.height * 1.15;
-
-    // 1. خياطة ذهبية ملكية مزدوجة تتبع انحناء حافة الطاولة
-    final outerStitch = Paint()
-      ..color = AppColors.gold.withAlpha(48)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1;
-
-    final innerStitch = Paint()
-      ..color = AppColors.goldLight.withAlpha(22)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.75;
-
-    final rOuter = isLandscape
-        ? min(22.0, size.height * 0.12)
-        : max(12.0, min(30.0, minDim * 0.15));
-
-    final rectOuter = Rect.fromLTWH(8, 8, size.width - 16, size.height - 16);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rectOuter, Radius.circular(rOuter)),
-      outerStitch,
-    );
-
-    final rectInner = Rect.fromLTWH(12, 12, size.width - 24, size.height - 24);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rectInner, Radius.circular(max(6.0, rOuter - 4))),
-      innerStitch,
-    );
-
-    // 2. ميدالية مركزية ملكية فاخرة (النجمة الثمانية الإسلامية والأرابيسك المذهب)
-    final r = minDim * (isLandscape ? 0.22 : 0.25);
-    final starPaint = Paint()
-      ..color = AppColors.gold.withAlpha(30)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1;
-
-    final filigreePaint = Paint()
-      ..color = AppColors.goldLight.withAlpha(20)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
-
-    // نجمة ثمانية مذهبة مكونة من مربعين متعامدين بزاوية 45 درجة
-    for (var k = 0; k < 2; k++) {
-      canvas.save();
-      canvas.translate(cx, cy);
-      canvas.rotate(k * pi / 4);
-      canvas.drawRect(
-        Rect.fromCenter(center: Offset.zero, width: r, height: r),
-        starPaint,
-      );
-      canvas.restore();
-    }
-
-    // دوائر التاج الملكي المتدرجة والمحيطة بمركز الطاولة
-    canvas.drawCircle(Offset(cx, cy), r * 0.82, filigreePaint);
-    canvas.drawCircle(Offset(cx, cy), r * 0.58, starPaint);
-    canvas.drawCircle(Offset(cx, cy), r * 0.32, filigreePaint);
-
-    // بتلات الأرابيسك الملكية الناعمة داخل المركز
-    final petalPaint = Paint()
-      ..color = AppColors.gold.withAlpha(22)
-      ..style = PaintingStyle.fill;
-    for (var i = 0; i < 8; i++) {
-      final angle = i * pi / 4;
-      final px = cx + cos(angle) * (r * 0.45);
-      final py = cy + sin(angle) * (r * 0.45);
-      canvas.drawCircle(Offset(px, py), 2.0, petalPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
