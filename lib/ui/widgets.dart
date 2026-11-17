@@ -393,14 +393,11 @@ Future<T?> showLuxuryDialog<T>({
                 const SizedBox(height: 14),
                 content,
                 const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    for (var i = 0; i < actions.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 10),
-                      Flexible(child: actions[i]),
-                    ],
-                  ],
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: actions,
                 ),
               ],
             ),

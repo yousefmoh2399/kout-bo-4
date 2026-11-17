@@ -141,12 +141,14 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Icon(Icons.card_giftcard_rounded, color: AppColors.goldLight, size: 18),
                 SizedBox(width: 8),
-                Text(
-                  'احصل على ٥٠٠ نقطة ترحيبية مجاناً 🎁',
-                  style: TextStyle(
-                    color: AppColors.goldLight,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12.5,
+                Flexible(
+                  child: Text(
+                    'احصل على ٥٠٠ نقطة ترحيبية مجاناً 🎁',
+                    style: TextStyle(
+                      color: AppColors.goldLight,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ),
               ],
@@ -168,13 +170,13 @@ class _HomePageState extends State<HomePage> {
         GoldButton(
           label: 'إلغاء',
           outlined: true,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           onPressed: () => Navigator.pop(context),
         ),
         GoldButton(
-          label: 'تسجيل حساب الآن (٥٠٠ نقطة 🎁)',
+          label: 'سجّل حسابك (٥٠٠ 🎁)',
           icon: Icons.app_registration_rounded,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           onPressed: () {
             Navigator.pop(context);
             context.read<AuthCubit>().signOut();
