@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../bloc/auth_cubit.dart';
 import '../bloc/game_bloc.dart';
@@ -11,7 +10,6 @@ import '../core/connectivity_service.dart';
 import '../core/sound.dart';
 import '../core/theme.dart';
 import '../data/emote.dart';
-import '../data/room_repository.dart';
 import '../data/stats_repository.dart';
 import '../domain/rules.dart';
 import 'game/game_hud.dart';
