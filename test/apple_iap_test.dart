@@ -8,16 +8,17 @@ void main() {
   group('AppleIapProducts', () {
     test('verifies product identifiers and point mapping', () {
       expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_500'));
-      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_1000'));
-      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_5000'));
-      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_15000'));
-      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo4.coins_50000'));
+      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo_4.coins_1000'));
+      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo_4.coins_5000'));
+      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo_4.coins_15000'));
+      expect(AppleIapProducts.allIds, contains('com.faisal.koutbo_4.coins_50000'));
 
       expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_500'), 500);
+      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo_4.coins_1000'), 1000);
+      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo_4.coins_5000'), 5500);
+      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo_4.coins_15000'), 17500);
+      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo_4.coins_50000'), 65000);
       expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_1000'), 1000);
-      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_5000'), 5500);
-      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_15000'), 17500);
-      expect(AppleIapProducts.coinsForProduct('com.faisal.koutbo4.coins_50000'), 65000);
       expect(AppleIapProducts.coinsForProduct('com.koutbo4.coins_500'), 500);
       expect(AppleIapProducts.coinsForProduct('com.koutbo4.coins_1000'), 1000);
       expect(AppleIapProducts.coinsForProduct('unknown'), 0);
@@ -33,10 +34,10 @@ void main() {
 
       final ids = products.map((p) => p['productID']).toSet();
       expect(ids, contains('com.faisal.koutbo4.coins_500'));
-      expect(ids, contains('com.faisal.koutbo4.coins_1000'));
-      expect(ids, contains('com.faisal.koutbo4.coins_5000'));
-      expect(ids, contains('com.faisal.koutbo4.coins_15000'));
-      expect(ids, contains('com.faisal.koutbo4.coins_50000'));
+      expect(ids, contains('com.faisal.koutbo_4.coins_1000'));
+      expect(ids, contains('com.faisal.koutbo_4.coins_5000'));
+      expect(ids, contains('com.faisal.koutbo_4.coins_15000'));
+      expect(ids, contains('com.faisal.koutbo_4.coins_50000'));
 
       for (final p in products) {
         expect(p['type'], equals('Consumable'));

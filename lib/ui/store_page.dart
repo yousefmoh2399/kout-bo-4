@@ -59,7 +59,7 @@ const List<CoinPackage> kCoinPackages = [
     icon: Icons.hourglass_top_rounded,
   ),
   CoinPackage(
-    id: 'com.faisal.koutbo4.coins_1000',
+    id: 'com.faisal.koutbo_4.coins_1000',
     title: 'كيس النقاط (صكتان)',
     matchesText: 'صكتان كاملتان ٤٠ دقيقة • ١,٠٠٠ نقطة',
     coins: 1000,
@@ -70,7 +70,7 @@ const List<CoinPackage> kCoinPackages = [
     icon: Icons.monetization_on_outlined,
   ),
   CoinPackage(
-    id: 'com.faisal.koutbo4.coins_5000',
+    id: 'com.faisal.koutbo_4.coins_5000',
     title: 'صرة الديوانية (١١ صكة)',
     matchesText: '١١ صكة (٣ ساعات و٤٠ دقيقة) • ٥,٠٠٠ + ٥٠٠ هدية',
     coins: 5000,
@@ -83,7 +83,7 @@ const List<CoinPackage> kCoinPackages = [
     isPopular: true,
   ),
   CoinPackage(
-    id: 'com.faisal.koutbo4.coins_15000',
+    id: 'com.faisal.koutbo_4.coins_15000',
     title: 'صندوق المحترفين (٣٥ صكة)',
     matchesText: '٣٥ صكة (١١.٥ ساعة لعب) • ١٥,٠٠٠ + ٢,٥٠٠ هدية',
     coins: 15000,
@@ -95,7 +95,7 @@ const List<CoinPackage> kCoinPackages = [
     badge: 'توفير إضافي ✨ (+2,500 بونص)',
   ),
   CoinPackage(
-    id: 'com.faisal.koutbo4.coins_50000',
+    id: 'com.faisal.koutbo_4.coins_50000',
     title: 'خزانة النقاط الكبرى (١٣٠ صكة)',
     matchesText: '١٣٠ صكة (أكثر من ٤٣ ساعة) • ٥٠,٠٠٠ + ١٥,٠٠٠ هدية',
     coins: 50000,
