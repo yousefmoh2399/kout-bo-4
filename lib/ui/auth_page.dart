@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../bloc/auth_cubit.dart';
 import '../core/connectivity_service.dart';
@@ -213,6 +214,16 @@ class _AuthPageState extends State<AuthPage> {
                                       },
                                     ),
                                   if (cubit.online && isOnline) ...[
+                                    const SizedBox(height: 12),
+                                    SignInWithAppleButton(
+                                      onPressed: s.busy
+                                          ? () {}
+                                          : () => cubit.signInWithApple(),
+                                      text: 'تسجيل الدخول بواسطة Apple',
+                                      height: 48,
+                                      borderRadius: BorderRadius.circular(14),
+                                      style: SignInWithAppleButtonStyle.black,
+                                    ),
                                     const SizedBox(height: 12),
                                     GoldButton(
                                       label: _emailMode

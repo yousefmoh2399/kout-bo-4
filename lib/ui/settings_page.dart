@@ -135,7 +135,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthCubit>();
     final authState = auth.state;
-    final canDelete = auth.online && authState.userId != null;
+    final canDelete = authState.status == AuthStatus.signedIn;
 
     return Scaffold(
       body: FeltBackground(
@@ -400,11 +400,27 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             if (canDelete) ...[
-              const SizedBox(height: 6),
-              TextButton.icon(
-                icon: const Icon(Icons.delete_forever_rounded, size: 16, color: AppColors.danger),
-                label: const Text('حذف الحساب نهائياً', style: TextStyle(color: AppColors.danger, fontSize: 11.5)),
-                onPressed: () => _confirmDelete(context),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.danger.withAlpha(80), width: 1.0),
+                ),
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  icon: const Icon(Icons.delete_forever_rounded, size: 17, color: AppColors.danger),
+                  label: const Text(
+                    'حذف الحساب نهائياً',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () => _confirmDelete(context),
+                ),
               ),
             ],
           ],
