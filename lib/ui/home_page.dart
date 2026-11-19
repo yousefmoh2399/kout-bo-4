@@ -232,33 +232,54 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     final controller = TextEditingController();
+    final isLandscape =
+        MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     final code = await showLuxuryDialog<String>(
       context: context,
       title: 'انضم لغرفة',
       icon: Icons.vpn_key_rounded,
       content: TextField(
         controller: controller,
-        autofocus: true,
+        autofocus: !isLandscape,
         textCapitalization: TextCapitalization.characters,
         textAlign: TextAlign.center,
         maxLength: 5,
-        style: const TextStyle(
-          fontSize: 26,
-          letterSpacing: 8,
+        style: TextStyle(
+          fontSize: isLandscape ? 20 : 24,
+          letterSpacing: isLandscape ? 6 : 8,
           fontWeight: FontWeight.bold,
         ),
-        decoration: const InputDecoration(hintText: 'XXXXX', counterText: ''),
+        decoration: InputDecoration(
+          hintText: 'XXXXX',
+          counterText: '',
+          contentPadding: EdgeInsets.symmetric(
+            vertical: isLandscape ? 6 : 10,
+            horizontal: 12,
+          ),
+        ),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (val) {
+          if (val.trim().length >= 4) {
+            Navigator.pop(context, val.trim().toUpperCase());
+          }
+        },
       ),
       actions: [
         GoldButton(
           label: 'إلغاء',
           outlined: true,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 14 : 18,
+            vertical: isLandscape ? 7 : 10,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         GoldButton(
           label: 'انضم',
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 18 : 22,
+            vertical: isLandscape ? 7 : 10,
+          ),
           onPressed: () =>
               Navigator.pop(context, controller.text.trim().toUpperCase()),
         ),

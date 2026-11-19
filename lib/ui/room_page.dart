@@ -273,22 +273,29 @@ class _RoomPageState extends State<RoomPage> {
             ),
           ),
           const SizedBox(height: 10),
-          GoldButton(
-            label: 'شارك كود الدعوة',
-            icon: Icons.share_rounded,
-            outlined: true,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            onPressed: () {
-              SoundService.instance.play(Sfx.click);
-              final box = context.findRenderObject() as RenderBox?;
-              final origin = box == null
-                  ? const Rect.fromLTWH(0, 0, 1, 1)
-                  : box.localToGlobal(Offset.zero) & box.size;
-              Share.share(
-                'تعال العب معي كوت بو ٤! ادخل التطبيق واختر "انضم بكود" واكتب: ${room.code}',
-                sharePositionOrigin: origin,
-              );
-            },
+          Builder(
+            builder: (btnCtx) => GoldButton(
+              label: 'شارك كود الدعوة',
+              icon: Icons.share_rounded,
+              outlined: true,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              onPressed: () {
+                SoundService.instance.play(Sfx.click);
+                try {
+                  final box = btnCtx.findRenderObject() as RenderBox?;
+                  final origin = box != null && box.hasSize
+                      ? box.localToGlobal(Offset.zero) & box.size
+                      : const Rect.fromLTWH(0, 0, 100, 100);
+                  Share.share(
+                    'تعال العب معي كوت بو ٤! ادخل التطبيق واختر "انضم بكود" واكتب: ${room.code}',
+                    sharePositionOrigin: origin,
+                  );
+                } catch (_) {
+                  Clipboard.setData(ClipboardData(text: room.code));
+                  showSnack(context, 'تم نسخ كود الغرفة: ${room.code}');
+                }
+              },
+            ),
           ),
         ],
       ),
