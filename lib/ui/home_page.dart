@@ -192,11 +192,8 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     final auth = context.read<AuthCubit>().state;
-    if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
-      _showGuestBlockedDialog(
-        title: 'تسجيل الحساب مطلوب',
-        actionName: 'إنشاء ديوانية أونلاين',
-      );
+    if (auth.userId == null || auth.userId == 'local') {
+      _showOfflineActionDialog(actionName: 'إنشاء ديوانية أونلاين');
       return;
     }
     final userCoins = auth.coins;
@@ -224,11 +221,8 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     final auth = context.read<AuthCubit>().state;
-    if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
-      _showGuestBlockedDialog(
-        title: 'تسجيل الحساب مطلوب',
-        actionName: 'الانضمام لديوانية أونلاين',
-      );
+    if (auth.userId == null || auth.userId == 'local') {
+      _showOfflineActionDialog(actionName: 'الانضمام لديوانية أونلاين');
       return;
     }
     final controller = TextEditingController();
@@ -299,11 +293,8 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _rejoinRoom(Room room) async {
     final auth = context.read<AuthCubit>().state;
-    if (auth.isGuest || auth.userId == null || auth.userId == 'local') {
-      _showGuestBlockedDialog(
-        title: 'تسجيل الحساب مطلوب',
-        actionName: 'الانضمام لديوانية أونلاين',
-      );
+    if (auth.userId == null || auth.userId == 'local') {
+      _showOfflineActionDialog(actionName: 'الانضمام لديوانية أونلاين');
       return;
     }
     SoundService.instance.play(Sfx.click);

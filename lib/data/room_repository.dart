@@ -15,8 +15,8 @@ class RoomRepository {
     required GameSettings settings,
   }) async {
     final u = _client.auth.currentUser;
-    if (u == null || u.isAnonymous) {
-      throw Exception('عفواً، إنشاء الغرف متاح فقط للأعضاء المسجلين.');
+    if (u == null) {
+      throw Exception('سجّل الدخول أولاً للتمكن من اللعب أونلاين.');
     }
     try {
       final code = await _client.rpc('create_room_with_stake', params: {
@@ -44,8 +44,8 @@ class RoomRepository {
 
   Future<Room> joinRoom({required String code, required String name}) async {
     final u = _client.auth.currentUser;
-    if (u == null || u.isAnonymous) {
-      throw Exception('عفواً، الانضمام للغرف متاح فقط للأعضاء المسجلين.');
+    if (u == null) {
+      throw Exception('سجّل الدخول أولاً للتمكن من اللعب أونلاين.');
     }
     final cleanCode = code.trim().toUpperCase();
     final uid = _client.auth.currentUser?.id;

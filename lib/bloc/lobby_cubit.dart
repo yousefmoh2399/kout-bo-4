@@ -117,6 +117,9 @@ class LobbyCubit extends Cubit<LobbyState> {
     final text = e is PostgrestException
         ? (e.message.isNotEmpty ? e.message : (e.details?.toString() ?? e.toString()))
         : e.toString();
+    if (text.contains('guest_not_allowed')) {
+      return 'سجّل الدخول أولاً للتمكن من اللعب في هذه الغرفة.';
+    }
     if (text.contains('insufficient_coins')) {
       return 'رصيدك من النقاط لا يكفي لدخول هذه الغرفة. اشحن رصيدك من المتجر!';
     }

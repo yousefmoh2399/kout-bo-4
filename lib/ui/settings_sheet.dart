@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../bloc/auth_cubit.dart';
 import '../core/config.dart';
 import '../core/sound.dart';
 import '../core/theme.dart';
@@ -764,36 +762,27 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   Expanded(
                     flex: 7,
                     child: GoldButton(
-                      label: widget.isGuest && widget.isOnlineRoom
-                          ? 'سجّل حسابك للمتابعة'
-                          : (!hasEnoughCoins
-                              ? 'اشحن النقاط'
-                              : widget.confirmLabel),
-                      icon: widget.isGuest && widget.isOnlineRoom
-                          ? Icons.lock_person_rounded
-                          : (!hasEnoughCoins
-                              ? Icons.monetization_on_rounded
-                              : (widget.isOnlineRoom
-                                  ? Icons.add_home_work_rounded
-                                  : Icons.play_arrow_rounded)),
+                      label: !hasEnoughCoins
+                          ? 'اشحن النقاط'
+                          : widget.confirmLabel,
+                      icon: !hasEnoughCoins
+                          ? Icons.monetization_on_rounded
+                          : (widget.isOnlineRoom
+                              ? Icons.add_home_work_rounded
+                              : Icons.play_arrow_rounded),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      onPressed: widget.isGuest && widget.isOnlineRoom
+                      onPressed: !hasEnoughCoins
                           ? () {
                               Navigator.pop(context);
-                              context.read<AuthCubit>().signOut();
+                              StorePage.show(
+                                context,
+                                requiredPoints: _settings.stakePoints,
+                              );
                             }
-                          : (!hasEnoughCoins
-                              ? () {
-                                  Navigator.pop(context);
-                                  StorePage.show(
-                                    context,
-                                    requiredPoints: _settings.stakePoints,
-                                  );
-                                }
-                              : () {
-                                  SoundService.instance.play(Sfx.click);
-                                  Navigator.pop(context, _settings);
-                                }),
+                          : () {
+                              SoundService.instance.play(Sfx.click);
+                              Navigator.pop(context, _settings);
+                            },
                     ),
                   ),
                 ],

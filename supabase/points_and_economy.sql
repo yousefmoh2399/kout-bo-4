@@ -73,42 +73,37 @@ begin
   end loop;
 end $$;
 
--- ب. دالة مزامنة وإنشاء بروفايل اللاعب (الضيف = 0 نقطة، الحساب المسجل = 500 نقطة ترحيبية)
-create or replace function public.sync_profile(p_name text, p_is_guest boolean default true)
+-- ب. دالة مزامنة وإنشاء بروفايل اللاعب (الجميع يبدأ بـ 500 نقطة ترحيبية = صكة أولى مجانية)
+create or replace function public.sync_profile(p_name text, p_is_guest boolean default false)
 returns public.profiles
 language plpgsql security definer set search_path = public as $$
 declare
   v_uid uuid := auth.uid();
   v_profile public.profiles;
-  v_initial_coins bigint;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   p_name := left(btrim(coalesce(p_name, '')), 24);
   if p_name = '' then p_name := 'لاعب'; end if;
 
-  -- الضيف لا يحصل على أي نقاط أولية (0 نقطة)، بينما الحساب المسجل يحصل على 500 نقطة ترحيبية
-  v_initial_coins := case when p_is_guest then 0 else 500 end;
-
   insert into public.profiles (id, name, is_guest, coins, updated_at)
-  values (v_uid, p_name, p_is_guest, v_initial_coins, now())
+  values (v_uid, p_name, coalesce(p_is_guest, false), 500, now())
   on conflict (id) do update
     set name = p_name,
-        -- إذا تحول الحساب من ضيف إلى مسجل، وكان رصيده 0 ولم يأخذ بونص ترحيبي، يمنح 500 نقطة ترحيبية
-        coins = case 
-          when profiles.is_guest and not p_is_guest and coalesce(profiles.coins, 0) = 0 then 500
-          else profiles.coins
+        coins = coalesce(profiles.coins, 500),
+        is_guest = case 
+          when profiles.is_guest is false then false 
+          else coalesce(p_is_guest, profiles.is_guest, false)
         end,
-        is_guest = p_is_guest,
         updated_at = now()
   returning * into v_profile;
 
-  -- تسجيل معاملة welcome_bonus عند منح 500 نقطة لأول مرة لحساب مسجل
-  if not p_is_guest and not exists (
+  -- تسجيل معاملة welcome_bonus عند منح 500 نقطة لأول مرة
+  if not exists (
     select 1 from public.coin_transactions 
     where user_id = v_uid and type = 'welcome_bonus'
-  ) and v_profile.coins = 500 then
+  ) and v_profile.coins >= 500 then
     insert into public.coin_transactions (user_id, amount, type, balance_after, description)
-    values (v_uid, 500, 'welcome_bonus', 500, 'مكافأة التسجيل والترحيب بالعضو الجديد');
+    values (v_uid, 500, 'welcome_bonus', v_profile.coins, 'مكافأة التسجيل والترحيب باللاعب');
   end if;
 
   return v_profile;
@@ -126,7 +121,6 @@ declare
   v_code text;
   v_uid uuid := auth.uid();
   v_balance bigint;
-  v_is_guest boolean;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   if p_target not in (51, 101) or p_turn < 0 or p_turn > 120 then raise exception 'bad_settings'; end if;
@@ -136,17 +130,13 @@ begin
   if p_name = '' then p_name := 'لاعب'; end if;
 
   -- التأكد من وجود بروفايل اللاعب ومزامنته
-  perform public.sync_profile(p_name);
-
-  -- التحقق الصارم: يمنع الضيف من إنشاء الغرف نهائياً
-  select is_guest into v_is_guest from public.profiles where id = v_uid;
-  if coalesce(v_is_guest, true) then
-    raise exception 'guest_not_allowed';
-  end if;
+  perform public.sync_profile(p_name, false);
 
   -- التحقق من رصيد اللاعب
   select coins into v_balance from public.profiles where id = v_uid for update;
   if p_stake > 0 and (v_balance is null or v_balance < p_stake) then
+    raise exception 'insufficient_coins';
+  end if;
     raise exception 'insufficient_coins';
   end if;
 
@@ -190,13 +180,7 @@ begin
   if p_name = '' then p_name := 'لاعب'; end if;
 
   -- التأكد من وجود بروفايل اللاعب ومزامنته
-  perform public.sync_profile(p_name);
-
-  -- التحقق الصارم: يمنع الضيف من الانضمام للغرف نهائياً
-  select is_guest into v_is_guest from public.profiles where id = v_uid;
-  if coalesce(v_is_guest, true) then
-    raise exception 'guest_not_allowed';
-  end if;
+  perform public.sync_profile(p_name, false);
 
   select * into r from public.rooms where code = upper(p_code) for update;
   if r.code is null then raise exception 'room_not_found'; end if;
@@ -444,12 +428,6 @@ declare
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   if p_minutes <= 0 then raise exception 'invalid_minutes'; end if;
-
-  -- التحقق الصارم: يمنع الضيف من تمديد الوقت
-  select is_guest into v_is_guest from public.profiles where id = v_uid;
-  if coalesce(v_is_guest, true) then
-    raise exception 'guest_not_allowed';
-  end if;
 
   -- حساب التكلفة: كل 20 دقيقة = 500 نقطة
   v_cost := ((p_minutes + 19) / 20) * 500;

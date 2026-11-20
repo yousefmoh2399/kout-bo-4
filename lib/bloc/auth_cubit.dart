@@ -98,8 +98,8 @@ class AuthCubit extends Cubit<AppAuthState> {
       name: name,
       userId: u.id,
       isGuest: isGuest,
-      // الضيف يبدأ بـ 0 نقاط، بينما العضو المسجل يحصل على 500 نقطة ترحيبية
-      coins: isGuest ? 0 : 500,
+      // كل مستخدم (سواء ضيف أو مسجل) يحصل على 500 نقطة ترحيبية لصكة تجريبية أولى
+      coins: 500,
     ));
 
     // مزامنة فورية للبروفايل مع قاعدة البيانات وجلب الرصيد
@@ -115,7 +115,7 @@ class AuthCubit extends Cubit<AppAuthState> {
           'id': u.id,
           'name': name,
           'is_guest': isGuest,
-          'coins': isGuest ? 0 : 500,
+          'coins': 500,
           'updated_at': DateTime.now().toIso8601String(),
         }).then((_) {
           refreshCoins();
@@ -128,18 +128,13 @@ class AuthCubit extends Cubit<AppAuthState> {
 
   /// تحديث رصيد النقاط محلياً فوراً
   void setCoins(int newCoins) {
-    if (!isClosed) emit(state.copyWith(coins: state.isGuest ? 0 : newCoins));
+    if (!isClosed) emit(state.copyWith(coins: newCoins));
   }
 
   /// تحديث رصيد النقاط من Supabase
   Future<void> refreshCoins() async {
     final c = _client;
     final uid = state.userId;
-    // الضيف لا يملك أي رصيد نقاط (0 دائماً) حتى يسجل حسابه
-    if (state.isGuest) {
-      if (state.coins != 0 && !isClosed) emit(state.copyWith(coins: 0));
-      return;
-    }
     if (c == null || uid == null || uid == 'local') return;
     try {
       final row = await c.from('profiles').select('coins').eq('id', uid).maybeSingle();

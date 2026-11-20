@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:test_build_game/bloc/auth_cubit.dart';
 import 'package:test_build_game/bloc/game_bloc.dart';
@@ -9,9 +8,7 @@ import 'package:test_build_game/bloc/game_codec.dart';
 import 'package:test_build_game/core/config.dart';
 import 'package:test_build_game/core/sound.dart';
 import 'package:test_build_game/core/theme.dart';
-import 'package:test_build_game/data/stats_repository.dart';
 import 'package:test_build_game/ui/game/game_hud.dart';
-import 'package:test_build_game/ui/home_page.dart';
 import 'package:test_build_game/ui/settings_sheet.dart';
 
 void main() {
@@ -21,14 +18,10 @@ void main() {
   });
 
   group('1. الرصيد الافتتاحي وحساب النقاط (Initial Balance & Calculations)', () {
-    test('الضيف (Guest) يبدأ بـ 0 نقطة ولا يحصل على نقاط إلا عند تسجيل حسابه', () {
-      const guestState = AppAuthState(isGuest: true);
-      expect(guestState.coins, equals(0),
-          reason: 'يجب أن يبدأ الضيف بـ 0 نقطة ولا يحصل على أي نقاط إلا بعد تسجيل حسابه');
-
-      const registeredState = AppAuthState(isGuest: false, coins: 500);
-      expect(registeredState.coins, equals(500),
-          reason: 'الحساب المسجل يحصل على 500 نقطة ترحيبية');
+    test('المستخدم يبدأ بـ 500 نقطة ترحيبية لصكة تجريبية واحدة', () {
+      const state = AppAuthState(coins: 500);
+      expect(state.coins, equals(500),
+          reason: 'يحصل المستخدم على 500 نقطة ترحيبية');
     });
 
     test('مدة المباراة الافتراضية في الإعدادات هي 20 دقيقة', () {
@@ -296,8 +289,8 @@ void main() {
     });
   });
 
-  group('4. قيود ومنع الضيف من الغرف والنقاط (Guest Blocking & Policy)', () {
-    testWidgets('الضيف في نافذة الإعدادات يتحول زر التأكيد إلى "سجّل حسابك للمتابعة"',
+  group('4. تكامل النقاط والغرف (Points & Room Creation Policy)', () {
+    testWidgets('عند نقص الرصيد في نافذة الإعدادات يتحول زر التأكيد إلى "اشحن النقاط"',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1200);
       tester.view.devicePixelRatio = 1.0;
@@ -316,7 +309,6 @@ void main() {
                     confirmLabel: 'إنشاء ديوانية',
                     isOnlineRoom: true,
                     userCoins: 0,
-                    isGuest: true, // ضيف
                   );
                 },
                 child: const Text('افتح'),
@@ -329,86 +321,15 @@ void main() {
       await tester.tap(find.text('افتح'));
       await tester.pumpAndSettle();
 
-      // يتحول الزر السفلي فوراً لمنع الضيف ومطالبته بالتسجيل
-      expect(find.text('سجّل حسابك للمتابعة'), findsOneWidget);
-      expect(find.byIcon(Icons.lock_person_rounded), findsOneWidget);
+      expect(find.text('اشحن النقاط'), findsOneWidget);
+      expect(find.byIcon(Icons.monetization_on_rounded), findsOneWidget);
     });
 
-    testWidgets('الضيف في الشاشة الرئيسية تظهر له رسالة تنبيه عند الضغط على إنشاء أو دخول ديوانية',
-        (tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await tester.pumpWidget(
-        RepositoryProvider<StatsRepository>(
-          create: (_) => StatsRepository(null),
-          child: BlocProvider<AuthCubit>(
-            create: (_) => AuthCubit(null),
-            child: MaterialApp(
-              theme: AppTheme.dark,
-              home: const Directionality(
-                textDirection: TextDirection.rtl,
-                child: HomePage(),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // 1. التحقق من كبسولة رصيد الضيف (0)
-      expect(find.text('ضيف (٠)'), findsOneWidget);
-
-      // 2. الضغط على إنشاء ديوانية أونلاين
-      await tester.tap(find.text('إنشاء ديوانية'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // يظهر تنبيه تسجيل الحساب مع الهدية 500 نقطة
-      expect(find.text('تسجيل الحساب مطلوب'), findsOneWidget);
-      expect(find.text('احصل على ٥٠٠ نقطة ترحيبية مجاناً 🎁'), findsOneWidget);
-      expect(find.text('سجّل حسابك (٥٠٠ 🎁)'), findsOneWidget);
-
-      // إغلاق التنبيه
-      await tester.tap(find.text('إلغاء'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // 3. الضغط على الانضمام لديوانية (انضم بكود)
-      await tester.tap(find.text('انضم بكود'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // يظهر التنبيه أيضاً
-      expect(find.text('تسجيل الحساب مطلوب'), findsOneWidget);
-      await tester.tap(find.text('إلغاء'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // 4. الضغط على كبسولة رصيد الضيف
-      await tester.tap(find.text('ضيف (٠)'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // يظهر تنبيه رصيد النقاط للأعضاء
-      expect(find.text('رصيد نقاط الأعضاء'), findsOneWidget);
-      await tester.tap(find.text('إلغاء'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-    });
-
-    test('ملف SQL يمنع الضيف من إنشاء أو دخول الغرف أو تمديد الوقت (guest_not_allowed)', () {
+    test('ملف SQL يتيح إنشاء الغرف وتمديد الوقت بدون أخطاء تعليق', () {
       final file = File('supabase/points_and_economy.sql');
       expect(file.existsSync(), isTrue);
 
       final sql = file.readAsStringSync();
-
-      // التحقق من أن الرصيد الافتراضي هو 0 للضيوف
-      expect(sql.contains('default 0'), isTrue,
-          reason: 'يجب أن يكون الرصيد الافتراضي 0 نقاط للضيوف');
 
       // التحقق من قيود stake_points
       expect(sql.contains('1500, 2000, 2500, 3000'), isTrue);
@@ -416,9 +337,8 @@ void main() {
       // التحقق من وجود دالة extend_room_time
       expect(sql.contains('create or replace function public.extend_room_time'), isTrue);
 
-      // التحقق من أن الدوال ترفض الضيف عبر استثناء guest_not_allowed
-      expect(sql.contains("raise exception 'guest_not_allowed';"), isTrue,
-          reason: 'يجب أن تمنع دالات SQL الضيف من دخول الغرف عبر استثناء guest_not_allowed');
+      // التحقق من دالة create_room_with_stake
+      expect(sql.contains('create or replace function public.create_room_with_stake'), isTrue);
     });
   });
 
