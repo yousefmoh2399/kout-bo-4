@@ -137,8 +137,6 @@ begin
   if p_stake > 0 and (v_balance is null or v_balance < p_stake) then
     raise exception 'insufficient_coins';
   end if;
-    raise exception 'insufficient_coins';
-  end if;
 
   -- استرداد أي غرف سابقة لم تبدأ كان المضيف فيها
   perform public.refund_room_stakes_for_user(v_uid);
