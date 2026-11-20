@@ -3,6 +3,20 @@
 -- انسخ هذا الكود بالكامل والصقه في Supabase → SQL Editor واضغط RUN
 -- ==============================================================================
 
+-- 0. التأكد من وجود جدول الغرف وعمود stake_points
+create table if not exists public.rooms (
+  code          text primary key,
+  host_id       uuid not null references auth.users(id) on delete cascade,
+  status        text not null default 'waiting' check (status in ('waiting', 'playing', 'finished')),
+  target_score  int  not null default 101,
+  turn_seconds  int  not null default 20,
+  stake_points  int  not null default 0,
+  seats         jsonb not null default '[null,null,null,null]'::jsonb,
+  created_at    timestamptz not null default now()
+);
+
+alter table public.rooms add column if not exists stake_points int not null default 0;
+
 -- 1. دالة مزامنة بروفايل اللاعب (منح 500 نقطة ترحيبية للجميع وعدم حظر الضيوف)
 create or replace function public.sync_profile(p_name text, p_is_guest boolean default false)
 returns public.profiles
@@ -95,7 +109,7 @@ end $$;
 create or replace function public.join_room_with_stake(p_code text, p_name text) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
-  r public.rooms;
+  r record;
   v_uid uuid := auth.uid();
   v_seat int := null;
   v_order int[] := array[2, 1, 3];

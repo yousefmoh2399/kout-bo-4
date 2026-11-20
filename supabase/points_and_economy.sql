@@ -167,7 +167,7 @@ end $$;
 create or replace function public.join_room_with_stake(p_code text, p_name text) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
-  r public.rooms;
+  r record;
   v_uid uuid := auth.uid();
   v_seat int := null;
   v_order int[] := array[2, 1, 3];
@@ -326,7 +326,7 @@ end $$;
 create or replace function public.leave_room(p_code text) returns void
 language plpgsql security definer set search_path = public as $$
 declare
-  r public.rooms;
+  r record;
   v_uid uuid := auth.uid();
   i int;
   v_seat_uid uuid;
@@ -374,7 +374,7 @@ end $$;
 create or replace function public.switch_seat(p_code text, p_target_seat int) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
-  r public.rooms;
+  r record;
   v_uid uuid := auth.uid();
   v_curr_seat int := null;
   v_player_data jsonb;
